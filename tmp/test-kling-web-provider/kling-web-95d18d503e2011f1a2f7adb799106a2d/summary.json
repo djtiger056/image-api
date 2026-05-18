@@ -1,0 +1,11 @@
+{
+  "taskId": "kling-web-95d18d503e2011f1a2f7adb799106a2d",
+  "targetUrl": "http://127.0.0.1:19192/mock-kling/image/new",
+  "prompt": "web sync should ignore history images",
+  "baselineImageCount": 1,
+  "imageCount": 2,
+  "observedTaskIds": [
+    "mock-web-task-1"
+  ],
+  "pageUrl": "http://127.0.0.1:19192/mock-kling/image/new"
+}

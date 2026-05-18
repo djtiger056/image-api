@@ -1,0 +1,9 @@
+{
+  "taskId": "kling-web-4673fbc13d4511f1b657c55f0f4307a3",
+  "targetUrl": "http://127.0.0.1:19192/mock-kling/image/new",
+  "message": "Kling 网页任务在 8 秒内未观察到结果图，详情见 tmp/test-kling-web-provider/kling-web-4673fbc13d4511f1b657c55f0f4307a3",
+  "pageUrl": "http://127.0.0.1:19192/mock-kling/image/new",
+  "observedTaskIds": [
+    "mock-web-task-1"
+  ]
+}

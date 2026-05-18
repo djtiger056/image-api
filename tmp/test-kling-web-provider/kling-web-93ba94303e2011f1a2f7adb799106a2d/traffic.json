@@ -1,0 +1,29 @@
+[
+  {
+    "ts": "2026-04-22T07:55:07.210Z",
+    "method": "GET",
+    "resourceType": "fetch",
+    "url": "http://127.0.0.1:19192/api/history",
+    "status": 200,
+    "phase": "pre-submit",
+    "bodyText": "{\"code\":0,\"data\":{\"history\":[{\"works\":[{\"resource\":{\"resource\":\"http://127.0.0.1:19192/generated/history-1.png\"}}]}]}}"
+  },
+  {
+    "ts": "2026-04-22T07:55:08.266Z",
+    "method": "POST",
+    "resourceType": "fetch",
+    "url": "http://127.0.0.1:19192/api/task/create",
+    "status": 200,
+    "phase": "post-submit",
+    "bodyText": "{\"code\":0,\"data\":{\"task_id\":\"mock-web-task-1\"}}"
+  },
+  {
+    "ts": "2026-04-22T07:55:08.818Z",
+    "method": "GET",
+    "resourceType": "fetch",
+    "url": "http://127.0.0.1:19192/api/task/result",
+    "status": 200,
+    "phase": "post-submit",
+    "bodyText": "{\"code\":0,\"data\":{\"task_id\":\"mock-web-task-1\",\"task_status\":\"succeed\",\"images\":[{\"url\":\"http://127.0.0.1:19192/generated/result-1.png\"},{\"url\":\"http://127.0.0.1:19192/generated/result-1.png?x-oss-process=image%2Fresize%2Cw_720%2Ch_956%2Cm_mfit%2Fformat%2Cwebp\"},{\"url\":\"http://127.0.0.1:19192/generated/result-2.png\"}]}}"
+  }
+]

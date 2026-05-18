@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jimeng + Kling + Doubao + XYQ 控制台</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background: #0b1020; color: #e5eefc; }
+    a { color: #7dd3fc; }
+    .wrap { max-width: 1440px; margin: 0 auto; padding: 20px; }
+    .nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .pill, button { border: 0; border-radius: 12px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+    .pill { display: inline-flex; align-items: center; background: #1d294a; color: #dbeafe; text-decoration: none; }
+    button.primary { background: #7dd3fc; color: #07101f; }
+    button.secondary { background: #c4b5fd; color: #07101f; }
+    button.ghost { background: #1d294a; color: #dbeafe; }
+    button.danger { background: #fda4af; color: #330711; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+    .card { background: #121a33; border: 1px solid #273255; border-radius: 18px; padding: 20px; box-shadow: 0 12px 48px rgba(0,0,0,.24); }
+    .card h2, .card h3 { margin-top: 0; }
+    .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+    label { font-size: 13px; color: #b7c7e6; }
+    input, select, textarea {
+      width: 100%; border-radius: 12px; border: 1px solid #324165; background: #091125; color: #e5eefc;
+      padding: 11px 12px; font: inherit;
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    .small { min-height: 72px; }
+    .status { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+    .stat { background: #0a1226; border: 1px solid #24304f; border-radius: 14px; padding: 12px; }
+    .stat b { display:block; margin-bottom: 4px; }
+    .badge { display:inline-flex; align-items:center; gap: 6px; padding: 6px 10px; border-radius: 999px; background:#1d294a; color:#dbeafe; font-size: 12px; }
+    .ok { color: #86efac; }
+    .bad { color: #fda4af; }
+    .warn { color: #fde68a; }
+    .muted { color: #94a3c5; }
+    .toolbar { display:flex; gap:10px; flex-wrap: wrap; margin-top: 10px; }
+    .split { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .results { display:grid; gap: 12px; }
+    pre { margin: 0; white-space: pre-wrap; word-break: break-word; background:#081021; border:1px solid #24304f; border-radius: 12px; padding: 12px; max-height: 340px; overflow:auto; }
+    .images { display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+    .images img { width:100%; border-radius: 12px; border:1px solid #24304f; background:#081021; }
+    .image-card { position: relative; }
+    .image-card .dl-btn {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(0,0,0,.65); color: #fff; border: 1px solid rgba(255,255,255,.2);
+      border-radius: 8px; padding: 6px 10px; font-size: 13px; cursor: pointer;
+      backdrop-filter: blur(4px); transition: background .2s;
+    }
+    .image-card .dl-btn:hover { background: rgba(125,211,252,.35); color: #fff; }
+    .dl-all-btn { background: #1d294a; color: #dbeafe; border: 0; border-radius: 12px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+    .dl-all-btn:hover { background: #263560; }
+    .help { font-size: 13px; color: #9fb1d9; line-height: 1.6; }
+    .footer { margin-top: 18px; font-size: 13px; color: #8da1cc; }
+    .toplinks { display:flex; gap: 10px; flex-wrap: wrap; }
+    .logbox { min-height: 220px; max-height: 420px; overflow: auto; border-radius: 12px; border:1px solid #24304f; background:#081021; padding: 10px; }
+    .logline { padding: 8px 10px; border-bottom: 1px dashed rgba(255,255,255,.08); font-size: 13px; line-height: 1.5; }
+    .logline:last-child { border-bottom: 0; }
+    .logline .ts { color:#86a5d8; margin-right: 8px; }
+    .logline.info { color:#dbeafe; }
+    .logline.warn { color:#fde68a; }
+    .logline.error { color:#fda4af; }
+    .capsule { display:inline-block; padding:4px 8px; border-radius:999px; background:#18264a; font-size:12px; color:#dbeafe; }
+    .model-meta { display:grid; gap: 10px; margin-top: 10px; }
+    .kv { display:grid; grid-template-columns: 110px 1fr; gap: 10px; font-size: 13px; }
+    .kv b { color:#dbeafe; }
+    .note-list { margin: 0; padding-left: 18px; }
+    .note-list li { margin: 4px 0; color:#bfd0f0; }
+    .param-warning { border: 1px solid #6b4f19; background: rgba(250, 204, 21, .08); color:#fde68a; border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; display:none; }
+    /* 图生图模式切换 */
+    .mode-tabs { display: flex; gap: 0; margin-bottom: 16px; border-radius: 12px; overflow: hidden; border: 1px solid #324165; }
+    .mode-tab { flex: 1; text-align: center; padding: 10px 14px; cursor: pointer; font-weight: 700; font-size: 14px; background: #091125; color: #94a3c5; transition: all .2s; border: 0; }
+    .mode-tab.active { background: #7dd3fc; color: #07101f; }
+    .mode-tab:hover:not(.active) { background: #1d294a; color: #dbeafe; }
+
+    /* 图片上传区域 */
+    .img-upload-section { display: none; margin-bottom: 14px; }
+    .img-upload-section.visible { display: block; }
+    .drop-zone { border: 2px dashed #324165; border-radius: 14px; padding: 24px; text-align: center; cursor: pointer; transition: all .2s; background: #091125; }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: #7dd3fc; background: rgba(125,211,252,.06); }
+    .drop-zone-text { color: #94a3c5; font-size: 14px; }
+    .drop-zone-text b { color: #7dd3fc; }
+    .drop-zone input[type="file"] { display: none; }
+
+    /* 输入图片预览 */
+    .input-images-preview { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .input-img-card { position: relative; width: 100px; height: 100px; border-radius: 10px; overflow: hidden; border: 1px solid #324165; }
+    .input-img-card img { width: 100%; height: 100%; object-fit: cover; }
+    .input-img-card .remove-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,.7); color: #fda4af; border: 0; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+    .input-img-card .remove-btn:hover { background: rgba(253,164,175,.3); }
+    .input-img-count { font-size: 13px; color: #86a5d8; margin-top: 8px; }
+
+    /* URL 输入行 */
+    .img-url-row { display: flex; gap: 8px; margin-top: 10px; }
+    .img-url-row input { flex: 1; }
+    .img-url-row button { white-space: nowrap; }
+
+    @media (max-width: 1120px) { .grid { grid-template-columns: 1fr; } .status { grid-template-columns: repeat(2, minmax(0, 1fr)); } .row, .split { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="nav">
+      <div class="toplinks">
+        <a class="pill" href="/">首页</a>
+        <a class="pill" href="/docs/api-guide">外部调用说明</a>
+      </div>
+      <div class="toplinks">
+        <span class="badge" id="apiKeyBadge">API Key: 未设置</span>
+        <span class="badge" id="serviceBadge">服务: 未检测</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>服务可用性</h2>
+      <div class="status">
+        <div class="stat"><b>Ping</b><span id="pingStat" class="muted">-</span></div>
+        <div class="stat"><b>Jimeng</b><span id="jimengStat" class="muted">-</span></div>
+        <div class="stat"><b>Kling</b><span id="klingStat" class="muted">-</span></div>
+        <div class="stat"><b>Doubao</b><span id="doubaoStat" class="muted">-</span></div>
+        <div class="stat"><b>XYQ (小云雀)</b><span id="xyqStat" class="muted">-</span></div>
+        <div class="stat"><b>模型数</b><span id="modelStat" class="muted">-</span></div>
+      </div>
+      <div class="toolbar">
+        <button class="primary" id="refreshBtn">检测服务</button>
+        <button class="ghost" id="loadModelsBtn">刷新模型列表</button>
+        <button class="ghost" id="loadSavedBtn">读取浏览器暂存</button>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:16px;">
+      <div class="card">
+        <h2>凭证与模型</h2>
+        <div class="row">
+          <div class="field">
+            <label for="apiKeyInput">x-api-key（可选，若服务启用了 API Key 请填写）</label>
+            <input id="apiKeyInput" placeholder="your-api-key" />
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <div class="toolbar" style="margin-top:0;">
+              <button class="secondary" id="saveUiBtn">保存到浏览器</button>
+              <button class="ghost" id="clearUiBtn">清空浏览器配置</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="jimengInput">Jimeng sessionid / Authorization</label>
+          <textarea id="jimengInput" class="small" placeholder="64d23531015b89fe13f79cf4f456b159 或 Bearer xxx,yyy"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="klingInput">Kling 登录 cookie / storageState JSON</label>
+          <textarea id="klingInput" class="small" placeholder='粘贴 JSON 数组或 storageState JSON，例如 [{"name":"sessionid","value":"...","domain":"kling.ai","path":"/"}]'></textarea>
+        </div>
+
+        <div class="field">
+          <label for="doubaoInput">Doubao sessionid</label>
+          <textarea id="doubaoInput" class="small" placeholder="从 doubao.com cookies 中获取 sessionid，多个用逗号分隔"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="xyqInput">XYQ (小云雀) sessionid</label>
+          <textarea id="xyqInput" class="small" placeholder="从 xyq.jianying.com cookies 中获取 sessionid，多个用逗号分隔"></textarea>
+        </div>
+
+        <div class="toolbar">
+          <button class="primary" id="saveCredBtn">保存凭证到服务端</button>
+          <button class="danger" id="clearCredBtn">清空服务端凭证</button>
+        </div>
+
+        <div class="help" style="margin-top:10px;">
+          提示：保存后会立即写入服务运行时。Jimeng 会写到 <code>local.env</code>；Kling 会写到 <code>kling.json</code> 或环境状态；Doubao 会写到 <code>DOUBAO_SESSIONID</code> 环境变量。XYQ (小云雀) 会写到 <code>XYQ_SESSIONID</code> 环境变量。
+        </div>
+
+        <div class="split" style="margin-top:16px;">
+          <div class="field">
+            <label for="modelSelect">生图模型</label>
+            <select id="modelSelect"></select>
+          </div>
+          <div class="field">
+            <label for="targetUrlInput">Kling 目标页（默认）</label>
+            <input id="targetUrlInput" value="https://klingai.com/app/image/new" />
+          </div>
+        </div>
+
+        <div class="model-meta">
+          <div class="capsule" id="modelFamilyBadge">模型类型：-</div>
+          <div class="param-warning" id="paramWarning"></div>
+          <div class="kv"><b>限制说明</b><div id="modelLimitText" class="muted">请选择模型后查看</div></div>
+          <div class="kv"><b>可选 ratio</b><div id="modelRatioText" class="muted">-</div></div>
+          <div class="kv"><b>可选 resolution</b><div id="modelResolutionText" class="muted">-</div></div>
+          <div class="kv"><b>会员/能力提示</b><div id="modelNotesText" class="muted">-</div></div>
+        </div>
+
+        <div class="mode-tabs">
+          <button class="mode-tab active" data-mode="txt2img">文生图</button>
+          <button class="mode-tab" data-mode="img2img">图生图</button>
+        </div>
+
+        <div class="img-upload-section" id="imgUploadSection">
+          <label>参考图片（最多 10 张）</label>
+          <div class="drop-zone" id="dropZone">
+            <div class="drop-zone-text">拖拽图片到此处，或 <b>点击选择文件</b></div>
+            <input type="file" id="fileInput" accept="image/*" multiple />
+          </div>
+          <div class="img-url-row">
+            <input id="imageUrlInput" placeholder="或输入图片 URL，回车添加" />
+            <button class="ghost" id="addUrlBtn">添加 URL</button>
+          </div>
+          <div class="input-images-preview" id="inputImagesPreview"></div>
+          <div class="input-img-count" id="inputImgCount"></div>
+        </div>
+
+        <div class="field" style="margin-top:14px;">
+          <label for="promptInput">提示词</label>
+          <textarea id="promptInput" placeholder="输入你的提示词"></textarea>
+        </div>
+
+        <div class="row">
+          <div class="field"><label for="ratioInput">ratio</label><select id="ratioInput"></select></div>
+          <div class="field"><label for="resolutionInput">resolution</label><select id="resolutionInput"></select></div>
+          <div class="field"><label for="styleInput">style（风格）</label><select id="styleInput"><option value="">不指定</option></select></div>
+          <div class="field"><label for="negativeInput">negative_prompt</label><input id="negativeInput" placeholder="可选" /></div>
+          <div class="field"><label for="sampleInput">sample_strength</label><input id="sampleInput" value="0.5" /></div>
+          <div class="field"><label for="nInput">n</label><input id="nInput" value="1" /></div>
+          <div class="field"><label for="asyncInput">async</label><select id="asyncInput"><option value="true">true</option><option value="false">false</option></select></div>
+        </div>
+
+        <div class="toolbar">
+          <button class="primary" id="generateBtn">开始生图</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>结果与日志</h2>
+        <div class="results">
+          <div>
+            <div class="help">最新响应</div>
+            <pre id="resultJson">尚未生成</pre>
+          </div>
+          <div>
+            <div class="help">前端执行日志</div>
+            <div class="logbox" id="logBox"></div>
+          </div>
+          <div>
+            <div class="help">图片预览</div>
+            <div class="images" id="previewBox"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">页面支持 Jimeng / Kling / Doubao / XYQ (小云雀) 统一生图；Kling 异步任务现在会自动轮询结果并记录日志。</div>
+  </div>
+
+  <script>
+    const MODEL_RULES = {
+      'seedream-5.0': { family: 'seedream', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['统一 Seedream 5.0', '自动轮询 jimeng→xyq→doubao', '支持 style 参数'], limit: '统一接口，底层自动选择提供商。jimeng 积分耗尽后自动降级到 xyq，xyq 配额耗尽后降级到 doubao。' },
+      'seedream-4.5': { family: 'seedream', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['统一 Seedream 4.5', '自动轮询 jimeng→xyq→doubao', '支持 style 参数'], limit: '统一接口，底层自动选择提供商。jimeng 积分耗尽后自动降级到 xyq，xyq 配额耗尽后降级到 doubao。' },
+      'seedream-4.0': { family: 'seedream', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['统一 Seedream 4.0', '自动轮询 jimeng→xyq→doubao', '支持 style 参数'], limit: '统一接口，底层自动选择提供商。jimeng 积分耗尽后自动降级到 xyq，xyq 配额耗尽后降级到 doubao。' },
+      'jimeng-5.0': { family: 'jimeng', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], resolutions: ['1k','2k','4k'], notes: ['高阶图像模型', '4k/更高档位通常更吃积分'], limit: '支持常见文生图参数；若账号额度不足，高分辨率可能失败。' },
+      'jimeng-4.6': { family: 'jimeng', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], resolutions: ['1k','2k','4k'], notes: ['推荐稳定模型'], limit: '常规比例和分辨率均可；非会员或低积分下建议先用 1k/2k。' },
+      'jimeng-4.5': { family: 'jimeng', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], resolutions: ['1k','2k','4k'], notes: ['兼容性较好'], limit: '适合大多数普通文生图场景。' },
+      'jimeng-4.1': { family: 'jimeng', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], resolutions: ['1k','2k','4k'], notes: ['旧但稳定'], limit: '优先作为兼容回退模型。' },
+      'jimeng-4.0': { family: 'jimeng', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], resolutions: ['1k','2k','4k'], notes: ['旧模型'], limit: '适合作为回退，不建议盲目拉高参数。' },
+      'jimeng-3.1': { family: 'jimeng', ratios: ['1:1','4:3','3:4','16:9','9:16'], resolutions: ['1k','2k'], notes: ['偏艺术风格'], limit: '高分辨率和新特性支持相对有限。' },
+      'jimeng-3.0': { family: 'jimeng', ratios: ['1:1','4:3','3:4','16:9','9:16'], resolutions: ['1k','2k'], notes: ['通用旧模型'], limit: '建议保守使用。' },
+      'jimeng-2.1': { family: 'jimeng', ratios: ['1:1'], resolutions: ['1k'], notes: ['非常旧'], limit: '建议仅兼容测试使用。' },
+      'jimeng-2.0-pro': { family: 'jimeng', ratios: ['1:1'], resolutions: ['1k'], notes: ['老版本'], limit: '仅兼容用途。' },
+      'jimeng-2.0': { family: 'jimeng', ratios: ['1:1'], resolutions: ['1k'], notes: ['老版本'], limit: '仅兼容用途。' },
+      'jimeng-1.4': { family: 'jimeng', ratios: ['1:1'], resolutions: ['1k'], notes: ['早期模型'], limit: '不建议日常使用。' },
+      'jimeng-xl-pro': { family: 'jimeng', ratios: ['1:1','4:3','3:4'], resolutions: ['1k','2k'], notes: ['老 XL 模型'], limit: '能力较老，参数尽量保守。' },
+      'kling-v2-1': { family: 'kling', ratios: ['1:1','16:9','9:16','4:3','3:4'], resolutions: ['1k'], notes: ['网页模式', '当前控制台会自动轮询结果'], limit: 'Kling 网页模式受页面和账号额度影响；并非所有 ratio 都一定映射成功。建议先用 1:1 或 16:9。' },
+      'kling-v3-omni': { family: 'kling', ratios: ['1:1','16:9','9:16'], resolutions: ['1k','2k'], notes: ['高阶模型', '可能受会员能力影响'], limit: '高阶模型可能需要更高账号权限；参数越高越容易触发不支持。' },
+      'kling-image-o1': { family: 'kling', ratios: ['1:1','16:9','9:16','4:3','3:4'], resolutions: ['1k','2k'], notes: ['支持智能比例', '部分能力可能依赖会员'], limit: '建议先从 1k 开始；2k 和某些智能比例可能受账号限制。' },
+      'kling-v3': { family: 'kling', ratios: ['1:1','16:9','9:16'], resolutions: ['1k','2k'], notes: ['预留扩展模型'], limit: '建议当作实验模型，优先使用保守参数。' },
+      'doubao-seedream-4.5': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['最新 Doubao Seedream 模型', '支持 style 参数'], limit: '豆包 Seedream 4.5 模型，使用 ratio 和 style 参数。' },
+      'doubao-seedream-4.0': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['Doubao Seedream 4.0', '支持 style 参数'], limit: '豆包 Seedream 4.0 模型，使用 ratio 和 style 参数。' },
+      'doubao-seedream-3.0': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['Doubao Seedream 3.0', '支持 style 参数'], limit: '豆包 Seedream 3.0 模型，使用 ratio 和 style 参数。' },
+      'xyq-seedream-5.0': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['最新云雀 Seedream 模型', '使用 ratio 和 style 参数'], limit: '小云雀 Seedream 5.0 模型，通过云雀平台免费额度生图。' },
+      'xyq-seedream-4.5': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['云雀 Seedream 4.5', '使用 ratio 和 style 参数'], limit: '小云雀 Seedream 4.5 模型。' },
+      'xyq-seedream-4.0': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['云雀 Seedream 4.0', '使用 ratio 和 style 参数'], limit: '小云雀 Seedream 4.0 模型。' },
+      default_xyq: { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['小云雀 Seedream 模型'], limit: '小云雀 Seedream 模型，使用 ratio 和 style 参数。' },
+      default_jimeng: { family: 'jimeng', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], resolutions: ['1k','2k'], notes: ['普通账号建议先保守'], limit: '即梦图像模型通常支持常见比例；若账号非会员或积分不足，不建议上高分辨率。' },
+      default_kling: { family: 'kling', ratios: ['1:1','16:9','9:16'], resolutions: ['1k'], notes: ['网页自动化链路'], limit: 'Kling 网页模式建议先用保守参数，并等待任务轮询完成。' },
+      default_seedream: { family: 'seedream', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['统一 Seedream 模型', '自动轮询多提供商'], limit: '统一接口，自动选择最优提供商。' },
+      default_doubao: { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['豆包 Seedream 模型'], limit: '豆包 Seedream 模型，使用 ratio 和 style 参数。' },
+    };
+
+    const els = {
+      apiKeyInput: document.getElementById('apiKeyInput'),
+      jimengInput: document.getElementById('jimengInput'),
+      klingInput: document.getElementById('klingInput'),
+      doubaoInput: document.getElementById('doubaoInput'),
+      xyqInput: document.getElementById('xyqInput'),
+      modelSelect: document.getElementById('modelSelect'),
+      targetUrlInput: document.getElementById('targetUrlInput'),
+      promptInput: document.getElementById('promptInput'),
+      ratioInput: document.getElementById('ratioInput'),
+      resolutionInput: document.getElementById('resolutionInput'),
+      styleInput: document.getElementById('styleInput'),
+      negativeInput: document.getElementById('negativeInput'),
+      sampleInput: document.getElementById('sampleInput'),
+      nInput: document.getElementById('nInput'),
+      asyncInput: document.getElementById('asyncInput'),
+      resultJson: document.getElementById('resultJson'),
+      previewBox: document.getElementById('previewBox'),
+      pingStat: document.getElementById('pingStat'),
+      jimengStat: document.getElementById('jimengStat'),
+      klingStat: document.getElementById('klingStat'),
+      doubaoStat: document.getElementById('doubaoStat'),
+      xyqStat: document.getElementById('xyqStat'),
+      modelStat: document.getElementById('modelStat'),
+      serviceBadge: document.getElementById('serviceBadge'),
+      apiKeyBadge: document.getElementById('apiKeyBadge'),
+      modelFamilyBadge: document.getElementById('modelFamilyBadge'),
+      modelLimitText: document.getElementById('modelLimitText'),
+      modelRatioText: document.getElementById('modelRatioText'),
+      modelResolutionText: document.getElementById('modelResolutionText'),
+      modelNotesText: document.getElementById('modelNotesText'),
+      paramWarning: document.getElementById('paramWarning'),
+      logBox: document.getElementById('logBox'),
+      generateBtn: document.getElementById('generateBtn'),
+      imgUploadSection: document.getElementById('imgUploadSection'),
+      dropZone: document.getElementById('dropZone'),
+      fileInput: document.getElementById('fileInput'),
+      imageUrlInput: document.getElementById('imageUrlInput'),
+      addUrlBtn: document.getElementById('addUrlBtn'),
+      inputImagesPreview: document.getElementById('inputImagesPreview'),
+      inputImgCount: document.getElementById('inputImgCount'),
+    };
+
+    let modelCatalog = [];
+    let activePoller = null;
+
+    // 图生图状态
+    let currentMode = 'txt2img'; // 'txt2img' | 'img2img'
+    let inputImages = []; // { type: 'url'|'file', value: string|File, preview: string }
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.mode-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.mode === mode);
+      });
+      els.imgUploadSection.classList.toggle('visible', mode === 'img2img');
+      if (mode === 'txt2img') {
+        inputImages = [];
+        renderInputImages();
+      }
+    }
+
+    function renderInputImages() {
+      els.inputImagesPreview.innerHTML = '';
+      inputImages.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'input-img-card';
+        const img = document.createElement('img');
+        img.src = item.preview;
+        card.appendChild(img);
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-btn';
+        removeBtn.textContent = '×';
+        removeBtn.onclick = () => { inputImages.splice(index, 1); renderInputImages(); };
+        card.appendChild(removeBtn);
+        els.inputImagesPreview.appendChild(card);
+      });
+      els.inputImgCount.textContent = inputImages.length > 0
+        ? `已添加 ${inputImages.length} 张参考图片`
+        : '';
+    }
+
+    function addImageFiles(files) {
+      const remaining = 10 - inputImages.length;
+      if (remaining <= 0) { appendLog('warn', '最多支持 10 张参考图片'); return; }
+      const toAdd = Array.from(files).slice(0, remaining);
+      toAdd.forEach(file => {
+        if (!file.type.startsWith('image/')) return;
+        const preview = URL.createObjectURL(file);
+        inputImages.push({ type: 'file', value: file, preview });
+      });
+      renderInputImages();
+      appendLog('info', `已添加 ${toAdd.length} 张本地图片，共 ${inputImages.length} 张`);
+    }
+
+    function addImageUrl(url) {
+      url = url.trim();
+      if (!url) return;
+      if (inputImages.length >= 10) { appendLog('warn', '最多支持 10 张参考图片'); return; }
+      inputImages.push({ type: 'url', value: url, preview: url });
+      renderInputImages();
+      appendLog('info', `已添加图片 URL，共 ${inputImages.length} 张`);
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('读取文件失败'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function nowText() {
+      return new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    }
+
+    function appendLog(level, message, detail) {
+      const div = document.createElement('div');
+      div.className = `logline ${level}`;
+      const ts = document.createElement('span');
+      ts.className = 'ts';
+      ts.textContent = `[${nowText()}]`;
+      div.appendChild(ts);
+      const text = document.createElement('span');
+      text.textContent = message;
+      div.appendChild(text);
+      if (detail !== undefined) {
+        const pre = document.createElement('pre');
+        pre.style.marginTop = '8px';
+        pre.textContent = typeof detail === 'string' ? detail : JSON.stringify(detail, null, 2);
+        div.appendChild(pre);
+      }
+      els.logBox.prepend(div);
+    }
+
+    function clearLogs() {
+      els.logBox.innerHTML = '';
+    }
+
+    function stopActivePoller() {
+      if (activePoller) {
+        clearInterval(activePoller);
+        activePoller = null;
+      }
+    }
+
+    function getApiKey() {
+      return els.apiKeyInput.value.trim();
+    }
+
+    function headers(extra = {}) {
+      const value = getApiKey();
+      return {
+        'Content-Type': 'application/json',
+        ...(value ? { 'x-api-key': value } : {}),
+        ...extra,
+      };
+    }
+
+    function storeUi() {
+      localStorage.setItem('kling-console-api-key', els.apiKeyInput.value.trim());
+      localStorage.setItem('kling-console-jimeng', els.jimengInput.value);
+      localStorage.setItem('kling-console-kling', els.klingInput.value);
+      localStorage.setItem('kling-console-doubao', els.doubaoInput.value);
+      localStorage.setItem('kling-console-xyq', els.xyqInput.value);
+      localStorage.setItem('kling-console-target-url', els.targetUrlInput.value.trim());
+      appendLog('info', '已保存当前表单到浏览器本地缓存');
+    }
+
+    function loadUi() {
+      els.apiKeyInput.value = localStorage.getItem('kling-console-api-key') || '';
+      els.jimengInput.value = localStorage.getItem('kling-console-jimeng') || '';
+      els.klingInput.value = localStorage.getItem('kling-console-kling') || '';
+      els.doubaoInput.value = localStorage.getItem('kling-console-doubao') || '';
+      els.xyqInput.value = localStorage.getItem('kling-console-xyq') || '';
+      els.targetUrlInput.value = localStorage.getItem('kling-console-target-url') || els.targetUrlInput.value;
+      renderApiKeyBadge();
+    }
+
+    function renderApiKeyBadge() {
+      els.apiKeyBadge.textContent = getApiKey() ? 'API Key: 已填写' : 'API Key: 未设置';
+    }
+
+    function normalizeModel(model) {
+      return String(model || '').trim();
+    }
+
+    function inferModelFamily(model) {
+      if (model.startsWith('seedream-')) return 'seedream';
+      if (model.startsWith('kling-')) return 'kling';
+      if (model.startsWith('doubao-')) return 'doubao';
+      if (model.startsWith('xyq-')) return 'xyq';
+      return 'jimeng';
+    }
+
+    function getModelRule(model) {
+      const family = inferModelFamily(model);
+      const defaults = { seedream: MODEL_RULES.default_seedream, kling: MODEL_RULES.default_kling, doubao: MODEL_RULES.default_doubao, xyq: MODEL_RULES.default_xyq, jimeng: MODEL_RULES.default_jimeng };
+      return MODEL_RULES[model] || defaults[family] || MODEL_RULES.default_jimeng;
+    }
+
+    function refreshModelHints() {
+      const model = normalizeModel(els.modelSelect.value);
+      const rule = getModelRule(model);
+      const familyName = { seedream: 'Seedream 统一', kling: 'Kling', doubao: 'Doubao', xyq: 'XYQ (小云雀)', jimeng: 'Jimeng' }[rule.family] || rule.family;
+      els.modelFamilyBadge.textContent = `模型类型：${familyName} / ${model}`;
+      els.modelLimitText.textContent = rule.limit || '-';
+      els.modelNotesText.innerHTML = (rule.notes || []).length ? `<ul class="note-list">${rule.notes.map((x) => `<li>${x}</li>`).join('')}</ul>` : '-';
+
+      // 填充 ratio 下拉框
+      const prevRatio = els.ratioInput.value || '1:1';
+      els.ratioInput.innerHTML = '';
+      (rule.ratios || ['1:1']).forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r; opt.textContent = r;
+        els.ratioInput.appendChild(opt);
+      });
+      els.ratioInput.value = (rule.ratios || []).includes(prevRatio) ? prevRatio : (rule.ratios || ['1:1'])[0];
+
+      // 填充 resolution 下拉框
+      const prevRes = els.resolutionInput.value || '1k';
+      els.resolutionInput.innerHTML = '';
+      if (rule.resolutions && rule.resolutions.length) {
+        rule.resolutions.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r; opt.textContent = r;
+          els.resolutionInput.appendChild(opt);
+        });
+        els.resolutionInput.value = (rule.resolutions || []).includes(prevRes) ? prevRes : (rule.resolutions || ['1k'])[0];
+        els.resolutionInput.parentElement.style.display = '';
+      } else {
+        // doubao/xyq 不需要 resolution
+        els.resolutionInput.innerHTML = '<option value="">-</option>';
+        els.resolutionInput.parentElement.style.display = ['doubao', 'xyq', 'seedream'].includes(rule.family) ? 'none' : '';
+      }
+
+      // 填充 style 下拉框
+      const prevStyle = els.styleInput.value || '';
+      els.styleInput.innerHTML = '<option value="">不指定</option>';
+      if (rule.styles && rule.styles.length) {
+        rule.styles.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s; opt.textContent = s;
+          els.styleInput.appendChild(opt);
+        });
+        els.styleInput.value = (rule.styles || []).includes(prevStyle) ? prevStyle : '';
+        els.styleInput.parentElement.style.display = '';
+      } else {
+        els.styleInput.parentElement.style.display = 'none';
+      }
+
+      els.modelRatioText.textContent = (rule.ratios || []).join(' / ') || '-';
+      els.modelResolutionText.textContent = (rule.resolutions || []).join(' / ') || '-';
+      validateParams(false);
+    }
+
+    function validateParams(showMessage = true) {
+      const model = normalizeModel(els.modelSelect.value);
+      const rule = getModelRule(model);
+      const warnings = [];
+      const ratio = els.ratioInput.value.trim();
+      const resolution = els.resolutionInput.value.trim();
+      if (rule.ratios && ratio && !rule.ratios.includes(ratio)) {
+        warnings.push(`当前模型建议 ratio 使用：${rule.ratios.join(' / ')}；你填的是 ${ratio}`);
+      }
+      if (rule.resolutions && resolution && !rule.resolutions.includes(resolution)) {
+        warnings.push(`当前模型建议 resolution 使用：${rule.resolutions.join(' / ')}；你填的是 ${resolution}`);
+      }
+      if (inferModelFamily(model) === 'kling' && els.asyncInput.value !== 'true') {
+        warnings.push('Kling 网页模式建议保持 async=true，这样页面会自动轮询任务并展示日志。');
+      }
+      if (warnings.length) {
+        els.paramWarning.style.display = 'block';
+        els.paramWarning.innerHTML = warnings.map((x) => `<div>${x}</div>`).join('');
+        if (showMessage) appendLog('warn', '参数存在潜在不兼容项', warnings);
+      } else {
+        els.paramWarning.style.display = 'none';
+        els.paramWarning.textContent = '';
+      }
+      return warnings;
+    }
+
+    function fillModelSelect(models = []) {
+      const current = els.modelSelect.value;
+      const filtered = models.filter((item) => item && item.id && !item.id.includes('video') && !item.id.startsWith('seedance'));
+      modelCatalog = filtered.map((item) => ({ id: item.id, description: item.description || '', family: inferModelFamily(item.id) }));
+      els.modelSelect.innerHTML = '';
+
+      const groups = {
+        seedream: document.createElement('optgroup'),
+        jimeng: document.createElement('optgroup'),
+        kling: document.createElement('optgroup'),
+        doubao: document.createElement('optgroup'),
+        xyq: document.createElement('optgroup'),
+      };
+      groups.seedream.label = 'Seedream 统一接口（自动轮询）';
+      groups.jimeng.label = 'Jimeng 图片模型';
+      groups.kling.label = 'Kling 图片模型';
+      groups.doubao.label = 'Doubao Seedream 图片模型';
+      groups.xyq.label = 'XYQ (小云雀) 图片模型';
+
+      for (const item of modelCatalog) {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.textContent = item.description ? `${item.id} — ${item.description}` : item.id;
+        groups[item.family].appendChild(opt);
+      }
+      if (groups.seedream.children.length) els.modelSelect.appendChild(groups.seedream);
+      if (groups.jimeng.children.length) els.modelSelect.appendChild(groups.jimeng);
+      if (groups.kling.children.length) els.modelSelect.appendChild(groups.kling);
+      if (groups.doubao.children.length) els.modelSelect.appendChild(groups.doubao);
+      if (groups.xyq.children.length) els.modelSelect.appendChild(groups.xyq);
+
+      const preferred = ['seedream-4.5', 'seedream-5.0', 'jimeng-4.5', 'jimeng-4.6', 'jimeng-5.0'];
+      const target = current && modelCatalog.some((o) => o.id === current)
+        ? current
+        : preferred.find((id) => modelCatalog.some((o) => o.id === id)) || modelCatalog[0]?.id || 'jimeng-4.5';
+      els.modelSelect.value = target;
+      refreshModelHints();
+    }
+
+    function setResult(value) {
+      els.resultJson.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+    }
+
+    function downloadImage(url, filename) {
+      fetch(url, { mode: 'cors' })
+        .then(r => r.blob())
+        .then(blob => {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = filename || 'image.png';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(a.href);
+        })
+        .catch(() => {
+          // 跨域 blob 失败时 fallback 直接打开
+          window.open(url, '_blank');
+        });
+    }
+
+    function setPreview(urls = []) {
+      els.previewBox.innerHTML = '';
+      for (let i = 0; i < urls.length; i++) {
+        const card = document.createElement('div');
+        card.className = 'image-card';
+        const img = document.createElement('img');
+        img.src = urls[i];
+        img.alt = urls[i];
+        const btn = document.createElement('button');
+        btn.className = 'dl-btn';
+        btn.textContent = '下载';
+        btn.onclick = () => downloadImage(urls[i], `image-${i + 1}.png`);
+        card.appendChild(img);
+        card.appendChild(btn);
+        els.previewBox.appendChild(card);
+      }
+      if (urls.length > 1) {
+        const bar = document.createElement('div');
+        bar.style.gridColumn = '1 / -1';
+        const allBtn = document.createElement('button');
+        allBtn.className = 'dl-all-btn';
+        allBtn.textContent = `全部下载 (${urls.length} 张)`;
+        allBtn.onclick = () => urls.forEach((u, i) => downloadImage(u, `image-${i + 1}.png`));
+        bar.appendChild(allBtn);
+        els.previewBox.appendChild(bar);
+      }
+    }
+
+    async function fetchJson(url, options = {}) {
+      const res = await fetch(url, options);
+      const text = await res.text();
+      let json = null;
+      try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text }; }
+      if (!res.ok) {
+        const error = new Error((json && (json.message || json.error)) || res.statusText || 'Request failed');
+        error.response = json;
+        error.status = res.status;
+        throw error;
+      }
+      return json;
+    }
+
+    async function loadModels() {
+      try {
+        appendLog('info', '开始加载模型列表');
+        const data = await fetchJson('/v1/models', { headers: headers() });
+        const models = Array.isArray(data?.data) ? data.data : [];
+        fillModelSelect(models);
+        els.modelStat.textContent = String(models.length);
+        setServiceBadge(true, '模型已加载');
+        appendLog('info', `模型列表加载成功，共 ${models.length} 个模型`);
+      } catch (error) {
+        els.modelStat.textContent = '-';
+        setServiceBadge(false, '模型加载失败');
+        setResult({ error: '加载模型失败', message: error.message, detail: error.response || null });
+        appendLog('error', '加载模型失败', error.response || error.message);
+      }
+    }
+
+    async function refreshStatus() {
+      try {
+        appendLog('info', '开始检测服务状态');
+        const data = await fetchJson('/console/status?deep=1', { headers: headers() });
+        els.pingStat.innerHTML = data?.ok ? '<span class="ok">OK</span>' : '<span class="bad">异常</span>';
+        const jimeng = data?.credentials?.jimeng || {};
+        const kling = data?.credentials?.kling || {};
+        const doubao = data?.credentials?.doubao || {};
+        els.jimengStat.innerHTML = jimeng.configured ? `<span class="ok">已配置</span> ${jimeng.token_count || 0} token` : '<span class="bad">未配置</span>';
+        els.klingStat.innerHTML = kling.configured ? `<span class="ok">已配置</span> ${kling.cookies_count || 0} cookies` : '<span class="bad">未配置</span>';
+        els.doubaoStat.innerHTML = doubao.configured ? `<span class="ok">已配置</span> ${doubao.token_count || 0} token` : '<span class="bad">未配置</span>';
+        const xyq = data.credentials?.xyq || {};
+        els.xyqStat.innerHTML = xyq.configured ? `<span class="ok">已配置</span> ${xyq.token_count || 0} token` : '<span class="bad">未配置</span>';
+        if (Array.isArray(modelCatalog) && modelCatalog.length) {
+          els.modelStat.textContent = String(modelCatalog.length);
+        }
+        setServiceBadge(true, '服务正常');
+        setResult(data);
+        appendLog('info', '服务状态检测完成', data);
+      } catch (error) {
+        els.pingStat.innerHTML = '<span class="bad">失败</span>';
+        setServiceBadge(false, '服务检测失败');
+        setResult({ error: '检测服务失败', message: error.message, detail: error.response || null });
+        appendLog('error', '检测服务失败', error.response || error.message);
+      }
+    }
+
+    function setServiceBadge(ok, text) {
+      els.serviceBadge.innerHTML = ok ? `<span class="ok">${text}</span>` : `<span class="bad">${text}</span>`;
+    }
+
+    async function saveCredsToServer(clear = false) {
+      try {
+        appendLog('info', clear ? '开始清空服务端凭证' : '开始保存服务端凭证');
+        const body = clear ? { clear_jimeng: true, clear_kling: true, clear_doubao: true, persist: true } : {
+          jimeng_sessionid: els.jimengInput.value.trim(),
+          kling_storage_state: els.klingInput.value.trim(),
+          doubao_sessionid: els.doubaoInput.value.trim(),
+          xyq_sessionid: els.xyqInput.value.trim(),
+          persist: true,
+        };
+        const data = await fetchJson('/console/credentials', {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify(body),
+        });
+        setResult(data);
+        appendLog('info', clear ? '已清空服务端凭证' : '服务端凭证保存成功', data);
+        await refreshStatus();
+      } catch (error) {
+        setResult({ error: '保存凭证失败', message: error.message, detail: error.response || null });
+        appendLog('error', '保存凭证失败', error.response || error.message);
+      }
+    }
+
+    async function pollKlingTask(taskId) {
+      stopActivePoller();
+      appendLog('info', `开始轮询 Kling 任务：${taskId}`);
+      const start = Date.now();
+      let tries = 0;
+
+      return new Promise((resolve, reject) => {
+        activePoller = setInterval(async () => {
+          tries += 1;
+          try {
+            const data = await fetchJson(`/v1/images/generations/${encodeURIComponent(taskId)}`, { headers: headers() });
+            const task = data?.data || {};
+            const status = task.task_status;
+            appendLog('info', `Kling 轮询第 ${tries} 次：${status || 'unknown'}`, data);
+            setResult(data);
+            if (status === 'succeed') {
+              stopActivePoller();
+              const urls = (task.task_result?.images || []).map((item) => item.url).filter(Boolean);
+              setPreview(urls);
+              appendLog('info', `Kling 任务成功，返回 ${urls.length} 张图`);
+              resolve(data);
+              return;
+            }
+            if (status === 'failed') {
+              stopActivePoller();
+              appendLog('error', 'Kling 任务失败', data);
+              reject(new Error(task.task_status_msg || data.message || 'Kling 任务失败'));
+              return;
+            }
+            if (Date.now() - start > 240000) {
+              stopActivePoller();
+              appendLog('warn', 'Kling 轮询超时，任务仍未完成', data);
+              reject(new Error('Kling 任务轮询超时，建议看日志或稍后继续查询'));
+            }
+          } catch (error) {
+            stopActivePoller();
+            appendLog('error', 'Kling 轮询请求失败', error.response || error.message);
+            reject(error);
+          }
+        }, 3000);
+      });
+    }
+
+    async function generate() {
+      const model = normalizeModel(els.modelSelect.value);
+      const prompt = els.promptInput.value.trim();
+      if (!prompt) {
+        alert('请输入提示词');
+        return;
+      }
+      if (currentMode === 'img2img' && inputImages.length === 0) {
+        alert('图生图模式请至少添加 1 张参考图片');
+        return;
+      }
+      clearLogs();
+      setPreview([]);
+      stopActivePoller();
+      validateParams(true);
+      appendLog('info', `准备发起 ${model} ${currentMode === 'img2img' ? '图生图' : '文生图'}任务`);
+      els.generateBtn.disabled = true;
+      els.generateBtn.textContent = '生成中...';
+      try {
+        const baseParams = {
+          model,
+          prompt,
+          ratio: els.ratioInput.value.trim() || '1:1',
+          resolution: els.resolutionInput.value.trim() || '1k',
+          negative_prompt: els.negativeInput.value.trim() || undefined,
+          sample_strength: Number(els.sampleInput.value),
+          n: Number(els.nInput.value),
+          async: inferModelFamily(model) === 'kling' ? true : els.asyncInput.value === 'true',
+          response_format: 'url',
+        };
+        // doubao/xyq/seedream 模型传递 style 参数
+        const styleVal = els.styleInput.value.trim();
+        if (styleVal && ['doubao', 'xyq', 'seedream'].includes(inferModelFamily(model))) {
+          baseParams.style = styleVal;
+        }
+        if (inferModelFamily(model) === 'kling') {
+          baseParams.provider_options = {
+            transport: 'web',
+            target_url: els.targetUrlInput.value.trim() || 'https://klingai.com/app/image/new',
+          };
+        }
+
+        let data;
+        const family = inferModelFamily(model);
+        const endpoint = family === 'seedream'
+          ? '/v1/seedream/generations'
+          : currentMode === 'img2img' ? '/v1/images/compositions' : '/v1/images/generations';
+
+        if (currentMode === 'img2img') {
+          // 把本地文件读成 data URL，和 URL 图片统一走 JSON
+          appendLog('info', `正在处理 ${inputImages.length} 张参考图片...`);
+          const imageUrls = [];
+          for (let i = 0; i < inputImages.length; i++) {
+            const item = inputImages[i];
+            if (item.type === 'url') {
+              imageUrls.push(item.value);
+            } else {
+              // 读取本地文件为 base64 data URL
+              const dataUrl = await readFileAsDataUrl(item.value);
+              imageUrls.push(dataUrl);
+              appendLog('info', `本地图片 ${i + 1} 已读取 (${(item.value.size / 1024).toFixed(1)}KB)`);
+            }
+          }
+          const body = { ...baseParams, images: imageUrls };
+          appendLog('info', '提交 JSON 图生图请求', { endpoint, image_count: imageUrls.length });
+          data = await fetchJson(endpoint, {
+            method: 'POST',
+            headers: headers(),
+            body: JSON.stringify(body),
+          });
+        } else {
+          // 文生图
+          appendLog('info', '提交请求体', baseParams);
+          data = await fetchJson(endpoint, {
+            method: 'POST',
+            headers: headers(),
+            body: JSON.stringify(baseParams),
+          });
+        }
+
+        setResult(data);
+        appendLog('info', '创建任务返回成功', data);
+
+        if (inferModelFamily(model) === 'kling' && data?.task_id && data?.status && ['processing', 'queued', 'submitted'].includes(data.status)) {
+          await pollKlingTask(data.task_id);
+        } else {
+          const urls = Array.isArray(data?.data) ? data.data.map((item) => item.url).filter(Boolean) : [];
+          setPreview(urls);
+          appendLog('info', `直接返回 ${urls.length} 张图片`);
+        }
+        await refreshStatus();
+      } catch (error) {
+        setResult({ error: '生图失败', message: error.message, detail: error.response || null });
+        appendLog('error', '生图失败', error.response || error.message);
+      } finally {
+        els.generateBtn.disabled = false;
+        els.generateBtn.textContent = '开始生图';
+      }
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', refreshStatus);
+    document.getElementById('loadModelsBtn').addEventListener('click', loadModels);
+    document.getElementById('loadSavedBtn').addEventListener('click', () => {
+      loadUi();
+      appendLog('info', '已从浏览器本地缓存恢复表单');
+    });
+    document.getElementById('saveUiBtn').addEventListener('click', () => { storeUi(); renderApiKeyBadge(); });
+    document.getElementById('clearUiBtn').addEventListener('click', () => {
+      localStorage.removeItem('kling-console-api-key');
+      localStorage.removeItem('kling-console-jimeng');
+      localStorage.removeItem('kling-console-kling');
+      localStorage.removeItem('kling-console-doubao');
+      localStorage.removeItem('kling-console-target-url');
+      loadUi();
+      appendLog('info', '已清空浏览器本地缓存');
+    });
+    document.getElementById('saveCredBtn').addEventListener('click', () => saveCredsToServer(false));
+    document.getElementById('clearCredBtn').addEventListener('click', () => saveCredsToServer(true));
+    document.getElementById('generateBtn').addEventListener('click', generate);
+    els.apiKeyInput.addEventListener('input', renderApiKeyBadge);
+    els.modelSelect.addEventListener('change', refreshModelHints);
+    els.ratioInput.addEventListener('change', () => validateParams(false));
+    els.resolutionInput.addEventListener('change', () => validateParams(false));
+    els.styleInput.addEventListener('change', () => validateParams(false));
+    els.asyncInput.addEventListener('change', () => validateParams(false));
+
+    // 模式切换
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+      tab.addEventListener('click', () => setMode(tab.dataset.mode));
+    });
+
+    // 拖拽上传
+    els.dropZone.addEventListener('click', () => els.fileInput.click());
+    els.dropZone.addEventListener('dragover', e => { e.preventDefault(); els.dropZone.classList.add('drag-over'); });
+    els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('drag-over'));
+    els.dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      els.dropZone.classList.remove('drag-over');
+      if (e.dataTransfer.files.length) addImageFiles(e.dataTransfer.files);
+    });
+    els.fileInput.addEventListener('change', () => {
+      if (els.fileInput.files.length) addImageFiles(els.fileInput.files);
+      els.fileInput.value = '';
+    });
+
+    // URL 添加
+    els.addUrlBtn.addEventListener('click', () => {
+      addImageUrl(els.imageUrlInput.value);
+      els.imageUrlInput.value = '';
+    });
+    els.imageUrlInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addImageUrl(els.imageUrlInput.value);
+        els.imageUrlInput.value = '';
+      }
+    });
+
+    loadUi();
+    renderApiKeyBadge();
+    appendLog('info', '控制台已加载');
+    loadModels().catch(() => null);
+    refreshStatus().catch(() => null);
+  </script>
+</body>
+</html>

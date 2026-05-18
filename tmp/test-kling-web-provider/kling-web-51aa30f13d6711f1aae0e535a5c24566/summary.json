@@ -1,0 +1,11 @@
+{
+  "taskId": "kling-web-51aa30f13d6711f1aae0e535a5c24566",
+  "targetUrl": "http://127.0.0.1:19192/mock-kling/image/new",
+  "prompt": "web async robot",
+  "baselineImageCount": 1,
+  "imageCount": 3,
+  "observedTaskIds": [
+    "mock-web-task-1"
+  ],
+  "pageUrl": "http://127.0.0.1:19192/mock-kling/image/new"
+}

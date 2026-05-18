@@ -1,0 +1,20 @@
+[
+  {
+    "ts": "2026-04-23T03:48:54.307Z",
+    "method": "POST",
+    "resourceType": "fetch",
+    "url": "http://127.0.0.1:19191/api/task/create",
+    "status": 200,
+    "phase": "post-submit",
+    "bodyText": "{\"code\":0,\"message\":\"ok\",\"request_id\":\"req-create\",\"data\":{\"task_id\":\"mock-web-task-1\",\"task_status\":\"submitted\",\"created_at\":1,\"updated_at\":1}}"
+  },
+  {
+    "ts": "2026-04-23T03:48:54.567Z",
+    "method": "GET",
+    "resourceType": "fetch",
+    "url": "http://127.0.0.1:19191/api/task/result",
+    "status": 200,
+    "phase": "post-submit",
+    "bodyText": "{\"code\":0,\"message\":\"ok\",\"request_id\":\"req-result\",\"data\":{\"task_id\":\"mock-web-task-1\",\"task_status\":\"succeed\",\"task_result\":{\"images\":[{\"index\":0,\"url\":\"http://127.0.0.1:19191/generated/result-1.png\"}]},\"created_at\":1,\"updated_at\":2}}"
+  }
+]

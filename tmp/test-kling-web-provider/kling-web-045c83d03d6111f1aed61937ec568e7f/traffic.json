@@ -1,0 +1,29 @@
+[
+  {
+    "ts": "2026-04-21T09:03:52.128Z",
+    "method": "GET",
+    "resourceType": "fetch",
+    "url": "http://127.0.0.1:19192/api/history",
+    "status": 200,
+    "phase": "pre-submit",
+    "bodyText": "{\"code\":0,\"data\":{\"history\":[{\"works\":[{\"resource\":{\"resource\":\"http://127.0.0.1:19192/generated/history-1.png\"}}]}]}}"
+  },
+  {
+    "ts": "2026-04-21T09:03:53.132Z",
+    "method": "POST",
+    "resourceType": "fetch",
+    "url": "http://127.0.0.1:19192/api/task/create",
+    "status": 200,
+    "phase": "post-submit",
+    "bodyText": "{\"code\":0,\"data\":{\"task_id\":\"mock-web-task-1\"}}"
+  },
+  {
+    "ts": "2026-04-21T09:03:53.689Z",
+    "method": "GET",
+    "resourceType": "fetch",
+    "url": "http://127.0.0.1:19192/api/task/result",
+    "status": 200,
+    "phase": "post-submit",
+    "bodyText": "{\"code\":0,\"data\":{\"task_id\":\"mock-web-task-1\",\"task_status\":\"succeed\",\"images\":[{\"url\":\"http://127.0.0.1:19192/generated/result-1.png\"}]}}"
+  }
+]

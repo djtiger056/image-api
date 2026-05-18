@@ -1,0 +1,88 @@
+Request URL
+https://xyq.jianying.com/api/biz/v1/agent/list_thread_file?verifyFp=verify_mp3vzxzi_maEUn8Kk_IUuJ_4naa_AkfK_APdyxwDcZ6hj&fp=verify_mp3vzxzi_maEUn8Kk_IUuJ_4naa_AkfK_APdyxwDcZ6hj&msToken=gQ4kUI8kTADkrUJBvz7SStO5RlWu--ucHVjdLAQD0IODelrc498hnzUOk-LgQc6QXdL6U8Jd5ydKQIRFusjVNSxRa30Mk29m964_rzd6pB5f6UQt-Gp8c4KdpXjxUEKEWTxD929V7ZLNx93_BcYOS_cAUZ6u6nVq3F2CWoUe1B7L6iZTHYKhAVU%3D&a_bogus=mvsfkwtyx2AROpCbYCppeIevZWDMNT8yWPTObu6AePOGaZ0PnGP2mJpljOPWyFlp9SBAFee78xtqOxVYYHZc2lppqmhvumzWyzQ9Igvo21HVbGv2vNRkSsSEFk4c8%2FsOQ5%2F7iPEXXzlqZIcvZHxsACF97Ctn-Sb0sqafdaRlHx2QgaiY9ZncHE%3D%3D
+Request Method
+POST
+Status Code
+200 OK
+Remote Address
+127.0.0.1:7890
+Referrer Policy
+no-referrer
+content-encoding
+br
+content-type
+application/json; charset=utf-8
+date
+Wed, 13 May 2026 11:00:26 GMT
+server
+volc-dcdn
+server-timing
+inner; dur=77, cdn-cache;desc=MISS, origin;dur=114, edge;dur=0
+strict-transport-security
+max-age=31536000; includeSubDomains
+tt_stable
+1
+vary
+Accept-Encoding
+via
+n125-064-092-008.scdeyang-ct09-container.Creative
+x-dsa-origin-status
+200
+x-dsa-trace-id
+1778670026153e41896803311246c346739f573856
+x-request-ip
+118.113.89.82
+x-tt-logid
+20260513190026FB6EC8DBFBE03ABB35C5
+x-tt-timestamp
+1778670026.509
+x-tt-trace-host
+017340e5f89d5fd18c1e0b4e74120923950786d0e5ecbd71579f1bfd77a824613c7edecd5e78dbaae77b1323656372c37e49c52657f188097eeb3e49001e6cbeb1d49759bf6d9151c8fb31431e00c8fc8c1b1f2e62646a174d6b31cdbb4fa18e798f0c0b6d5970b1e8c15d76f2c251662c
+x-tt-trace-id
+00-20fec04b03010a26297598b9a15a0000-20fec04b03010a26-01
+x-tt-trace-tag
+id=5
+:authority
+xyq.jianying.com
+:method
+POST
+:path
+/api/biz/v1/agent/list_thread_file?verifyFp=verify_mp3vzxzi_maEUn8Kk_IUuJ_4naa_AkfK_APdyxwDcZ6hj&fp=verify_mp3vzxzi_maEUn8Kk_IUuJ_4naa_AkfK_APdyxwDcZ6hj&msToken=gQ4kUI8kTADkrUJBvz7SStO5RlWu--ucHVjdLAQD0IODelrc498hnzUOk-LgQc6QXdL6U8Jd5ydKQIRFusjVNSxRa30Mk29m964_rzd6pB5f6UQt-Gp8c4KdpXjxUEKEWTxD929V7ZLNx93_BcYOS_cAUZ6u6nVq3F2CWoUe1B7L6iZTHYKhAVU%3D&a_bogus=mvsfkwtyx2AROpCbYCppeIevZWDMNT8yWPTObu6AePOGaZ0PnGP2mJpljOPWyFlp9SBAFee78xtqOxVYYHZc2lppqmhvumzWyzQ9Igvo21HVbGv2vNRkSsSEFk4c8%2FsOQ5%2F7iPEXXzlqZIcvZHxsACF97Ctn-Sb0sqafdaRlHx2QgaiY9ZncHE%3D%3D
+:scheme
+https
+accept
+application/json, text/plain, */*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+zh-CN,zh;q=0.9
+appid
+795647
+appvr
+1.1.4
+content-length
+103
+content-type
+application/json
+cookie
+gfkadpd=795647,44487; s_v_web_id=verify_mp3vzxzi_maEUn8Kk_IUuJ_4naa_AkfK_APdyxwDcZ6hj; passport_csrf_token=b8c7957ae5b16064581a962c2d83c9dc; passport_csrf_token_default=b8c7957ae5b16064581a962c2d83c9dc; n_mh_pippitcn_web=TYi6FVGFmmr2oMW0MwOtDp2SKhHoKPmzsQELIVNMXfY; passport_auth_status_pippitcn_web=98f0690fb957697190f7bbbe6393003d%2C; passport_auth_status_ss_pippitcn_web=98f0690fb957697190f7bbbe6393003d%2C; sid_guard_pippitcn_web=acf331e56ac95cf8f5724004339910e7%7C1778666345%7C5184000%7CSun%2C+12-Jul-2026+09%3A59%3A05+GMT; uid_tt_pippitcn_web=c12ad1231b32ad9ee9bed35646008c66; uid_tt_ss_pippitcn_web=c12ad1231b32ad9ee9bed35646008c66; sid_tt_pippitcn_web=acf331e56ac95cf8f5724004339910e7; sessionid_pippitcn_web=acf331e56ac95cf8f5724004339910e7; sessionid_ss_pippitcn_web=acf331e56ac95cf8f5724004339910e7; session_tlb_tag_pippitcn_web=sttt%7C1%7CrPMx5WrJXPj1ckAEM5kQ5__________2qHmikXzbSmGz1aOnR5h3IiDJ5yTrbnMQCSL3x_u7QdY%3D; is_staff_user_pippitcn_web=false; has_biz_token_pippitcn_web=false; sid_ucp_v1_pippitcn_web=1.0.0-KDA2YmY2MDI1NWZiYWE5MDA3NWM4MWRjMDczY2FjZWI3YjczMTZiYjkKGAjoiIGkqKzWBxDplpHQBhj_xzA4AkDxBxoCaGwiIGFjZjMzMWU1NmFjOTVjZjhmNTcyNDAwNDMzOTkxMGU3; ssid_ucp_v1_pippitcn_web=1.0.0-KDA2YmY2MDI1NWZiYWE5MDA3NWM4MWRjMDczY2FjZWI3YjczMTZiYjkKGAjoiIGkqKzWBxDplpHQBhj_xzA4AkDxBxoCaGwiIGFjZjMzMWU1NmFjOTVjZjhmNTcyNDAwNDMzOTkxMGU3; biz_trace_id=7f6af8e5
+entrance-from
+web
+origin
+https://xyq.jianying.com
+priority
+u=1, i
+sec-ch-ua
+"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"
+sec-ch-ua-mobile
+?0
+sec-ch-ua-platform
+"Windows"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36

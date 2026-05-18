@@ -1,0 +1,7 @@
+{
+  "taskId": "kling-web-553746d03efd11f1b75853377bc7b636",
+  "targetUrl": "http://127.0.0.1:19194/mock-kling/image/fail",
+  "message": "locator.waitFor: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('div[contenteditable=\\'true\\'][role=\\'textbox\\'], textarea').first() to be visible\u001b[22m\n",
+  "pageUrl": "http://127.0.0.1:19194/mock-kling/image/fail",
+  "observedTaskIds": []
+}

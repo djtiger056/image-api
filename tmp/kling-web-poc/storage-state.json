@@ -1,0 +1,125 @@
+{
+  "cookies": [
+    {
+      "name": "kwssectoken",
+      "value": "BNfi0XMEgTPO2g69uFt3TS63p8kAjpoUQFIw2qDZVOWg1qmsbtXxghu03jZdGjGxsdtssceIiA5WyvTbeB+89A==",
+      "domain": ".klingai.com",
+      "path": "/",
+      "expires": 1776756384,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "None"
+    },
+    {
+      "name": "kwscode",
+      "value": "1dc1737b22e8c2004d63385ab54d1899dcef8852af36206501063e713e9d2d6c",
+      "domain": ".klingai.com",
+      "path": "/",
+      "expires": 1776756384,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "None"
+    },
+    {
+      "name": "kwfv1",
+      "value": "PnGU+9+Y8008S+nH0U+0mjPf8fP08f+98f+nLlwnrIP9+Sw/ZFGfzY+eGlGf+f+e4SGfbYP0QfGnLFwBLU80mYGAWM+AzjPfrU+fchwec9GnpfG0bj8BQSwerFweq7w/LUG9cl8eLE8BQ08nPUGAqhPfPhP0qF8eZhPAbj8ebf+BP=",
+      "domain": ".klingai.com",
+      "path": "/",
+      "expires": 1779348263,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "None"
+    },
+    {
+      "name": "kuaishou.ai.portal_st",
+      "value": "ChVrdWFpc2hvdS5haS5wb3J0YWwuc3QSsAGSYj4surAXFgim3ZBotZK3-9Lrmg0G9ik-hHmiAZ1hX9oSMFyoBM901odpCO0VJQw3F3BtwH2S65c27bT8LhE9yR49TQvNl8Ewy4ADIM7z_c3LYCcjlJ9HeXUMxf7zVjFb_7hqkuFrLCtn9D8eapswuNGv6J_D8wPuDL-a1wj9PTsys1-J3SSO4Ztz33O2-w9DTQeBNgTXlfM8srHCk-1279AVCRNvVC5iTWM-QU8FphoS4Xjecy4f5q4J2d14ZOKw1uLnIiBTj-jubRPuUTlvR8MEVspQ2Zos7WpHqkDncMPFU1eD4CgFMAE",
+      "domain": ".klingai.com",
+      "path": "/",
+      "expires": 1777965312.025984,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "teamId",
+      "value": "",
+      "domain": ".klingai.com",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "None"
+    },
+    {
+      "name": "kGateway-identity",
+      "value": "kGateway-4747b935-63585288",
+      "domain": "klingai.com",
+      "path": "/app/omni",
+      "expires": 1792307711.03587,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "None"
+    },
+    {
+      "name": "accept-language",
+      "value": "zh-CN",
+      "domain": ".klingai.com",
+      "path": "/",
+      "expires": 1802675723.230261,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "None"
+    },
+    {
+      "name": "kuaishou.ai.portal_ph",
+      "value": "80cae06ab9ee71681c7be60994aa440db9d9",
+      "domain": ".klingai.com",
+      "path": "/",
+      "expires": 1777965312.026031,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "None"
+    },
+    {
+      "name": "__risk_web_device_id",
+      "value": "92371c5a1776755711346131",
+      "domain": ".klingai.com",
+      "path": "/",
+      "expires": 1811315711.346817,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "None"
+    },
+    {
+      "name": "did",
+      "value": "web_efm3z9ra99402lnferionbu5fec5fziiworg",
+      "domain": ".klingai.com",
+      "path": "/",
+      "expires": 1811315711.06286,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "kwpsecproductname",
+      "value": "kling-web",
+      "domain": ".klingai.com",
+      "path": "/",
+      "expires": 1779347723,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "None"
+    },
+    {
+      "name": "userId",
+      "value": "3742354705",
+      "domain": ".klingai.com",
+      "path": "/",
+      "expires": 1777965312.025803,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "None"
+    }
+  ],
+  "origins": []
+}

@@ -1,0 +1,14 @@
+[Unit]
+Description=Jimeng Free API local service
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/myproject/jimeng-api
+ExecStart=/usr/bin/bash /myproject/jimeng-api/scripts/start-local.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
