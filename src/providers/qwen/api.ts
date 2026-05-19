@@ -1,14 +1,17 @@
 /**
- * 千问 (Qianwen) 视频生成 API 底层模块
+ * 千问 (Qwen) 视频生成 API 底层模块
  *
- * 封装 create.qianwen.com 的 HappyHorse 1.0 视频生成接口，
- * 实现文生视频的提交、轮询与信用查询。
+ * 封装 create.qianwen.com 的 web API，实现 HappyHorse 1.0 视频生成。
  *
- * 认证方式：Cookie-based auth，通过 QWEN_COOKIE 环境变量传入
- * signKey/nonceId 从 create.qianwen.com 页面 HTML 提取
+ * API 流程：
+ * 1. 从页面 HTML 提取 signKey/nonceId
+ * 2. 生成 token = MD5(browserId_nonceId_signKey_timestamp_chid)
+ * 3. POST /api/web/ai/video/function 提交任务
+ * 4. POST /api/web/assets/v1/batch/get 轮询结果
  */
 
 import crypto from "crypto";
+
 import _ from "lodash";
 import axios from "axios";
 
@@ -19,372 +22,348 @@ import EX from "@/api/consts/exceptions.ts";
 
 // ─── 常量 ────────────────────────────────────────────────────────────
 
-const BASE_URL = "https://zaodian-api.qianwen.com";
-const PAGE_URL = "https://create.qianwen.com";
-const COMMON_PARAMS = "biz_id=ai_image&pr=kkpcweb&fr=win";
-const MAX_POLL_ATTEMPTS = 120; // 最多轮询 120 次
-const POLL_INTERVAL_MS = 5000; // 每 5 秒轮询一次
-const SIGN_CACHE_TTL_MS = 25 * 60 * 1000; // signKey 缓存 25 分钟
+const API_BASE = "https://zaodian-api.qianwen.com";
+const PAGE_URL = "https://create.qianwen.com/";
+const BIZ_ID = "ai_image";
+const PR = "kkpcweb";
+const FR = "win";
+const PRODUCT = "ai_studio";
+const PLATFORM = "pc";
+const POLL_INTERVAL = 5000; // 5秒轮询一次
+const MAX_POLL_TIME = 300000; // 最长等待5分钟
+const MAX_RETRY_COUNT = 3;
 
-const FAKE_HEADERS: Record<string, string> = {
-  Accept: "application/json, text/plain, */*",
-  "Accept-Encoding": "gzip, deflate, br, zstd",
-  "Accept-language": "zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7",
-  "Content-Type": "application/json",
-  Origin: "https://create.qianwen.com",
-  Referer: "https://create.qianwen.com/",
-  "Sec-Ch-Ua":
-    '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-  "Sec-Ch-Ua-Mobile": "?0",
-  "Sec-Ch-Ua-Platform": '"Windows"',
-  "Sec-Fetch-Dest": "empty",
-  "Sec-Fetch-Mode": "cors",
-  "Sec-Fetch-Site": "same-site",
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-};
-
-// ─── signKey 缓存 ─────────────────────────────────────────────────
-
-interface SignCache {
-  signKey: string;
-  nonceId: string;
-  fetchedAt: number;
-}
-
-let signCache: SignCache | null = null;
+// signKey 缓存（每次页面加载会变化，缓存30分钟）
+let cachedSignKey: { nonceId: string; signKey: string; ts: number } | null = null;
+const SIGNKEY_TTL = 30 * 60 * 1000; // 30分钟
 
 // ─── 工具函数 ──────────────────────────────────────────────────────
 
-/**
- * 生成随机 hex 字符串 (32 chars)
- */
-function randomHex32(): string {
-  return crypto.randomBytes(16).toString("hex");
+function md5(str: string): string {
+  return crypto.createHash("md5").update(str, "utf8").digest("hex");
 }
 
-/**
- * 生成 MD5 token
- * token = MD5(browserId_nonceId_signKey_timestamp_chid)
- */
-export function generateToken(
-  browserId: string,
-  nonceId: string,
-  signKey: string,
-  timestamp: number,
-  chid: string
-): string {
-  const raw = `${browserId}_${nonceId}_${signKey}_${timestamp}_${chid}`;
-  return crypto.createHash("md5").update(raw).digest("hex");
+function generateHexId(len: number = 32): string {
+  return crypto.randomBytes(Math.ceil(len / 2)).toString("hex").substring(0, len);
 }
+
+export function tokenSplit(cookie: string): string[] {
+  return cookie
+    .replace(/^Bearer\s+/i, "")
+    .split("|||")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function buildApiUrl(path: string): string {
+  const ts = Date.now();
+  const reqId = util.uuid();
+  return `${API_BASE}${path}?biz_id=${BIZ_ID}&pr=${PR}&fr=${FR}&ai_ts=${ts}&req_id=${reqId}`;
+}
+
+// ─── signKey 获取 ──────────────────────────────────────────────────
 
 /**
  * 从 create.qianwen.com 页面提取 signKey 和 nonceId
+ * 结果会缓存30分钟
  */
-export async function getSignKeyAndNonce(): Promise<{
-  signKey: string;
+export async function getSignKeyAndNonce(cookie: string): Promise<{
   nonceId: string;
+  signKey: string;
 }> {
-  // 检查缓存
-  if (signCache && Date.now() - signCache.fetchedAt < SIGN_CACHE_TTL_MS) {
-    return { signKey: signCache.signKey, nonceId: signCache.nonceId };
+  if (cachedSignKey && Date.now() - cachedSignKey.ts < SIGNKEY_TTL) {
+    return { nonceId: cachedSignKey.nonceId, signKey: cachedSignKey.signKey };
   }
 
-  logger.info("[Qwen] 正在从 create.qianwen.com 获取 signKey/nonceId...");
+  logger.info("[QwenVideo] 正在从页面获取 signKey...");
 
   const response = await axios.get(PAGE_URL, {
     headers: {
-      Accept:
-        "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "zh-CN,zh;q=0.9",
-      "User-Agent": FAKE_HEADERS["User-Agent"],
+      Cookie: cookie,
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     },
     timeout: 15000,
   });
 
   const html = response.data as string;
   const match = html.match(
-    /__sm_req_token__\s*=\s*\{\s*"nonceId"\s*:\s*"([^"]+)"\s*,\s*"signKey"\s*:\s*"([^"]+)"\s*\}/
+    /__sm_req_token__\s*=\s*\{"nonceId":"([^"]+)","signKey":"([^"]+)"\}/
   );
 
   if (!match) {
     throw new APIException(
       EX.API_REQUEST_FAILED,
-      "[Qwen] 无法从 create.qianwen.com 页面提取 signKey/nonceId"
+      "[QwenVideo] 无法从页面提取 signKey，可能 cookie 已过期"
     );
   }
 
-  const nonceId = match[1];
-  const signKey = match[2];
+  cachedSignKey = {
+    nonceId: match[1],
+    signKey: match[2],
+    ts: Date.now(),
+  };
 
-  signCache = { signKey, nonceId, fetchedAt: Date.now() };
-  logger.info(`[Qwen] 获取 signKey/nonceId 成功`);
-
-  return { signKey, nonceId };
+  logger.success(`[QwenVideo] signKey 获取成功`);
+  return { nonceId: match[1], signKey: match[2] };
 }
+
+// ─── Token 生成 ────────────────────────────────────────────────────
 
 /**
- * 强制刷新 signKey 缓存
+ * 生成 API token
+ * token = MD5(browserId_nonceId_signKey_timestamp_chid)
  */
-export function invalidateSignCache(): void {
-  signCache = null;
+function generateToken(
+  browserId: string,
+  nonceId: string,
+  signKey: string,
+  timestamp: number,
+  chid: string
+): string {
+  return md5(`${browserId}_${nonceId}_${signKey}_${timestamp}_${chid}`);
 }
 
-/**
- * cookie 分割（支持多 cookie 用 \n 或 , 分隔）
- */
-export function tokenSplit(cookie: string): string[] {
-  return cookie
-    .split(/[\n,]/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+// ─── 通用请求 ──────────────────────────────────────────────────────
+
+interface QwenApiParams {
+  chid: string;
+  token: string;
+  browserId: string;
+  timestamp: number;
+  nonceId: string;
+  signKey: string;
 }
 
-// ─── 底层请求 ──────────────────────────────────────────────────────
+async function buildCommonParams(cookie: string): Promise<QwenApiParams> {
+  const { nonceId, signKey } = await getSignKeyAndNonce(cookie);
+  const browserId = generateHexId(32);
+  const chid = generateHexId(32);
+  const timestamp = Date.now();
+  const token = generateToken(browserId, nonceId, signKey, timestamp, chid);
 
-function buildApiUrl(path: string): string {
-  const ts = Date.now();
-  const reqId = util.uuid();
-  return `${BASE_URL}${path}?${COMMON_PARAMS}&ai_ts=${ts}&req_id=${reqId}`;
+  return { chid, token, browserId, timestamp, nonceId, signKey };
 }
 
-async function qwenRequest(
-  path: string,
-  data: any,
-  cookie: string,
-  timeout = 15000
-): Promise<any> {
-  const url = buildApiUrl(path);
-  const response = await axios.post(url, data, {
-    headers: {
-      ...FAKE_HEADERS,
-      Cookie: cookie,
+// ─── 额度查询 ──────────────────────────────────────────────────────
+
+export async function getCredit(
+  cookie: string
+): Promise<{ totalAmount: number }> {
+  const params = await buildCommonParams(cookie);
+  const url = buildApiUrl("/api/web/credit/total");
+
+  const response = await axios.post(
+    url,
+    {
+      chid: params.chid,
+      product: PRODUCT,
+      token: params.token,
+      browserId: params.browserId,
+      timestamp: params.timestamp,
+      nonceId: params.nonceId,
+      signKey: params.signKey,
+      platform: PLATFORM,
     },
-    timeout,
-    validateStatus: () => true,
-  });
+    {
+      headers: {
+        Cookie: cookie,
+        "Content-Type": "application/json",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+      timeout: 15000,
+    }
+  );
 
-  return response.data;
-}
+  if (response.data.code !== 0) {
+    throw new Error(`查询额度失败: ${response.data.msg}`);
+  }
 
-// ─── 视频参数接口 ─────────────────────────────────────────────────
-
-export interface QwenVideoParams {
-  prompt: string;
-  ratio?: string;
-  duration?: number;
+  return response.data.data;
 }
 
 // ─── 视频结果接口 ─────────────────────────────────────────────────
 
 export interface QwenVideoResult {
-  videoUrl: string;
   success: boolean;
+  videoUrl?: string;
+  coverUrl?: string;
   error?: string;
+  creditRemaining?: number;
 }
 
-// ─── 视频比例映射 ─────────────────────────────────────────────────
+// ─── 提交视频任务 ─────────────────────────────────────────────────
 
-const VALID_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4"];
-
-export function normalizeQwenRatio(ratio?: string): string {
-  if (!ratio) return "16:9";
-  const normalized = ratio.replace(/\s/g, "");
-  if (VALID_RATIOS.includes(normalized)) return normalized;
-  const aliasMap: Record<string, string> = {
-    "1x1": "1:1",
-    "4x3": "4:3",
-    "3x4": "3:4",
-    "16x9": "16:9",
-    "9x16": "9:16",
-    landscape: "16:9",
-    portrait: "9:16",
-    square: "1:1",
-  };
-  return aliasMap[normalized.toLowerCase()] || "16:9";
+export interface QwenVideoParams {
+  prompt: string;
+  ratio?: string;
+  duration?: number;
+  attachments?: Array<{ type: string; url: string }>;
 }
-
-// ─── 视频生成（同步） ─────────────────────────────────────────────
 
 /**
- * 同步视频生成 —— 提交任务、轮询直到完成、返回视频 URL
+ * 同步视频生成 —— 提交任务、轮询结果、返回视频 URL
  */
 export async function createVideoCompletion(
   params: QwenVideoParams,
   cookie: string
 ): Promise<QwenVideoResult> {
-  const { prompt, ratio = "16:9", duration = 10 } = params;
-  const normalizedRatio = normalizeQwenRatio(ratio);
-  const normalizedDuration = duration === 5 ? 5 : 10;
+  const { prompt, ratio = "16:9", duration = 10, attachments = [] } = params;
 
-  logger.info(
-    `[Qwen] 视频生成请求: prompt=${prompt.substring(0, 50)}..., ratio=${normalizedRatio}, duration=${normalizedDuration}s`
-  );
+  // 检查额度
+  try {
+    const credit = await getCredit(cookie);
+    if (credit.totalAmount <= 0) {
+      return {
+        success: false,
+        error: "千问视频额度已用完",
+        creditRemaining: 0,
+      };
+    }
+    logger.info(`[QwenVideo] 当前额度: ${credit.totalAmount}`);
+  } catch (e) {
+    logger.warn(`[QwenVideo] 查询额度失败，继续尝试: ${(e as Error).message}`);
+  }
 
-  // 获取签名信息
-  const { signKey, nonceId } = await getSignKeyAndNonce();
+  // 构建请求参数
+  const common = await buildCommonParams(cookie);
+  const submitUrl = buildApiUrl("/api/web/ai/video/function");
 
-  // 准备通用参数
-  const browserId = randomHex32();
-  const chid = randomHex32();
-  const timestamp = Date.now();
-  const token = generateToken(browserId, nonceId, signKey, timestamp, chid);
-
-  // ── 提交视频任务 ──
   const submitBody = {
     model: "happyhorse",
     rootModel: "happyhorse",
     prompt,
     originPrompt: prompt,
     params: {
-      size: normalizedRatio,
+      size: ratio,
       resolution: "720P",
-      duration: normalizedDuration,
+      duration: duration === 5 ? 5 : 10,
       attachmentType: 0,
-      attachments: [],
+      attachments,
     },
     genMode: "vid_gen",
-    chid,
-    product: "ai_studio",
-    token,
-    browserId,
-    timestamp,
-    nonceId,
-    signKey,
-    platform: "pc",
+    chid: common.chid,
+    product: PRODUCT,
+    token: common.token,
+    browserId: common.browserId,
+    timestamp: common.timestamp,
+    nonceId: common.nonceId,
+    signKey: common.signKey,
+    platform: PLATFORM,
   };
 
-  logger.info("[Qwen] 提交视频生成任务...");
-  const submitResult = await qwenRequest(
-    "/api/web/ai/video/function",
-    submitBody,
-    cookie,
-    30000
+  logger.info(
+    `[QwenVideo] 提交视频任务: prompt="${prompt.substring(0, 30)}...", ratio=${ratio}, duration=${duration}s`
   );
 
-  if (submitResult.code !== 0) {
-    const errMsg = submitResult.message || submitResult.msg || "提交任务失败";
-    logger.error(`[Qwen] 提交任务失败: ${JSON.stringify(submitResult)}`);
-    throw new APIException(
-      EX.API_REQUEST_FAILED,
-      `[Qwen] 提交视频任务失败: ${errMsg}`
-    );
-  }
+  // 提交任务
+  const submitResponse = await axios.post(submitUrl, submitBody, {
+    headers: {
+      Cookie: cookie,
+      "Content-Type": "application/json",
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    },
+    timeout: 30000,
+  });
 
-  logger.info("[Qwen] 视频任务提交成功，开始轮询结果...");
-
-  // ── 轮询结果 ──
-  for (let attempt = 1; attempt <= MAX_POLL_ATTEMPTS; attempt++) {
-    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
-
-    const pollTs = Date.now();
-    const pollChid = randomHex32();
-    const pollToken = generateToken(
-      browserId,
-      nonceId,
-      signKey,
-      pollTs,
-      pollChid
-    );
-
-    const pollBody = {
-      items: [{ recordId: chid, scene: "hh_t2v" }],
-      req_id: util.uuid(),
-      chid: pollChid,
-      product: "ai_studio",
-      token: pollToken,
-      browserId,
-      timestamp: pollTs,
-      nonceId,
-      signKey,
-      platform: "pc",
+  if (submitResponse.data.code !== 0) {
+    return {
+      success: false,
+      error: `提交失败: ${submitResponse.data.msg}`,
     };
+  }
 
-    const pollResult = await qwenRequest(
-      "/api/web/assets/v1/batch/get",
-      pollBody,
-      cookie,
-      15000
-    );
+  logger.success(`[QwenVideo] 任务已提交，开始轮询结果...`);
 
-    if (pollResult.code !== 0) {
-      logger.warn(
-        `[Qwen] 轮询第 ${attempt} 次返回错误: ${JSON.stringify(pollResult)}`
-      );
-      continue;
-    }
+  // 轮询结果
+  const recordId = common.chid; // 提交时的 chid 就是 recordId
+  const startTime = Date.now();
 
-    // 检查视频是否完成
-    const list = pollResult.data?.list;
-    if (Array.isArray(list) && list.length > 0) {
-      const item = list[0];
-      // 检查内容中的视频 URL
-      if (item.content?.result_videos?.length > 0) {
-        const videoUrl = item.content.result_videos[0].url;
-        if (videoUrl) {
-          logger.info(`[Qwen] 视频生成完成 (第 ${attempt} 次轮询): ${videoUrl}`);
-          return { videoUrl, success: true };
+  while (Date.now() - startTime < MAX_POLL_TIME) {
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
+
+    try {
+      const pollParams = await buildCommonParams(cookie);
+      const pollUrl = buildApiUrl("/api/web/assets/v1/batch/get");
+
+      const pollResponse = await axios.post(
+        pollUrl,
+        {
+          items: [{ recordId, scene: "hh_t2v" }],
+          req_id: util.uuid(),
+          chid: pollParams.chid,
+          product: PRODUCT,
+          token: pollParams.token,
+          browserId: pollParams.browserId,
+          timestamp: pollParams.timestamp,
+          nonceId: pollParams.nonceId,
+          signKey: pollParams.signKey,
+          platform: PLATFORM,
+        },
+        {
+          headers: {
+            Cookie: cookie,
+            "Content-Type": "application/json",
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          },
+          timeout: 15000,
         }
-      }
-      // 检查 status 字段判断任务失败
-      if (item.status === "failed" || item.status === "error") {
-        const errMsg = item.error_msg || item.message || "视频生成失败";
-        logger.error(`[Qwen] 视频生成失败: ${errMsg}`);
-        return { videoUrl: "", success: false, error: errMsg };
-      }
-    }
+      );
 
-    if (attempt % 10 === 0) {
-      logger.info(`[Qwen] 已轮询 ${attempt} 次，继续等待...`);
+      if (pollResponse.data.code !== 0) {
+        logger.warn(
+          `[QwenVideo] 轮询返回错误: ${pollResponse.data.msg}`
+        );
+        continue;
+      }
+
+      const list = pollResponse.data.data?.list;
+      if (!list || list.length === 0) continue;
+
+      const content = list[0]?.content;
+      if (!content) continue;
+
+      // 检查是否有结果视频
+      const resultVideos = content.extra?.result_videos;
+      if (resultVideos && resultVideos.length > 0) {
+        const videoUrl = resultVideos[0].url;
+        const coverUrl = resultVideos[0].cover?.cdn_url;
+
+        logger.success(
+          `[QwenVideo] 视频生成完成! URL: ${videoUrl.substring(0, 80)}...`
+        );
+
+        return {
+          success: true,
+          videoUrl,
+          coverUrl,
+        };
+      }
+
+      // 检查是否失败
+      const status = content.extra?.status;
+      if (status === "failed" || status === "error") {
+        return {
+          success: false,
+          error: content.extra?.error_msg || "视频生成失败",
+        };
+      }
+
+      // 还在处理中，继续轮询
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      logger.info(`[QwenVideo] 仍在生成中... (${elapsed}s)`);
+    } catch (pollErr) {
+      logger.warn(
+        `[QwenVideo] 轮询请求异常: ${(pollErr as Error).message}`
+      );
     }
   }
 
-  throw new APIException(
-    EX.API_REQUEST_FAILED,
-    `[Qwen] 视频生成轮询超时 (${MAX_POLL_ATTEMPTS} 次，${(MAX_POLL_ATTEMPTS * POLL_INTERVAL_MS) / 1000}秒)`
-  );
-}
-
-// ─── 信用查询 ─────────────────────────────────────────────────────
-
-/**
- * 查询剩余信用额度
- */
-export async function getCredit(
-  cookie: string
-): Promise<{ totalAmount: number }> {
-  const signKeyNonce = await getSignKeyAndNonce();
-  const { signKey, nonceId } = signKeyNonce;
-
-  const browserId = randomHex32();
-  const chid = randomHex32();
-  const timestamp = Date.now();
-  const token = generateToken(browserId, nonceId, signKey, timestamp, chid);
-
-  const body = {
-    chid,
-    product: "ai_studio",
-    token,
-    browserId,
-    timestamp,
-    nonceId,
-    signKey,
-    platform: "pc",
+  return {
+    success: false,
+    error: "视频生成超时（超过5分钟）",
   };
-
-  const result = await qwenRequest(
-    "/api/web/credit/total",
-    body,
-    cookie,
-    15000
-  );
-
-  if (result.code !== 0) {
-    throw new APIException(
-      EX.API_REQUEST_FAILED,
-      `[Qwen] 查询信用失败: ${result.message || JSON.stringify(result)}`
-    );
-  }
-
-  return { totalAmount: result.data?.totalAmount ?? 0 };
 }

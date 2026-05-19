@@ -564,7 +564,7 @@
       // 更新生成按钮文案
       const genBtn = document.getElementById('generateBtn');
       if (genBtn && !genBtn.disabled) {
-        genBtn.textContent = rule.family === 'doubao-video' ? '开始生成视频' : '开始生图';
+        genBtn.textContent = ['doubao-video', 'qwen-video'].includes(rule.family) ? '开始生成视频' : '开始生图';
       }
       validateParams(false);
     }
@@ -616,6 +616,7 @@
         kling: document.createElement('optgroup'),
         doubao: document.createElement('optgroup'),
         'doubao-video': document.createElement('optgroup'),
+        'qwen-video': document.createElement('optgroup'),
         xyq: document.createElement('optgroup'),
       };
       groups.seedream.label = 'Seedream 统一接口（自动轮询）';
@@ -623,6 +624,7 @@
       groups.kling.label = 'Kling 图片模型';
       groups.doubao.label = 'Doubao Seedream 图片模型';
       groups['doubao-video'].label = 'Doubao 视频模型';
+      groups['qwen-video'].label = 'Qwen (千问) 视频模型';
       groups.xyq.label = 'XYQ (小云雀) 图片模型';
 
       for (const item of modelCatalog) {
@@ -852,7 +854,7 @@
       validateParams(true);
       appendLog('info', `准备发起 ${model} ${currentMode === 'img2img' ? '图生图' : '文生图'}任务`);
       els.generateBtn.disabled = true;
-      els.generateBtn.textContent = inferModelFamily(model) === 'doubao-video' ? '视频生成中...' : '生成中...';
+      els.generateBtn.textContent = ['doubao-video', 'qwen-video'].includes(inferModelFamily(model)) ? '视频生成中...' : '生成中...';
       try {
         const baseParams = {
           model,
@@ -883,6 +885,8 @@
           ? '/v1/seedream/generations'
           : family === 'doubao-video'
           ? '/v1/doubao/videos/generations'
+          : family === 'qwen-video'
+          ? '/v1/qwen/videos/generations'
           : currentMode === 'img2img' ? '/v1/images/compositions' : '/v1/images/generations';
 
         if (currentMode === 'img2img') {
@@ -942,7 +946,7 @@
         appendLog('error', '生图失败', error.response || error.message);
       } finally {
         els.generateBtn.disabled = false;
-        els.generateBtn.textContent = inferModelFamily(model) === 'doubao-video' ? '开始生成视频' : '开始生图';
+        els.generateBtn.textContent = ['doubao-video', 'qwen-video'].includes(inferModelFamily(model)) ? '开始生成视频' : '开始生图';
       }
     }
 
