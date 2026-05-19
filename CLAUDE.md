@@ -4,7 +4,7 @@
 
 ## 项目概述
 
-Kling + Jimeng + Doubao 兼容 API 服务 - 本地 HTTP API 服务器，提供 OpenAI 兼容接口，封装 Jimeng 图像/视频/chat 能力、Kling 官方图片 API 与网页免费额度模式、以及豆包 (Doubao) Seedream 免费生图能力。
+Kling + Jimeng + Doubao 兼容 API 服务 - 本地 HTTP API 服务器，提供 OpenAI 兼容接口，封装 Jimeng 图像/视频/chat 能力、Kling 官方图片 API 与网页免费额度模式、豆包 (Doubao) Seedream 免费生图能力、以及豆包 Seedance 2.0 Fast 免费视频生成能力。
 
 **版本：** v0.9.1
 
@@ -126,6 +126,9 @@ src/
 | `/token/check` | POST | 检查 Token 有效性 |
 | `/token/points` | POST | 查询账户积分 |
 | `/ping` | GET | 健康检查端点 |
+| `/v1/doubao/videos/generations` | POST | 豆包视频生成接口（Seedance 2.0 Fast，同步等待返回视频 URL） |
+| `/v1/doubao/videos/generations/stream` | POST | 豆包视频生成接口（流式 SSE 模式） |
+| `/v1/doubao/videos/models` | GET | 豆包视频可用模型列表 |
 
 ## 关键技术细节
 
@@ -142,6 +145,8 @@ src/
 - 环境变量：`DOUBAO_AUTHORIZATION` 或 `DOUBAO_SESSIONID`（逗号分隔多个）
 - 请求头 `Authorization: Bearer <sessionid>` 也可直接传入
 - Token 来源：登录 doubao.com → F12 → Application → Cookies → `sessionid`
+- 视频生成与图片生成共用同一套凭证（DOUBAO_SESSIONID）
+- 视频每日免费额度：10次（每次5秒视频消耗1额度）
 
 ### 模型映射
 
@@ -167,6 +172,11 @@ src/
 | `doubao-seedream-4.5` | `Seedream 4.5` | 豆包 Seedream 4.5 生图模型（最新，默认推荐） |
 | `doubao-seedream-4.0` | `Seedream 4.0` | 豆包 Seedream 4.0 生图模型 |
 | `doubao-seedream-3.0` | `Seedream 3.0` | 豆包 Seedream 3.0 生图模型 |
+
+#### 豆包视频模型
+| 用户模型名 | 内部模型 | 说明 |
+|-----------|-------------|------|
+| `doubao-seedance-2.0-fast` | `seed2fast` | 豆包 Seedance 2.0 Fast 视频生成模型（每日10次免费额度，5秒视频） |
 
 #### 小云雀 (XYQ) 图像模型
 | 用户模型名 | 说明 |

@@ -10,6 +10,7 @@ import videos from './videos.ts';
 import video from './video.ts';
 import consoleRoutes from './console.ts';
 import seedream from './seedream.ts';
+import doubaoVideo from './doubao-video.ts';
 
 export default [
     {
@@ -34,4 +35,5 @@ export default [
     video,
     consoleRoutes,
     seedream
+    ,doubaoVideo
 ];

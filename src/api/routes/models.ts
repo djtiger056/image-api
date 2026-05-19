@@ -200,6 +200,12 @@ export default {
                         "description": "豆包 Seedream 3.0 生图模型"
                     },
                     {
+                        "id": "doubao-seedance-2.0-fast",
+                        "object": "model",
+                        "owned_by": "images-api",
+                        "description": "豆包 Seedance 2.0 Fast 视频生成模型（每日10次免费额度，5秒视频）"
+                    },
+                    {
                         "id": "xyq-seedream-5.0",
                         "object": "model",
                         "owned_by": "images-api",

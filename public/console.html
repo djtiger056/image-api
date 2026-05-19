@@ -283,6 +283,7 @@
       'doubao-seedream-4.5': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['最新 Doubao Seedream 模型', '支持 style 参数'], limit: '豆包 Seedream 4.5 模型，使用 ratio 和 style 参数。' },
       'doubao-seedream-4.0': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['Doubao Seedream 4.0', '支持 style 参数'], limit: '豆包 Seedream 4.0 模型，使用 ratio 和 style 参数。' },
       'doubao-seedream-3.0': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['Doubao Seedream 3.0', '支持 style 参数'], limit: '豆包 Seedream 3.0 模型，使用 ratio 和 style 参数。' },
+      'doubao-seedance-2.0-fast': { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], notes: ['豆包 Seedance 2.0 Fast 视频模型', '每日10次免费额度', '5秒视频消耗1额度'], limit: '豆包免费视频生成，每日10次额度，每次生成5秒视频。支持文生视频。' },
       'xyq-seedream-5.0': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['最新云雀 Seedream 模型', '使用 ratio 和 style 参数'], limit: '小云雀 Seedream 5.0 模型，通过云雀平台免费额度生图。' },
       'xyq-seedream-4.5': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['云雀 Seedream 4.5', '使用 ratio 和 style 参数'], limit: '小云雀 Seedream 4.5 模型。' },
       'xyq-seedream-4.0': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['云雀 Seedream 4.0', '使用 ratio 和 style 参数'], limit: '小云雀 Seedream 4.0 模型。' },
@@ -291,6 +292,7 @@
       default_kling: { family: 'kling', ratios: ['1:1','16:9','9:16'], resolutions: ['1k'], notes: ['网页自动化链路'], limit: 'Kling 网页模式建议先用保守参数，并等待任务轮询完成。' },
       default_seedream: { family: 'seedream', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['统一 Seedream 模型', '自动轮询多提供商'], limit: '统一接口，自动选择最优提供商。' },
       default_doubao: { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['豆包 Seedream 模型'], limit: '豆包 Seedream 模型，使用 ratio 和 style 参数。' },
+      default_doubao_video: { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], notes: ['豆包视频生成模型', '每日10次免费额度'], limit: '豆包免费视频生成，每日10次额度。' },
     };
 
     const els = {
@@ -484,6 +486,7 @@
     function inferModelFamily(model) {
       if (model.startsWith('seedream-')) return 'seedream';
       if (model.startsWith('kling-')) return 'kling';
+      if (model.startsWith('doubao-seedance-') || model.startsWith('doubao-seed2fast')) return 'doubao-video';
       if (model.startsWith('doubao-')) return 'doubao';
       if (model.startsWith('xyq-')) return 'xyq';
       return 'jimeng';
@@ -491,14 +494,14 @@
 
     function getModelRule(model) {
       const family = inferModelFamily(model);
-      const defaults = { seedream: MODEL_RULES.default_seedream, kling: MODEL_RULES.default_kling, doubao: MODEL_RULES.default_doubao, xyq: MODEL_RULES.default_xyq, jimeng: MODEL_RULES.default_jimeng };
+      const defaults = { seedream: MODEL_RULES.default_seedream, kling: MODEL_RULES.default_kling, 'doubao-video': MODEL_RULES.default_doubao_video, doubao: MODEL_RULES.default_doubao, xyq: MODEL_RULES.default_xyq, jimeng: MODEL_RULES.default_jimeng };
       return MODEL_RULES[model] || defaults[family] || MODEL_RULES.default_jimeng;
     }
 
     function refreshModelHints() {
       const model = normalizeModel(els.modelSelect.value);
       const rule = getModelRule(model);
-      const familyName = { seedream: 'Seedream 统一', kling: 'Kling', doubao: 'Doubao', xyq: 'XYQ (小云雀)', jimeng: 'Jimeng' }[rule.family] || rule.family;
+      const familyName = { seedream: 'Seedream 统一', kling: 'Kling', 'doubao-video': 'Doubao 视频', doubao: 'Doubao', xyq: 'XYQ (小云雀)', jimeng: 'Jimeng' }[rule.family] || rule.family;
       els.modelFamilyBadge.textContent = `模型类型：${familyName} / ${model}`;
       els.modelLimitText.textContent = rule.limit || '-';
       els.modelNotesText.innerHTML = (rule.notes || []).length ? `<ul class="note-list">${rule.notes.map((x) => `<li>${x}</li>`).join('')}</ul>` : '-';
@@ -527,7 +530,7 @@
       } else {
         // doubao/xyq 不需要 resolution
         els.resolutionInput.innerHTML = '<option value="">-</option>';
-        els.resolutionInput.parentElement.style.display = ['doubao', 'xyq', 'seedream'].includes(rule.family) ? 'none' : '';
+        els.resolutionInput.parentElement.style.display = ['doubao', 'doubao-video', 'xyq', 'seedream'].includes(rule.family) ? 'none' : '';
       }
 
       // 填充 style 下拉框
@@ -547,6 +550,11 @@
 
       els.modelRatioText.textContent = (rule.ratios || []).join(' / ') || '-';
       els.modelResolutionText.textContent = (rule.resolutions || []).join(' / ') || '-';
+      // 更新生成按钮文案
+      const genBtn = document.getElementById('generateBtn');
+      if (genBtn && !genBtn.disabled) {
+        genBtn.textContent = rule.family === 'doubao-video' ? '开始生成视频' : '开始生图';
+      }
       validateParams(false);
     }
 
@@ -578,7 +586,14 @@
 
     function fillModelSelect(models = []) {
       const current = els.modelSelect.value;
-      const filtered = models.filter((item) => item && item.id && !item.id.includes('video') && !item.id.startsWith('seedance'));
+      const filtered = models.filter((item) => {
+        if (!item || !item.id) return false;
+        // 包含 doubao-seedance 视频模型
+        if (item.id.startsWith('doubao-seedance')) return true;
+        // 排除其他视频/seedance模型
+        if (item.id.includes('video') || item.id.startsWith('seedance')) return false;
+        return true;
+      });
       modelCatalog = filtered.map((item) => ({ id: item.id, description: item.description || '', family: inferModelFamily(item.id) }));
       els.modelSelect.innerHTML = '';
 
@@ -587,12 +602,14 @@
         jimeng: document.createElement('optgroup'),
         kling: document.createElement('optgroup'),
         doubao: document.createElement('optgroup'),
+        'doubao-video': document.createElement('optgroup'),
         xyq: document.createElement('optgroup'),
       };
       groups.seedream.label = 'Seedream 统一接口（自动轮询）';
       groups.jimeng.label = 'Jimeng 图片模型';
       groups.kling.label = 'Kling 图片模型';
       groups.doubao.label = 'Doubao Seedream 图片模型';
+      groups['doubao-video'].label = 'Doubao 视频模型';
       groups.xyq.label = 'XYQ (小云雀) 图片模型';
 
       for (const item of modelCatalog) {
@@ -637,19 +654,30 @@
         });
     }
 
-    function setPreview(urls = []) {
+    function setPreview(urls = [], isVideo = false) {
       els.previewBox.innerHTML = '';
       for (let i = 0; i < urls.length; i++) {
         const card = document.createElement('div');
         card.className = 'image-card';
-        const img = document.createElement('img');
-        img.src = urls[i];
-        img.alt = urls[i];
+        if (isVideo) {
+          const video = document.createElement('video');
+          video.src = urls[i];
+          video.controls = true;
+          video.autoplay = false;
+          video.loop = true;
+          video.style.width = '100%';
+          video.style.borderRadius = '8px';
+          card.appendChild(video);
+        } else {
+          const img = document.createElement('img');
+          img.src = urls[i];
+          img.alt = urls[i];
+          card.appendChild(img);
+        }
         const btn = document.createElement('button');
         btn.className = 'dl-btn';
-        btn.textContent = '下载';
-        btn.onclick = () => downloadImage(urls[i], `image-${i + 1}.png`);
-        card.appendChild(img);
+        btn.textContent = isVideo ? '下载视频' : '下载';
+        btn.onclick = () => downloadImage(urls[i], isVideo ? `video-${i + 1}.mp4` : `image-${i + 1}.png`);
         card.appendChild(btn);
         els.previewBox.appendChild(card);
       }
@@ -658,8 +686,8 @@
         bar.style.gridColumn = '1 / -1';
         const allBtn = document.createElement('button');
         allBtn.className = 'dl-all-btn';
-        allBtn.textContent = `全部下载 (${urls.length} 张)`;
-        allBtn.onclick = () => urls.forEach((u, i) => downloadImage(u, `image-${i + 1}.png`));
+        allBtn.textContent = `全部下载 (${urls.length} ${isVideo ? '个视频' : '张'})`;
+        allBtn.onclick = () => urls.forEach((u, i) => downloadImage(u, isVideo ? `video-${i + 1}.mp4` : `image-${i + 1}.png`));
         bar.appendChild(allBtn);
         els.previewBox.appendChild(bar);
       }
@@ -811,7 +839,7 @@
       validateParams(true);
       appendLog('info', `准备发起 ${model} ${currentMode === 'img2img' ? '图生图' : '文生图'}任务`);
       els.generateBtn.disabled = true;
-      els.generateBtn.textContent = '生成中...';
+      els.generateBtn.textContent = inferModelFamily(model) === 'doubao-video' ? '视频生成中...' : '生成中...';
       try {
         const baseParams = {
           model,
@@ -840,6 +868,8 @@
         const family = inferModelFamily(model);
         const endpoint = family === 'seedream'
           ? '/v1/seedream/generations'
+          : family === 'doubao-video'
+          ? '/v1/doubao/videos/generations'
           : currentMode === 'img2img' ? '/v1/images/compositions' : '/v1/images/generations';
 
         if (currentMode === 'img2img') {
@@ -879,6 +909,15 @@
 
         if (inferModelFamily(model) === 'kling' && data?.task_id && data?.status && ['processing', 'queued', 'submitted'].includes(data.status)) {
           await pollKlingTask(data.task_id);
+        } else if (inferModelFamily(model) === 'doubao-video') {
+          // 视频结果处理
+          if (data?.error) {
+            appendLog('warn', '视频生成提示', data.error.message || data.error);
+          } else {
+            const urls = Array.isArray(data?.data) ? data.data.map((item) => item.url).filter(Boolean) : [];
+            setPreview(urls, true); // true = isVideo
+            appendLog('info', `视频生成完成，获取到 ${urls.length} 个视频`);
+          }
         } else {
           const urls = Array.isArray(data?.data) ? data.data.map((item) => item.url).filter(Boolean) : [];
           setPreview(urls);
@@ -890,7 +929,7 @@
         appendLog('error', '生图失败', error.response || error.message);
       } finally {
         els.generateBtn.disabled = false;
-        els.generateBtn.textContent = '开始生图';
+        els.generateBtn.textContent = inferModelFamily(model) === 'doubao-video' ? '开始生成视频' : '开始生图';
       }
     }
 

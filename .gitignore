@@ -1,5 +1,6 @@
 dist/
 node_modules/
+local.env
 logs/
 .vercel
 .ipynb_checkpoints/文生视频首位帧-checkpoint.txt

@@ -18,6 +18,14 @@
     .toplinks { display:flex; gap:12px; flex-wrap:wrap; margin-bottom: 18px; }
     .pill { display:inline-block; padding: 8px 12px; border-radius: 999px; background:#1d294a; color:#dbeafe; text-decoration:none; }
   </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var base = location.origin;
+      document.querySelectorAll('pre').forEach(function(el) {
+        el.textContent = el.textContent.replace(/http:\/\/127\.0\.0\.1:\d+/g, base);
+      });
+    });
+  </script>
 </head>
 <body>
   <div class="wrap">
@@ -79,6 +87,24 @@
     "ratio": "1:1",
     "resolution": "1k"
   }'</pre>
+    </div>
+
+    <div class="card">
+      <h2>5.1 Doubao (豆包) 视频生成</h2>
+      <pre>curl -X POST http://127.0.0.1:18080/v1/doubao/videos/generations \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "doubao-seedance-2.0-fast",
+    "prompt": "一只小猫在草地上欢快地奔跑",
+    "ratio": "16:9"
+  }'</pre>
+      <ul>
+        <li>模型：<code>doubao-seedance-2.0-fast</code>（Seedance 2.0 Fast，每日10次免费额度）</li>
+        <li>支持比例：<code>16:9</code> <code>9:16</code> <code>1:1</code> <code>4:3</code> <code>3:4</code></li>
+        <li>每次生成5秒视频，消耗1额度</li>
+        <li>返回格式与图片接口一致：<code>{"data": [{"url": "视频URL"}]}</code></li>
+        <li>额度用完时返回：<code>{"error": {"type": "quota_exhausted"}}</code></li>
+      </ul>
     </div>
 
     <div class="card">

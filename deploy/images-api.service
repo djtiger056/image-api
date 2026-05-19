@@ -1,0 +1,15 @@
+[Unit]
+Description=images-api 多平台生图服务
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/myproject/images-api
+ExecStart=/usr/bin/node --env-file=/myproject/images-api/local.env --enable-source-maps --no-node-snapshot /myproject/images-api/dist/index.js
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=FORCE_COLOR=1
+
+[Install]
+WantedBy=multi-user.target

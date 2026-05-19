@@ -59,11 +59,15 @@ export const DOUBAO_STYLES = [
 ];
 
 /**
- * 判断模型名是否为豆包模型
+ * 判断模型名是否为豆包图片模型（排除视频模型）
  */
 export function isDoubaoModelName(model?: string): boolean {
   if (!model) return false;
   const lower = model.toLowerCase();
+  // 视频模型不走图片 provider
+  if (lower.startsWith("doubao-seedance-") || lower.startsWith("doubao-seed2fast") || lower.startsWith("doubao-video-")) {
+    return false;
+  }
   return lower.startsWith("doubao-") || lower.startsWith("seedream-");
 }
 
