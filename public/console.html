@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Jimeng + Kling + Doubao + XYQ 控制台</title>
+  <title>Jimeng + Kling + Doubao + XYQ + Qwen 控制台</title>
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -30,7 +30,7 @@
     }
     textarea { min-height: 110px; resize: vertical; }
     .small { min-height: 72px; }
-    .status { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+    .status { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
     .stat { background: #0a1226; border: 1px solid #24304f; border-radius: 14px; padding: 12px; }
     .stat b { display:block; margin-bottom: 4px; }
     .badge { display:inline-flex; align-items:center; gap: 6px; padding: 6px 10px; border-radius: 999px; background:#1d294a; color:#dbeafe; font-size: 12px; }
@@ -123,6 +123,7 @@
         <div class="stat"><b>Kling</b><span id="klingStat" class="muted">-</span></div>
         <div class="stat"><b>Doubao</b><span id="doubaoStat" class="muted">-</span></div>
         <div class="stat"><b>XYQ (小云雀)</b><span id="xyqStat" class="muted">-</span></div>
+        <div class="stat"><b>Qwen (千问)</b><span id="qwenStat" class="muted">-</span></div>
         <div class="stat"><b>模型数</b><span id="modelStat" class="muted">-</span></div>
       </div>
       <div class="toolbar">
@@ -169,13 +170,18 @@
           <textarea id="xyqInput" class="small" placeholder="从 xyq.jianying.com cookies 中获取 sessionid，多个用逗号分隔"></textarea>
         </div>
 
+        <div class="field">
+          <label for="qwenInput">Qwen (千问) cookie</label>
+          <textarea id="qwenInput" class="small" placeholder="从 create.qianwen.com cookies 中获取完整 cookie 字符串，多个用换行或逗号分隔"></textarea>
+        </div>
+
         <div class="toolbar">
           <button class="primary" id="saveCredBtn">保存凭证到服务端</button>
           <button class="danger" id="clearCredBtn">清空服务端凭证</button>
         </div>
 
         <div class="help" style="margin-top:10px;">
-          提示：保存后会立即写入服务运行时。Jimeng 会写到 <code>local.env</code>；Kling 会写到 <code>kling.json</code> 或环境状态；Doubao 会写到 <code>DOUBAO_SESSIONID</code> 环境变量。XYQ (小云雀) 会写到 <code>XYQ_SESSIONID</code> 环境变量。
+          提示：保存后会立即写入服务运行时。Jimeng 会写到 <code>local.env</code>；Kling 会写到 <code>kling.json</code> 或环境状态；Doubao 会写到 <code>DOUBAO_SESSIONID</code> 环境变量。XYQ (小云雀) 会写到 <code>XYQ_SESSIONID</code> 环境变量。Qwen (千问) 会写到 <code>QWEN_COOKIE</code> 环境变量。
         </div>
 
         <div class="split" style="margin-top:16px;">
@@ -293,6 +299,8 @@
       default_seedream: { family: 'seedream', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['统一 Seedream 模型', '自动轮询多提供商'], limit: '统一接口，自动选择最优提供商。' },
       default_doubao: { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['豆包 Seedream 模型'], limit: '豆包 Seedream 模型，使用 ratio 和 style 参数。' },
       default_doubao_video: { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], notes: ['豆包视频生成模型', '每日10次免费额度'], limit: '豆包免费视频生成，每日10次额度。' },
+      'qwen-happyhorse-1.0': { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], notes: ['千问 HappyHorse 1.0 视频模型', '通过 create.qianwen.com', '5或10秒视频'], limit: '千问视频生成，需要 QWEN_COOKIE 凭证。支持 5/10 秒视频。' },
+      default_qwen_video: { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], notes: ['千问视频生成模型', '通过 create.qianwen.com'], limit: '千问视频生成，需要 QWEN_COOKIE 凭证。' },
     };
 
     const els = {
@@ -301,6 +309,7 @@
       klingInput: document.getElementById('klingInput'),
       doubaoInput: document.getElementById('doubaoInput'),
       xyqInput: document.getElementById('xyqInput'),
+      qwenInput: document.getElementById('qwenInput'),
       modelSelect: document.getElementById('modelSelect'),
       targetUrlInput: document.getElementById('targetUrlInput'),
       promptInput: document.getElementById('promptInput'),
@@ -318,6 +327,7 @@
       klingStat: document.getElementById('klingStat'),
       doubaoStat: document.getElementById('doubaoStat'),
       xyqStat: document.getElementById('xyqStat'),
+      qwenStat: document.getElementById('qwenStat'),
       modelStat: document.getElementById('modelStat'),
       serviceBadge: document.getElementById('serviceBadge'),
       apiKeyBadge: document.getElementById('apiKeyBadge'),
@@ -489,19 +499,20 @@
       if (model.startsWith('doubao-seedance-') || model.startsWith('doubao-seed2fast')) return 'doubao-video';
       if (model.startsWith('doubao-')) return 'doubao';
       if (model.startsWith('xyq-')) return 'xyq';
+      if (model.startsWith('qwen-')) return 'qwen-video';
       return 'jimeng';
     }
 
     function getModelRule(model) {
       const family = inferModelFamily(model);
-      const defaults = { seedream: MODEL_RULES.default_seedream, kling: MODEL_RULES.default_kling, 'doubao-video': MODEL_RULES.default_doubao_video, doubao: MODEL_RULES.default_doubao, xyq: MODEL_RULES.default_xyq, jimeng: MODEL_RULES.default_jimeng };
+      const defaults = { seedream: MODEL_RULES.default_seedream, kling: MODEL_RULES.default_kling, 'doubao-video': MODEL_RULES.default_doubao_video, 'qwen-video': MODEL_RULES.default_qwen_video, doubao: MODEL_RULES.default_doubao, xyq: MODEL_RULES.default_xyq, jimeng: MODEL_RULES.default_jimeng };
       return MODEL_RULES[model] || defaults[family] || MODEL_RULES.default_jimeng;
     }
 
     function refreshModelHints() {
       const model = normalizeModel(els.modelSelect.value);
       const rule = getModelRule(model);
-      const familyName = { seedream: 'Seedream 统一', kling: 'Kling', 'doubao-video': 'Doubao 视频', doubao: 'Doubao', xyq: 'XYQ (小云雀)', jimeng: 'Jimeng' }[rule.family] || rule.family;
+      const familyName = { seedream: 'Seedream 统一', kling: 'Kling', 'doubao-video': 'Doubao 视频', 'qwen-video': 'Qwen 视频', doubao: 'Doubao', xyq: 'XYQ (小云雀)', jimeng: 'Jimeng' }[rule.family] || rule.family;
       els.modelFamilyBadge.textContent = `模型类型：${familyName} / ${model}`;
       els.modelLimitText.textContent = rule.limit || '-';
       els.modelNotesText.innerHTML = (rule.notes || []).length ? `<ul class="note-list">${rule.notes.map((x) => `<li>${x}</li>`).join('')}</ul>` : '-';
@@ -590,6 +601,8 @@
         if (!item || !item.id) return false;
         // 包含 doubao-seedance 视频模型
         if (item.id.startsWith('doubao-seedance')) return true;
+        // 包含 qwen 视频模型
+        if (item.id.startsWith('qwen-')) return true;
         // 排除其他视频/seedance模型
         if (item.id.includes('video') || item.id.startsWith('seedance')) return false;
         return true;

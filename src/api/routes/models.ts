@@ -206,6 +206,12 @@ export default {
                         "description": "豆包 Seedance 2.0 Fast 视频生成模型（每日10次免费额度，5秒视频）"
                     },
                     {
+                        "id": "qwen-happyhorse-1.0",
+                        "object": "model",
+                        "owned_by": "images-api",
+                        "description": "千问 HappyHorse 1.0 视频生成模型（通过 create.qianwen.com）"
+                    },
+                    {
                         "id": "xyq-seedream-5.0",
                         "object": "model",
                         "owned_by": "images-api",
