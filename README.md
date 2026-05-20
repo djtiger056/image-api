@@ -82,6 +82,32 @@ curl -X POST http://127.0.0.1:8000/v1/videos/generations \
   }'
 ```
 
+### 豆包 / 千问视频
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/doubao/videos/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer 你的doubao_sessionid" \
+  -d '{
+    "model": "doubao-seedance-2.0-fast",
+    "prompt": "一只小猫在草地上欢快地奔跑",
+    "ratio": "16:9",
+    "duration": 5
+  }'
+```
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/qwen/videos/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer 你的qwen_cookie" \
+  -d '{
+    "model": "qwen-happyhorse-1.0",
+    "prompt": "一匹马在草原上奔跑",
+    "ratio": "16:9",
+    "duration": 10
+  }'
+```
+
 ## 认证方式
 
 使用各平台的 `sessionid` Cookie 作为 Bearer Token：

@@ -212,6 +212,42 @@ export default {
                         "description": "千问 HappyHorse 1.0 视频生成模型（通过 create.qianwen.com）"
                     },
                     {
+                        "id": "wan2.6-t2v",
+                        "object": "model",
+                        "owned_by": "images-api",
+                        "description": "通义万相 Wan 2.6 文生视频模型（DashScope）"
+                    },
+                    {
+                        "id": "wan2.7-t2v",
+                        "object": "model",
+                        "owned_by": "images-api",
+                        "description": "通义万相 Wan 2.7 文生视频模型（DashScope）"
+                    },
+                    {
+                        "id": "wan2.7-t2v-2026-04-25",
+                        "object": "model",
+                        "owned_by": "images-api",
+                        "description": "通义万相 Wan 2.7 文生视频模型（2026-04-25 快照，DashScope）"
+                    },
+                    {
+                        "id": "qwen-image-2.0",
+                        "object": "model",
+                        "owned_by": "images-api",
+                        "description": "千问 Qwen-Image 2.0 高质感生图模型（免费，支持文生图/图生图）"
+                    },
+                    {
+                        "id": "qwen-image-1.0-pro",
+                        "object": "model",
+                        "owned_by": "images-api",
+                        "description": "千问 Qwen-Image 1.0 专业版生图模型（免费，支持文生图/图生图）"
+                    },
+                    {
+                        "id": "qwen-image-1.0",
+                        "object": "model",
+                        "owned_by": "images-api",
+                        "description": "千问 Qwen-Image 1.0 生图模型（免费，支持文生图/图生图）"
+                    },
+                    {
                         "id": "xyq-seedream-5.0",
                         "object": "model",
                         "owned_by": "images-api",

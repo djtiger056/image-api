@@ -54,6 +54,7 @@ export default {
         .validate('body.prompt', v => _.isString(v) && v.length > 0)
         .validate('body.ratio', v => _.isUndefined(v) || _.isString(v))
         .validate('body.duration', v => _.isUndefined(v) || _.isFinite(v))
+        .validate('body.images', v => _.isUndefined(v) || Array.isArray(v))
         .validate('body.response_format', v => _.isUndefined(v) || _.isString(v));
 
       const token = pickDoubaoToken(request.headers.authorization as string | undefined);
@@ -63,13 +64,14 @@ export default {
         prompt,
         ratio = '16:9',
         duration = 5,
+        images = [],
         response_format = 'url',
       } = request.body;
 
       const modelMapping = resolveDoubaoVideoModel(model);
       const normalizedRatio = normalizeVideoRatio(ratio);
 
-      logger.info(`[DoubaoVideo Route] 同步视频生成: model=${modelMapping.model}, ratio=${normalizedRatio}, duration=${duration}s`);
+      logger.info(`[DoubaoVideo Route] 同步视频生成: model=${modelMapping.model}, ratio=${normalizedRatio}, duration=${duration}s, images=${Array.isArray(images) ? images.length : 0}`);
 
       const result = await createVideoCompletion(
         {
@@ -77,6 +79,9 @@ export default {
           ratio: normalizedRatio,
           duration,
           skillId: modelMapping.skillId,
+          referenceImages: Array.isArray(images)
+            ? images.filter((item) => _.isString(item) && item.trim()).map((item) => String(item).trim())
+            : [],
         },
         token
       );
@@ -132,7 +137,8 @@ export default {
         .validate('body.model', v => _.isUndefined(v) || _.isString(v))
         .validate('body.prompt', v => _.isString(v) && v.length > 0)
         .validate('body.ratio', v => _.isUndefined(v) || _.isString(v))
-        .validate('body.duration', v => _.isUndefined(v) || _.isFinite(v));
+        .validate('body.duration', v => _.isUndefined(v) || _.isFinite(v))
+        .validate('body.images', v => _.isUndefined(v) || Array.isArray(v));
 
       const token = pickDoubaoToken(request.headers.authorization as string | undefined);
 
@@ -141,6 +147,7 @@ export default {
         prompt,
         ratio = '16:9',
         duration = 5,
+        images = [],
       } = request.body;
 
       const modelMapping = resolveDoubaoVideoModel(model);
@@ -154,6 +161,9 @@ export default {
           ratio: normalizedRatio,
           duration,
           skillId: modelMapping.skillId,
+          referenceImages: Array.isArray(images)
+            ? images.filter((item) => _.isString(item) && item.trim()).map((item) => String(item).trim())
+            : [],
         },
         token
       );

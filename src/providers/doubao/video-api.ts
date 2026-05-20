@@ -23,6 +23,7 @@ import logger from "@/lib/logger.ts";
 import APIException from "@/lib/exceptions/APIException.ts";
 import EX from "@/api/consts/exceptions.ts";
 import { removeConversation, tokenSplit } from "@/providers/doubao/api.ts";
+import { uploadImageToDoubao } from "@/providers/doubao/upload.ts";
 
 // ─── 常量 ────────────────────────────────────────────────────────────
 
@@ -168,6 +169,27 @@ function generateCookie(sessionId: string): string {
   return [`sessionid=${sessionId}`, `sessionid_ss=${sessionId}`].join("; ");
 }
 
+function isQuotaExhaustedMessage(text: string): boolean {
+  const normalized = String(text || "").replace(/\s+/g, "");
+  if (!normalized) return false;
+
+  return [
+    "生成次数已经达到上限",
+    "今日免费额度已用完",
+    "今天免费额度已用完",
+    "今日额度已用完",
+    "今日次数已用完",
+    "今日次数用完",
+    "免费额度已用完",
+    "额度已用完",
+    "已无剩余额度",
+    "没有剩余额度",
+    "剩余额度为0",
+    "剩余额度为0",
+    "已达到上限",
+  ].some((phrase) => normalized.includes(phrase));
+}
+
 // ─── 底层请求 ──────────────────────────────────────────────────────
 
 async function doubaoVideoRequest(
@@ -225,6 +247,36 @@ export interface DoubaoVideoResult {
   quotaExhausted: boolean;
 }
 
+function extractVideoUrlsFromPayload(
+  payload: any,
+  emittedVideoKeys?: Set<string>
+): string[] {
+  if (!payload) return [];
+
+  const urls: string[] = [];
+
+  if (Array.isArray(payload.creations)) {
+    for (const creation of payload.creations) {
+      const video = creation?.video || {};
+      const key = video?.key as string | undefined;
+      const url = video?.url || video?.video_ori?.url || video?.video_preview?.url;
+      if (!url) continue;
+      if (key && emittedVideoKeys) {
+        if (emittedVideoKeys.has(key)) continue;
+        emittedVideoKeys.add(key);
+      }
+      urls.push(url);
+    }
+  }
+
+  if (payload.url) urls.push(payload.url);
+  if (payload.video_url) urls.push(payload.video_url);
+  if (payload.data?.uri) urls.push(payload.data.uri);
+  if (payload.data?.url) urls.push(payload.data.url);
+
+  return urls.filter(Boolean);
+}
+
 // ─── SSE 流解析（同步模式） ────────────────────────────────────────
 
 /**
@@ -240,6 +292,38 @@ export function receiveVideoStream(stream: any): Promise<DoubaoVideoResult> {
 
   return new Promise((resolve, reject) => {
     let isEnd = false;
+    let dataHandler: ((buffer: Buffer) => void) | null = null;
+
+    const cleanup = () => {
+      if (dataHandler) stream.off("data", dataHandler);
+      stream.removeAllListeners("error");
+      stream.removeAllListeners("close");
+    };
+
+    const finalize = (result?: Partial<DoubaoVideoResult>) => {
+      if (isEnd) return;
+      isEnd = true;
+      cleanup();
+      if (typeof stream.destroy === "function" && !stream.destroyed) {
+        stream.destroy();
+      }
+      resolve({
+        videoUrl: result?.videoUrl ?? videoUrl,
+        conversationId: result?.conversationId ?? conversationId,
+        textContent: (result?.textContent ?? textContent).trim(),
+        quotaExhausted: result?.quotaExhausted ?? quotaExhausted,
+      });
+    };
+
+    const fail = (err: any) => {
+      if (isEnd) return;
+      isEnd = true;
+      cleanup();
+      if (typeof stream.destroy === "function" && !stream.destroyed) {
+        stream.destroy(err);
+      }
+      reject(err);
+    };
 
     const parser = createParser((event) => {
       try {
@@ -257,13 +341,7 @@ export function receiveVideoStream(stream: any): Promise<DoubaoVideoResult> {
 
         // event_type 2003 = 流结束
         if (rawResult.event_type === 2003) {
-          isEnd = true;
-          resolve({
-            videoUrl,
-            conversationId,
-            textContent: textContent.trim(),
-            quotaExhausted,
-          });
+          finalize();
           return;
         }
 
@@ -304,12 +382,18 @@ export function receiveVideoStream(stream: any): Promise<DoubaoVideoResult> {
 
         const ctype = message.content_type;
 
-        // 检查额度用尽
+        // 只识别明确的“额度已用完”语义，避免把“剩余 2 额度”等正常回复误判掉
         const parsedContent = _.attempt(() => JSON.parse(message.content));
         if (!_.isError(parsedContent) && typeof parsedContent === "object") {
-          // 检查 text 字段是否包含限额提示
-          const text = parsedContent.text || "";
-          if (text.includes("生成次数已经达到上限") || text.includes("额度")) {
+          const text =
+            typeof parsedContent.text === "string"
+              ? parsedContent.text
+              : typeof parsedContent.message === "string"
+                ? parsedContent.message
+                : typeof parsedContent.content === "string"
+                  ? parsedContent.content
+                  : "";
+          if (isQuotaExhaustedMessage(text)) {
             quotaExhausted = true;
           }
         }
@@ -334,41 +418,20 @@ export function receiveVideoStream(stream: any): Promise<DoubaoVideoResult> {
             : parsedContent;
 
           if (!_.isError(payload) && payload) {
-            // 尝试多种视频 URL 提取方式
-            const urls: string[] = [];
-
-            // 格式1: creations[].video.url
-            if (Array.isArray(payload.creations)) {
-              for (const c of payload.creations) {
-                const v = c?.video || {};
-                const key = v?.key as string | undefined;
-                const url = v?.url || v?.video_ori?.url || v?.video_preview?.url;
-                if (key && url && !emittedVideoKeys.has(key)) {
-                  emittedVideoKeys.add(key);
-                  urls.push(url);
-                }
-              }
-            }
-
-            // 格式2: 直接的 url 字段
-            if (payload.url) urls.push(payload.url);
-            if (payload.video_url) urls.push(payload.video_url);
-
-            // 格式3: data.uri 或 data.url
-            if (payload.data?.uri) urls.push(payload.data.uri);
-            if (payload.data?.url) urls.push(payload.data.url);
+            const urls = extractVideoUrlsFromPayload(payload, emittedVideoKeys);
 
             if (urls.length > 0 && !videoUrl) {
               videoUrl = urls[0];
               logger.info(`[DoubaoVideo] 视频 URL 获取到: ${videoUrl}`);
+              logger.info(`[DoubaoVideo] 已获取视频结果，提前结束等待`);
+              finalize({ videoUrl });
+              return;
             }
           }
         }
 
         // is_finish = true 时结束
         if (result.is_finish) {
-          isEnd = true;
-
           // 如果完成但还没找到视频URL，检查tts_content中是否有有用信息
           if (!videoUrl && message.tts_content) {
             textContent = message.tts_content;
@@ -376,37 +439,21 @@ export function receiveVideoStream(stream: any): Promise<DoubaoVideoResult> {
 
           // 检查最终的 content 中是否有视频 URL
           if (!videoUrl && !_.isError(parsedContent)) {
-            const urls: string[] = [];
-            if (Array.isArray(parsedContent.creations)) {
-              for (const c of parsedContent.creations) {
-                const v = c?.video || {};
-                const url = v?.url || v?.video_ori?.url;
-                if (url) urls.push(url);
-              }
-            }
-            if (parsedContent.url) urls.push(parsedContent.url);
-            if (parsedContent.video_url) urls.push(parsedContent.video_url);
+            const urls = extractVideoUrlsFromPayload(parsedContent, emittedVideoKeys);
             if (urls.length > 0) videoUrl = urls[0];
           }
 
-          resolve({
-            videoUrl,
-            conversationId,
-            textContent: textContent.trim(),
-            quotaExhausted,
-          });
+          finalize();
           return;
         }
       } catch (err) {
         logger.error(err);
-        if (!isEnd) {
-          isEnd = true;
-          reject(err);
-        }
+        fail(err);
       }
     });
 
-    stream.on("data", (buffer: Buffer) => {
+    dataHandler = (buffer: Buffer) => {
+      if (isEnd) return;
       if (buffer.toString().indexOf("�") !== -1) {
         temp = Buffer.concat([temp, buffer]);
         return;
@@ -416,24 +463,15 @@ export function receiveVideoStream(stream: any): Promise<DoubaoVideoResult> {
         temp = Buffer.from("");
       }
       parser.feed(buffer.toString());
-    });
+    };
+
+    stream.on("data", dataHandler);
 
     stream.once("error", (err: Error) => {
-      if (!isEnd) {
-        isEnd = true;
-        reject(err);
-      }
+      fail(err);
     });
     stream.once("close", () => {
-      if (!isEnd) {
-        isEnd = true;
-        resolve({
-          videoUrl,
-          conversationId,
-          textContent: textContent.trim(),
-          quotaExhausted,
-        });
-      }
+      finalize();
     });
   });
 }
@@ -445,6 +483,32 @@ export interface DoubaoVideoParams {
   ratio?: string;
   duration?: number;
   skillId?: number;
+  referenceImages?: Array<Buffer | string>;
+}
+
+async function buildVideoAttachments(
+  referenceImages: Array<Buffer | string>,
+  sessionId: string
+): Promise<any[]> {
+  const attachments: any[] = [];
+
+  for (const image of referenceImages.slice(0, 2)) {
+    try {
+      const storeUri = await uploadImageToDoubao(image, sessionId);
+      attachments.push({
+        type: "image",
+        key: storeUri,
+        extra: { refer_types: "overall" },
+        identifier: util.uuid(),
+      });
+      logger.info(`[DoubaoVideo] 参考图上传成功: ${storeUri}`);
+    } catch (err) {
+      logger.error(`[DoubaoVideo] 参考图上传失败: ${(err as Error).message}`);
+      throw err;
+    }
+  }
+
+  return attachments;
 }
 
 /**
@@ -461,10 +525,13 @@ export async function createVideoCompletion(
       ratio = "16:9",
       duration = 5,
       skillId = 17,
+      referenceImages = [],
     } = params;
 
+    const attachments = await buildVideoAttachments(referenceImages, sessionId);
+
     logger.info(
-      `[DoubaoVideo] 视频生成请求: prompt=${prompt}, ratio=${ratio}, duration=${duration}s`
+      `[DoubaoVideo] 视频生成请求: prompt=${prompt}, ratio=${ratio}, duration=${duration}s, refImages=${attachments.length}`
     );
 
     const contentJson = JSON.stringify({
@@ -481,7 +548,7 @@ export async function createVideoCompletion(
             {
               content: contentJson,
               content_type: 2020,
-              attachments: [],
+              attachments,
             },
           ],
           completion_option: {
@@ -564,10 +631,13 @@ export async function createVideoCompletionStream(
       ratio = "16:9",
       duration = 5,
       skillId = 17,
+      referenceImages = [],
     } = params;
 
+    const attachments = await buildVideoAttachments(referenceImages, sessionId);
+
     logger.info(
-      `[DoubaoVideo] 流式视频生成请求: prompt=${prompt}, ratio=${ratio}, duration=${duration}s`
+      `[DoubaoVideo] 流式视频生成请求: prompt=${prompt}, ratio=${ratio}, duration=${duration}s, refImages=${attachments.length}`
     );
 
     const contentJson = JSON.stringify({
@@ -584,7 +654,7 @@ export async function createVideoCompletionStream(
             {
               content: contentJson,
               content_type: 2020,
-              attachments: [],
+              attachments,
             },
           ],
           completion_option: {

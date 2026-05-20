@@ -83,12 +83,14 @@ export async function saveConsoleCredentials(body: any) {
   const clearKling = parseBoolean(body?.clear_kling ?? body?.clearKling);
   const clearDoubao = parseBoolean(body?.clear_doubao ?? body?.clearDoubao);
   const clearXyq = parseBoolean(body?.clear_xyq ?? body?.clearXyq);
+  const clearQwen = parseBoolean(body?.clear_qwen ?? body?.clearQwen);
 
   const jimengSessionId = String(body?.jimeng_sessionid ?? body?.jimengSessionId ?? '').trim();
   const jimengAuthorization = String(body?.jimeng_authorization ?? body?.jimengAuthorization ?? '').trim();
   const klingState = normalizeKlingStateFromBody(body || {});
   const doubaoSessionId = String(body?.doubao_sessionid ?? body?.doubaoSessionId ?? '').trim();
   const xyqSessionId = String(body?.xyq_sessionid ?? body?.xyqSessionId ?? '').trim();
+  const qwenCookie = String(body?.qwen_cookie ?? body?.qwenCookie ?? '').trim();
 
   if (clearJimeng) {
     delete process.env.JIMENG_SESSIONID;
@@ -162,6 +164,20 @@ export async function saveConsoleCredentials(body: any) {
     }
   }
 
+  if (clearQwen) {
+    delete process.env.QWEN_COOKIE;
+    if (persist) {
+      await removeLocalEnvValue('QWEN_COOKIE');
+    }
+  }
+
+  if (qwenCookie) {
+    process.env.QWEN_COOKIE = qwenCookie;
+    if (persist) {
+      await upsertLocalEnvValue('QWEN_COOKIE', qwenCookie);
+    }
+  }
+
   return getConsoleStatus({ deep: false });
 }
 
@@ -195,6 +211,10 @@ export async function getConsoleStatus({ deep = false }: { deep?: boolean } = {}
         source: 'none',
         token_count: 0,
         preview: [] as string[],
+      },
+      qwen: {
+        configured: false,
+        source: 'none',
       },
     },
   };
@@ -301,6 +321,20 @@ export async function getConsoleStatus({ deep = false }: { deep?: boolean } = {}
     }
   } catch (error) {
     response.credentials.xyq.error = (error as Error).message;
+  }
+
+  // Qwen (千问) 凭证检查
+  try {
+    const qwenCookie = String(process.env.QWEN_COOKIE || '').trim();
+    if (qwenCookie) {
+      response.credentials.qwen = {
+        configured: true,
+        source: 'cookie',
+        preview: maskSecret(qwenCookie.substring(0, 30)),
+      };
+    }
+  } catch (error) {
+    response.credentials.qwen.error = (error as Error).message;
   }
 
   return response;

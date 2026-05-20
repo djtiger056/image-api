@@ -96,12 +96,13 @@
   -d '{
     "model": "doubao-seedance-2.0-fast",
     "prompt": "一只小猫在草地上欢快地奔跑",
-    "ratio": "16:9"
+    "ratio": "16:9",
+    "duration": 5
   }'</pre>
       <ul>
         <li>模型：<code>doubao-seedance-2.0-fast</code>（Seedance 2.0 Fast，每日10次免费额度）</li>
         <li>支持比例：<code>16:9</code> <code>9:16</code> <code>1:1</code> <code>4:3</code> <code>3:4</code></li>
-        <li>每次生成5秒视频，消耗1额度</li>
+        <li>当前固定 5 秒，消耗 1 额度</li>
         <li>返回格式与图片接口一致：<code>{"data": [{"url": "视频URL"}]}</code></li>
         <li>额度用完时返回：<code>{"error": {"type": "quota_exhausted"}}</code></li>
       </ul>

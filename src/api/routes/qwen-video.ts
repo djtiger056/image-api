@@ -8,11 +8,12 @@ import {
   createVideoCompletion,
   getCredit,
   tokenSplit,
-  normalizeQwenRatio,
 } from "@/providers/qwen/api.ts";
 import {
-  isQwenModelName,
   resolveQwenVideoModel,
+  normalizeQwenRatio,
+  normalizeQwenVideoResolution,
+  normalizeQwenVideoDuration,
   DEFAULT_QWEN_VIDEO_MODEL,
   getQwenVideoModels,
 } from "@/providers/qwen/mapper.ts";
@@ -70,8 +71,20 @@ export default {
           (v) => _.isUndefined(v) || _.isFinite(v)
         )
         .validate(
+          "body.resolution",
+          (v) => _.isUndefined(v) || _.isString(v)
+        )
+        .validate(
           "body.response_format",
           (v) => _.isUndefined(v) || _.isString(v)
+        )
+        .validate(
+          "body.images",
+          (v) => _.isUndefined(v) || Array.isArray(v)
+        )
+        .validate(
+          "body.timeout_ms",
+          (v) => _.isUndefined(v) || _.isFinite(v)
         );
 
       const cookie = pickQwenCookie(
@@ -83,15 +96,30 @@ export default {
         prompt,
         ratio = "16:9",
         duration = 10,
+        resolution,
+        images = [],
+        timeout_ms,
         response_format = "url",
       } = request.body;
 
       const modelMapping = resolveQwenVideoModel(model);
       const normalizedRatio = normalizeQwenRatio(ratio);
-      const normalizedDuration = duration === 5 ? 5 : 10;
+      const normalizedDuration = normalizeQwenVideoDuration(model, duration);
+      const normalizedResolution = normalizeQwenVideoResolution(
+        model,
+        resolution
+      );
+      const supportsImageInput = Boolean(modelMapping.supportsImageInput);
+      const normalizedImages = supportsImageInput
+        ? (Array.isArray(images)
+            ? images
+                .filter((item) => _.isString(item) && item.trim())
+                .map((item) => ({ type: "image", url: String(item).trim() }))
+            : [])
+        : [];
 
       logger.info(
-        `[QwenVideo Route] 同步视频生成: model=${modelMapping.model}, ratio=${normalizedRatio}, duration=${normalizedDuration}s`
+        `[QwenVideo Route] 同步视频生成: model=${modelMapping.model}, ratio=${normalizedRatio}, resolution=${normalizedResolution}, duration=${normalizedDuration}s, images=${normalizedImages.length}`
       );
 
       const result = await createVideoCompletion(
@@ -99,8 +127,15 @@ export default {
           prompt,
           ratio: normalizedRatio,
           duration: normalizedDuration,
+          resolution: normalizedResolution,
+          model,
+          attachments: normalizedImages,
         },
         cookie
+        ,
+        {
+          maxWaitTimeMs: _.isFinite(timeout_ms) ? Number(timeout_ms) : undefined,
+        }
       );
 
       if (!result.success || !result.videoUrl) {

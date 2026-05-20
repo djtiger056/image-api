@@ -93,6 +93,10 @@
     .input-img-card .remove-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,.7); color: #fda4af; border: 0; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
     .input-img-card .remove-btn:hover { background: rgba(253,164,175,.3); }
     .input-img-count { font-size: 13px; color: #86a5d8; margin-top: 8px; }
+    .section-title { display:flex; align-items:center; justify-content:space-between; gap: 12px; flex-wrap:wrap; }
+    .context-badge { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background:#0a1226; border:1px solid #24304f; color:#bfd0f0; font-size:12px; }
+    .mode-hint { margin: 10px 0 0; font-size: 13px; color: #9fb1d9; line-height: 1.6; }
+    .field-hint { font-size: 12px; color: #86a5d8; line-height: 1.5; }
 
     /* URL 输入行 */
     .img-url-row { display: flex; gap: 8px; margin-top: 10px; }
@@ -135,7 +139,10 @@
 
     <div class="grid" style="margin-top:16px;">
       <div class="card">
-        <h2>凭证与模型</h2>
+        <div class="section-title">
+          <h2 style="margin-bottom:0;">凭证与模型</h2>
+          <span class="context-badge" id="workspaceBadge">当前工作区：图片生成</span>
+        </div>
         <div class="row">
           <div class="field">
             <label for="apiKeyInput">x-api-key（可选，若服务启用了 API Key 请填写）</label>
@@ -172,7 +179,7 @@
 
         <div class="field">
           <label for="qwenInput">Qwen (千问) cookie</label>
-          <textarea id="qwenInput" class="small" placeholder="从 create.qianwen.com cookies 中获取完整 cookie 字符串，多个用换行或逗号分隔"></textarea>
+          <textarea id="qwenInput" class="small" placeholder="粘贴 cookie 字符串 或 Cookie-Editor 导出的 JSON 数组，均支持"></textarea>
         </div>
 
         <div class="toolbar">
@@ -186,11 +193,11 @@
 
         <div class="split" style="margin-top:16px;">
           <div class="field">
-            <label for="modelSelect">生图模型</label>
+            <label for="modelSelect" id="modelSelectLabel">生成模型</label>
             <select id="modelSelect"></select>
           </div>
           <div class="field">
-            <label for="targetUrlInput">Kling 目标页（默认）</label>
+            <label for="targetUrlInput" id="targetUrlLabel">Kling 目标页（默认）</label>
             <input id="targetUrlInput" value="https://klingai.com/app/image/new" />
           </div>
         </div>
@@ -201,18 +208,21 @@
           <div class="kv"><b>限制说明</b><div id="modelLimitText" class="muted">请选择模型后查看</div></div>
           <div class="kv"><b>可选 ratio</b><div id="modelRatioText" class="muted">-</div></div>
           <div class="kv"><b>可选 resolution</b><div id="modelResolutionText" class="muted">-</div></div>
+          <div class="kv"><b>可选 duration</b><div id="modelDurationText" class="muted">-</div></div>
           <div class="kv"><b>会员/能力提示</b><div id="modelNotesText" class="muted">-</div></div>
         </div>
 
         <div class="mode-tabs">
-          <button class="mode-tab active" data-mode="txt2img">文生图</button>
-          <button class="mode-tab" data-mode="img2img">图生图</button>
+          <button class="mode-tab active" data-mode="txt2img" id="primaryModeTab">文生图</button>
+          <button class="mode-tab" data-mode="img2img" id="secondaryModeTab">图生图</button>
         </div>
+        <div class="mode-hint" id="modeHint">当前模型默认按图片生成流程展示；切换到支持视频的模型后，页面会自动调整为视频语义与参数。</div>
 
         <div class="img-upload-section" id="imgUploadSection">
-          <label>参考图片（最多 10 张）</label>
+          <label id="referenceInputLabel">参考图片（最多 10 张）</label>
+          <div class="field-hint" id="referenceInputHint">图生图模式支持上传本地图片或输入 URL。</div>
           <div class="drop-zone" id="dropZone">
-            <div class="drop-zone-text">拖拽图片到此处，或 <b>点击选择文件</b></div>
+            <div class="drop-zone-text" id="dropZoneText">拖拽图片到此处，或 <b>点击选择文件</b></div>
             <input type="file" id="fileInput" accept="image/*" multiple />
           </div>
           <div class="img-url-row">
@@ -224,18 +234,21 @@
         </div>
 
         <div class="field" style="margin-top:14px;">
-          <label for="promptInput">提示词</label>
+          <label for="promptInput" id="promptLabel">提示词</label>
           <textarea id="promptInput" placeholder="输入你的提示词"></textarea>
         </div>
 
         <div class="row">
           <div class="field"><label for="ratioInput">ratio</label><select id="ratioInput"></select></div>
           <div class="field"><label for="resolutionInput">resolution</label><select id="resolutionInput"></select></div>
+          <div class="field"><label for="durationInput">duration（秒）</label><select id="durationInput"></select></div>
           <div class="field"><label for="styleInput">style（风格）</label><select id="styleInput"><option value="">不指定</option></select></div>
           <div class="field"><label for="negativeInput">negative_prompt</label><input id="negativeInput" placeholder="可选" /></div>
           <div class="field"><label for="sampleInput">sample_strength</label><input id="sampleInput" value="0.5" /></div>
           <div class="field"><label for="nInput">n</label><input id="nInput" value="1" /></div>
           <div class="field"><label for="asyncInput">async</label><select id="asyncInput"><option value="true">true</option><option value="false">false</option></select></div>
+          <div class="field"><label for="imageTimeoutInput">图片超时（秒）</label><input id="imageTimeoutInput" value="180" /></div>
+          <div class="field"><label for="videoTimeoutInput">视频超时（秒）</label><input id="videoTimeoutInput" value="900" /></div>
         </div>
 
         <div class="toolbar">
@@ -255,14 +268,14 @@
             <div class="logbox" id="logBox"></div>
           </div>
           <div>
-            <div class="help">图片预览</div>
+            <div class="help" id="previewTitle">图片预览</div>
             <div class="images" id="previewBox"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="footer">页面支持 Jimeng / Kling / Doubao / XYQ (小云雀) 统一生图；Kling 异步任务现在会自动轮询结果并记录日志。</div>
+    <div class="footer" id="pageFooter">页面支持 Jimeng / Kling / Doubao / XYQ (小云雀) / Qwen 图片生成与视频生成；Kling 异步任务会自动轮询结果并记录日志。</div>
   </div>
 
   <script>
@@ -289,7 +302,7 @@
       'doubao-seedream-4.5': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['最新 Doubao Seedream 模型', '支持 style 参数'], limit: '豆包 Seedream 4.5 模型，使用 ratio 和 style 参数。' },
       'doubao-seedream-4.0': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['Doubao Seedream 4.0', '支持 style 参数'], limit: '豆包 Seedream 4.0 模型，使用 ratio 和 style 参数。' },
       'doubao-seedream-3.0': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['Doubao Seedream 3.0', '支持 style 参数'], limit: '豆包 Seedream 3.0 模型，使用 ratio 和 style 参数。' },
-      'doubao-seedance-2.0-fast': { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], notes: ['豆包 Seedance 2.0 Fast 视频模型', '每日10次免费额度', '5秒视频消耗1额度'], limit: '豆包免费视频生成，每日10次额度，每次生成5秒视频。支持文生视频。' },
+      'doubao-seedance-2.0-fast': { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], durations: [5], defaultDuration: 5, supportsImageInput: true, notes: ['豆包 Seedance 2.0 Fast 视频模型', '固定 5 秒', '支持参考图', '每日10次免费额度'], limit: '豆包免费视频生成，每日10次额度，当前固定 5 秒。支持文生视频和参考图视频。' },
       'xyq-seedream-5.0': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['最新云雀 Seedream 模型', '使用 ratio 和 style 参数'], limit: '小云雀 Seedream 5.0 模型，通过云雀平台免费额度生图。' },
       'xyq-seedream-4.5': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['云雀 Seedream 4.5', '使用 ratio 和 style 参数'], limit: '小云雀 Seedream 4.5 模型。' },
       'xyq-seedream-4.0': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['云雀 Seedream 4.0', '使用 ratio 和 style 参数'], limit: '小云雀 Seedream 4.0 模型。' },
@@ -298,9 +311,16 @@
       default_kling: { family: 'kling', ratios: ['1:1','16:9','9:16'], resolutions: ['1k'], notes: ['网页自动化链路'], limit: 'Kling 网页模式建议先用保守参数，并等待任务轮询完成。' },
       default_seedream: { family: 'seedream', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['统一 Seedream 模型', '自动轮询多提供商'], limit: '统一接口，自动选择最优提供商。' },
       default_doubao: { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['豆包 Seedream 模型'], limit: '豆包 Seedream 模型，使用 ratio 和 style 参数。' },
-      default_doubao_video: { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], notes: ['豆包视频生成模型', '每日10次免费额度'], limit: '豆包免费视频生成，每日10次额度。' },
-      'qwen-happyhorse-1.0': { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], notes: ['千问 HappyHorse 1.0 视频模型', '通过 create.qianwen.com', '5或10秒视频'], limit: '千问视频生成，需要 QWEN_COOKIE 凭证。支持 5/10 秒视频。' },
-      default_qwen_video: { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], notes: ['千问视频生成模型', '通过 create.qianwen.com'], limit: '千问视频生成，需要 QWEN_COOKIE 凭证。' },
+      default_doubao_video: { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], durations: [5], defaultDuration: 5, supportsImageInput: true, notes: ['豆包视频生成模型', '固定 5 秒', '支持参考图', '每日10次免费额度'], limit: '豆包免费视频生成，每日10次额度，当前固定 5 秒。支持参考图视频。' },
+      'qwen-happyhorse-1.0': { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P'], defaultResolution: '720P', durations: [5, 10], defaultDuration: 10, supportsImageInput: false, notes: ['千问 HappyHorse 1.0 视频模型', '通过 create.qianwen.com', '支持 5/10 秒'], limit: '千问视频生成，需要 QWEN_COOKIE 凭证。支持 5/10 秒视频。' },
+      'wan2.6-t2v': { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P','1080P'], defaultResolution: '1080P', durations: [2,3,4,5,6,7,8,9,10,11,12,13,14,15], defaultDuration: 5, supportsImageInput: false, notes: ['通义万相 Wan 2.6 文生视频模型', 'DashScope', '支持 720P / 1080P'], limit: '千问视频生成，支持 Wan 2.6 文生视频。' },
+      'wan2.7-t2v': { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P','1080P'], defaultResolution: '1080P', durations: [2,3,4,5,6,7,8,9,10,11,12,13,14,15], defaultDuration: 5, supportsImageInput: true, notes: ['通义万相 Wan 2.7 文生视频模型', '支持首帧参考图', '支持 720P / 1080P'], limit: '千问视频生成，支持 Wan 2.7 文生视频与首帧参考图。' },
+      'wan2.7-t2v-2026-04-25': { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P','1080P'], defaultResolution: '1080P', durations: [2,3,4,5,6,7,8,9,10,11,12,13,14,15], defaultDuration: 5, supportsImageInput: true, notes: ['通义万相 Wan 2.7 文生视频模型', '2026-04-25 快照', '支持首帧参考图', '支持 720P / 1080P'], limit: '千问视频生成，支持 Wan 2.7 快照模型与首帧参考图。' },
+      default_qwen_video: { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P'], defaultResolution: '720P', durations: [5, 10], defaultDuration: 10, supportsImageInput: false, notes: ['千问视频生成模型', '通过 create.qianwen.com', '支持 5/10 秒'], limit: '千问视频生成，需要 QWEN_COOKIE 凭证。支持 5/10 秒。' },
+      'qwen-image-2.0': { family: 'qwen-image', ratios: ['1:1','3:4','4:3','9:16','16:9'], notes: ['千问 Qwen-Image 2.0', '高质感生成，快速出片', '免费'], limit: '千问图片生成（免费），需要 QWEN_COOKIE 凭证。支持文生图和图生图。' },
+      'qwen-image-1.0-pro': { family: 'qwen-image', ratios: ['1:1','3:4','4:3','9:16','16:9'], notes: ['千问 Qwen-Image 1.0 专业版', '画面更精致', '免费'], limit: '千问图片生成（免费），需要 QWEN_COOKIE 凭证。支持文生图和图生图。' },
+      'qwen-image-1.0': { family: 'qwen-image', ratios: ['1:1','3:4','4:3','9:16','16:9'], notes: ['千问 Qwen-Image 1.0', '免费'], limit: '千问图片生成（免费），需要 QWEN_COOKIE 凭证。支持文生图和图生图。' },
+      default_qwen_image: { family: 'qwen-image', ratios: ['1:1','3:4','4:3','9:16','16:9'], notes: ['千问图片生成模型', '免费'], limit: '千问图片生成（免费），需要 QWEN_COOKIE 凭证。' },
     };
 
     const els = {
@@ -315,11 +335,14 @@
       promptInput: document.getElementById('promptInput'),
       ratioInput: document.getElementById('ratioInput'),
       resolutionInput: document.getElementById('resolutionInput'),
+      durationInput: document.getElementById('durationInput'),
       styleInput: document.getElementById('styleInput'),
       negativeInput: document.getElementById('negativeInput'),
       sampleInput: document.getElementById('sampleInput'),
       nInput: document.getElementById('nInput'),
       asyncInput: document.getElementById('asyncInput'),
+      imageTimeoutInput: document.getElementById('imageTimeoutInput'),
+      videoTimeoutInput: document.getElementById('videoTimeoutInput'),
       resultJson: document.getElementById('resultJson'),
       previewBox: document.getElementById('previewBox'),
       pingStat: document.getElementById('pingStat'),
@@ -335,10 +358,23 @@
       modelLimitText: document.getElementById('modelLimitText'),
       modelRatioText: document.getElementById('modelRatioText'),
       modelResolutionText: document.getElementById('modelResolutionText'),
+      modelDurationText: document.getElementById('modelDurationText'),
       modelNotesText: document.getElementById('modelNotesText'),
       paramWarning: document.getElementById('paramWarning'),
       logBox: document.getElementById('logBox'),
       generateBtn: document.getElementById('generateBtn'),
+      workspaceBadge: document.getElementById('workspaceBadge'),
+      modelSelectLabel: document.getElementById('modelSelectLabel'),
+      targetUrlLabel: document.getElementById('targetUrlLabel'),
+      primaryModeTab: document.getElementById('primaryModeTab'),
+      secondaryModeTab: document.getElementById('secondaryModeTab'),
+      modeHint: document.getElementById('modeHint'),
+      referenceInputLabel: document.getElementById('referenceInputLabel'),
+      referenceInputHint: document.getElementById('referenceInputHint'),
+      dropZoneText: document.getElementById('dropZoneText'),
+      promptLabel: document.getElementById('promptLabel'),
+      previewTitle: document.getElementById('previewTitle'),
+      pageFooter: document.getElementById('pageFooter'),
       imgUploadSection: document.getElementById('imgUploadSection'),
       dropZone: document.getElementById('dropZone'),
       fileInput: document.getElementById('fileInput'),
@@ -350,18 +386,79 @@
 
     let modelCatalog = [];
     let activePoller = null;
+    const DEFAULT_IMAGE_TIMEOUT_SECONDS = 180;
+    const DEFAULT_VIDEO_TIMEOUT_SECONDS = 900;
 
     // 图生图状态
     let currentMode = 'txt2img'; // 'txt2img' | 'img2img'
     let inputImages = []; // { type: 'url'|'file', value: string|File, preview: string }
 
+    function isImageToImageMode(mode) {
+      return mode === 'img2img';
+    }
+
+    function currentRule() {
+      return getModelRule(normalizeModel(els.modelSelect.value));
+    }
+
+    function videoSupportsImageInput(rule = currentRule()) {
+      return isVideoFamily(rule.family) && !!rule.supportsImageInput;
+    }
+
+    function canUseReferenceImages(rule = currentRule()) {
+      if (isVideoFamily(rule.family)) return videoSupportsImageInput(rule);
+      return isImageToImageMode(currentMode);
+    }
+
+    function syncConsoleCopy(rule = currentRule()) {
+      const videoFamily = isVideoFamily(rule.family);
+      const supportsRef = videoSupportsImageInput(rule);
+      els.workspaceBadge.textContent = videoFamily ? '当前工作区：视频生成' : '当前工作区：图片生成';
+      els.modelSelectLabel.textContent = videoFamily ? '生成模型（视频）' : '生成模型（图片）';
+      els.targetUrlLabel.textContent = 'Kling 目标页（默认）';
+      els.primaryModeTab.textContent = videoFamily ? '文生视频' : '文生图';
+      els.secondaryModeTab.textContent = videoFamily ? '参考图视频' : '图生图';
+      els.secondaryModeTab.disabled = videoFamily && !supportsRef;
+      els.promptLabel.textContent = videoFamily ? '视频提示词' : '图片提示词';
+      els.promptInput.placeholder = videoFamily ? '输入你的视频提示词' : '输入你的提示词';
+      els.previewTitle.textContent = videoFamily ? '视频预览' : '图片预览';
+      els.referenceInputLabel.textContent = videoFamily ? '参考图片（最多 2 张）' : '参考图片（最多 10 张）';
+      if (videoFamily) {
+        els.referenceInputHint.textContent = supportsRef
+          ? '当前模型支持首帧参考图，最多上传 2 张图片或 URL。'
+          : '当前视频模型仅支持文生视频，不支持参考图输入。';
+        els.dropZoneText.innerHTML = supportsRef
+          ? '拖拽参考图到此处，或 <b>点击选择文件</b>'
+          : '当前模型不支持参考图输入';
+        els.imageUrlInput.placeholder = supportsRef ? '或输入参考图 URL，回车添加' : '当前模型不支持参考图 URL';
+        els.modeHint.textContent = supportsRef
+          ? '当前为视频模型，第二个标签表示“首帧参考图视频”；其余图片专属参数会自动隐藏。'
+          : '当前为视频模型，仅支持文生视频；图片专属模式和参数已自动收起。';
+      } else {
+        els.referenceInputHint.textContent = '图生图模式支持上传本地图片或输入 URL。';
+        els.dropZoneText.innerHTML = '拖拽图片到此处，或 <b>点击选择文件</b>';
+        els.imageUrlInput.placeholder = '或输入图片 URL，回车添加';
+        els.modeHint.textContent = '当前模型默认按图片生成流程展示；切换到支持视频的模型后，页面会自动调整为视频语义与参数。';
+      }
+      els.pageFooter.textContent = videoFamily
+        ? '页面支持图片生成与视频生成；视频模型会按真实能力显示清晰度、时长与参考图入口。'
+        : '页面支持 Jimeng / Kling / Doubao / XYQ (小云雀) / Qwen 图片生成与视频生成；Kling 异步任务会自动轮询结果并记录日志。';
+    }
+
     function setMode(mode) {
-      currentMode = mode;
+      const rule = currentRule();
+      const videoFamily = isVideoFamily(rule.family);
+      if (videoFamily && mode === 'img2img' && !videoSupportsImageInput(rule)) {
+        currentMode = 'txt2img';
+      } else {
+        currentMode = mode;
+      }
       document.querySelectorAll('.mode-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.mode === mode);
+        tab.classList.toggle('active', tab.dataset.mode === currentMode);
       });
-      els.imgUploadSection.classList.toggle('visible', mode === 'img2img');
-      if (mode === 'txt2img') {
+      const showReferenceInput = canUseReferenceImages(rule);
+      els.imgUploadSection.classList.toggle('visible', showReferenceInput);
+      if (!showReferenceInput) {
         inputImages = [];
         renderInputImages();
       }
@@ -382,14 +479,20 @@
         card.appendChild(removeBtn);
         els.inputImagesPreview.appendChild(card);
       });
-      els.inputImgCount.textContent = inputImages.length > 0
-        ? `已添加 ${inputImages.length} 张参考图片`
-        : '';
+      const rule = currentRule();
+      const unit = isVideoFamily(rule.family) ? '张参考图' : '张参考图片';
+      els.inputImgCount.textContent = inputImages.length > 0 ? `已添加 ${inputImages.length} ${unit}` : '';
     }
 
     function addImageFiles(files) {
-      const remaining = 10 - inputImages.length;
-      if (remaining <= 0) { appendLog('warn', '最多支持 10 张参考图片'); return; }
+      const rule = currentRule();
+      if (!canUseReferenceImages(rule)) {
+        appendLog('warn', '当前模型/模式不支持参考图输入');
+        return;
+      }
+      const limit = isVideoFamily(rule.family) ? 2 : 10;
+      const remaining = limit - inputImages.length;
+      if (remaining <= 0) { appendLog('warn', `最多支持 ${limit} 张参考图片`); return; }
       const toAdd = Array.from(files).slice(0, remaining);
       toAdd.forEach(file => {
         if (!file.type.startsWith('image/')) return;
@@ -401,9 +504,15 @@
     }
 
     function addImageUrl(url) {
+      const rule = currentRule();
+      if (!canUseReferenceImages(rule)) {
+        appendLog('warn', '当前模型/模式不支持参考图输入');
+        return;
+      }
       url = url.trim();
       if (!url) return;
-      if (inputImages.length >= 10) { appendLog('warn', '最多支持 10 张参考图片'); return; }
+      const limit = isVideoFamily(rule.family) ? 2 : 10;
+      if (inputImages.length >= limit) { appendLog('warn', `最多支持 ${limit} 张参考图片`); return; }
       inputImages.push({ type: 'url', value: url, preview: url });
       renderInputImages();
       appendLog('info', `已添加图片 URL，共 ${inputImages.length} 张`);
@@ -418,8 +527,57 @@
       });
     }
 
+    function getTimeoutSeconds(kind) {
+      const input = kind === 'video' ? els.videoTimeoutInput : els.imageTimeoutInput;
+      const fallback = kind === 'video' ? DEFAULT_VIDEO_TIMEOUT_SECONDS : DEFAULT_IMAGE_TIMEOUT_SECONDS;
+      const value = Number(String(input.value || '').trim());
+      return Number.isFinite(value) && value > 0 ? Math.round(value) : fallback;
+    }
+
+    function getTimeoutMs(kind) {
+      return getTimeoutSeconds(kind) * 1000;
+    }
+
     function nowText() {
       return new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    }
+
+    function summarizeLongString(value) {
+      const text = String(value || '');
+      const dataUrlMatch = text.match(/^data:([^;]+);base64,/i);
+      if (dataUrlMatch) {
+        const mimeType = dataUrlMatch[1];
+        const base64Length = text.length - dataUrlMatch[0].length;
+        const approxBytes = Math.floor(base64Length * 0.75);
+        const approxKB = (approxBytes / 1024).toFixed(1);
+        return `[data-url ${mimeType}, ~${approxKB}KB, ${text.length} chars]`;
+      }
+      if (text.length > 500) {
+        return `${text.slice(0, 160)} ... [已截断，原始长度 ${text.length} chars]`;
+      }
+      return text;
+    }
+
+    function sanitizeForDisplay(value, seen = new WeakSet()) {
+      if (typeof value === 'string') return summarizeLongString(value);
+      if (value === null || value === undefined) return value;
+      if (typeof value !== 'object') return value;
+      if (seen.has(value)) return '[circular]';
+      seen.add(value);
+
+      if (Array.isArray(value)) {
+        return value.map(item => sanitizeForDisplay(item, seen));
+      }
+
+      const next = {};
+      for (const [key, item] of Object.entries(value)) {
+        if ((key === 'images' || key === 'attachments') && Array.isArray(item)) {
+          next[key] = item.map(entry => sanitizeForDisplay(entry, seen));
+          continue;
+        }
+        next[key] = sanitizeForDisplay(item, seen);
+      }
+      return next;
     }
 
     function appendLog(level, message, detail) {
@@ -435,7 +593,8 @@
       if (detail !== undefined) {
         const pre = document.createElement('pre');
         pre.style.marginTop = '8px';
-        pre.textContent = typeof detail === 'string' ? detail : JSON.stringify(detail, null, 2);
+        const sanitizedDetail = sanitizeForDisplay(detail);
+        pre.textContent = typeof sanitizedDetail === 'string' ? sanitizedDetail : JSON.stringify(sanitizedDetail, null, 2);
         div.appendChild(pre);
       }
       els.logBox.prepend(div);
@@ -450,6 +609,26 @@
         clearInterval(activePoller);
         activePoller = null;
       }
+    }
+
+    /**
+     * 将用户粘贴的 Qwen cookie 统一转为 "key=value; key=value" 字符串。
+     * 支持：1) 已是字符串直接返回  2) Cookie-Editor JSON 数组自动转换
+     */
+    function normalizeQwenCookie(raw) {
+      const trimmed = (raw || '').trim();
+      if (!trimmed) return '';
+      // 尝试解析 JSON
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed
+            .filter(item => item && item.name)
+            .map(item => `${item.name}=${item.value || ''}`)
+            .join('; ');
+        }
+      } catch {}
+      return trimmed; // 已是普通字符串
     }
 
     function getApiKey() {
@@ -471,7 +650,11 @@
       localStorage.setItem('kling-console-kling', els.klingInput.value);
       localStorage.setItem('kling-console-doubao', els.doubaoInput.value);
       localStorage.setItem('kling-console-xyq', els.xyqInput.value);
+      localStorage.setItem('kling-console-qwen', els.qwenInput.value);
       localStorage.setItem('kling-console-target-url', els.targetUrlInput.value.trim());
+      localStorage.setItem('kling-console-duration', els.durationInput.value);
+      localStorage.setItem('kling-console-image-timeout', String(getTimeoutSeconds('image')));
+      localStorage.setItem('kling-console-video-timeout', String(getTimeoutSeconds('video')));
       appendLog('info', '已保存当前表单到浏览器本地缓存');
     }
 
@@ -481,7 +664,11 @@
       els.klingInput.value = localStorage.getItem('kling-console-kling') || '';
       els.doubaoInput.value = localStorage.getItem('kling-console-doubao') || '';
       els.xyqInput.value = localStorage.getItem('kling-console-xyq') || '';
+      els.qwenInput.value = localStorage.getItem('kling-console-qwen') || '';
       els.targetUrlInput.value = localStorage.getItem('kling-console-target-url') || els.targetUrlInput.value;
+      els.durationInput.value = localStorage.getItem('kling-console-duration') || '';
+      els.imageTimeoutInput.value = localStorage.getItem('kling-console-image-timeout') || String(DEFAULT_IMAGE_TIMEOUT_SECONDS);
+      els.videoTimeoutInput.value = localStorage.getItem('kling-console-video-timeout') || String(DEFAULT_VIDEO_TIMEOUT_SECONDS);
       renderApiKeyBadge();
     }
 
@@ -493,28 +680,43 @@
       return String(model || '').trim();
     }
 
+    function isVideoFamily(family) {
+      return family === 'doubao-video' || family === 'qwen-video';
+    }
+
+    function toggleFieldVisibility(element, visible) {
+      const field = element?.closest?.('.field');
+      if (field) field.style.display = visible ? '' : 'none';
+    }
+
     function inferModelFamily(model) {
       if (model.startsWith('seedream-')) return 'seedream';
       if (model.startsWith('kling-')) return 'kling';
       if (model.startsWith('doubao-seedance-') || model.startsWith('doubao-seed2fast')) return 'doubao-video';
       if (model.startsWith('doubao-')) return 'doubao';
       if (model.startsWith('xyq-')) return 'xyq';
-      if (model.startsWith('qwen-')) return 'qwen-video';
+      if (model.startsWith('qwen-image') || model === 'qwen' || model === 'qwen-full') return 'qwen-image';
+      if (model.startsWith('qwen-happyhorse') || model.startsWith('wan2.') || model.startsWith('wanx2.')) return 'qwen-video';
+      if (model.startsWith('qwen-')) return 'qwen-image';
+      if (model.startsWith('wan2.') || model.startsWith('wanx2.')) return 'qwen-video';
       return 'jimeng';
     }
 
     function getModelRule(model) {
       const family = inferModelFamily(model);
-      const defaults = { seedream: MODEL_RULES.default_seedream, kling: MODEL_RULES.default_kling, 'doubao-video': MODEL_RULES.default_doubao_video, 'qwen-video': MODEL_RULES.default_qwen_video, doubao: MODEL_RULES.default_doubao, xyq: MODEL_RULES.default_xyq, jimeng: MODEL_RULES.default_jimeng };
+      const defaults = { seedream: MODEL_RULES.default_seedream, kling: MODEL_RULES.default_kling, 'doubao-video': MODEL_RULES.default_doubao_video, 'qwen-video': MODEL_RULES.default_qwen_video, 'qwen-image': MODEL_RULES.default_qwen_image, doubao: MODEL_RULES.default_doubao, xyq: MODEL_RULES.default_xyq, jimeng: MODEL_RULES.default_jimeng };
       return MODEL_RULES[model] || defaults[family] || MODEL_RULES.default_jimeng;
     }
 
     function refreshModelHints() {
       const model = normalizeModel(els.modelSelect.value);
       const rule = getModelRule(model);
-      const familyName = { seedream: 'Seedream 统一', kling: 'Kling', 'doubao-video': 'Doubao 视频', 'qwen-video': 'Qwen 视频', doubao: 'Doubao', xyq: 'XYQ (小云雀)', jimeng: 'Jimeng' }[rule.family] || rule.family;
+      const videoFamily = isVideoFamily(rule.family);
+      syncConsoleCopy(rule);
+      const familyName = { seedream: 'Seedream 统一', kling: 'Kling', 'doubao-video': 'Doubao 视频', 'qwen-video': 'Qwen 视频', 'qwen-image': 'Qwen 图片', doubao: 'Doubao', xyq: 'XYQ (小云雀)', jimeng: 'Jimeng' }[rule.family] || rule.family;
       els.modelFamilyBadge.textContent = `模型类型：${familyName} / ${model}`;
       els.modelLimitText.textContent = rule.limit || '-';
+      els.modelDurationText.textContent = (rule.durations || []).join(' / ') || '-';
       els.modelNotesText.innerHTML = (rule.notes || []).length ? `<ul class="note-list">${rule.notes.map((x) => `<li>${x}</li>`).join('')}</ul>` : '-';
 
       // 填充 ratio 下拉框
@@ -528,7 +730,7 @@
       els.ratioInput.value = (rule.ratios || []).includes(prevRatio) ? prevRatio : (rule.ratios || ['1:1'])[0];
 
       // 填充 resolution 下拉框
-      const prevRes = els.resolutionInput.value || '1k';
+      const prevRes = els.resolutionInput.value || rule.defaultResolution || '1k';
       els.resolutionInput.innerHTML = '';
       if (rule.resolutions && rule.resolutions.length) {
         rule.resolutions.forEach(r => {
@@ -536,13 +738,18 @@
           opt.value = r; opt.textContent = r;
           els.resolutionInput.appendChild(opt);
         });
-        els.resolutionInput.value = (rule.resolutions || []).includes(prevRes) ? prevRes : (rule.resolutions || ['1k'])[0];
-        els.resolutionInput.parentElement.style.display = '';
+        els.resolutionInput.value = (rule.resolutions || []).includes(prevRes)
+          ? prevRes
+          : (rule.defaultResolution || (rule.resolutions || ['1k'])[0]);
       } else {
         // doubao/xyq 不需要 resolution
         els.resolutionInput.innerHTML = '<option value="">-</option>';
-        els.resolutionInput.parentElement.style.display = ['doubao', 'doubao-video', 'xyq', 'seedream'].includes(rule.family) ? 'none' : '';
       }
+      toggleFieldVisibility(
+        els.resolutionInput,
+        !!(rule.resolutions && rule.resolutions.length) &&
+        !( !videoFamily && ['doubao', 'xyq', 'seedream'].includes(rule.family) )
+      );
 
       // 填充 style 下拉框
       const prevStyle = els.styleInput.value || '';
@@ -554,17 +761,45 @@
           els.styleInput.appendChild(opt);
         });
         els.styleInput.value = (rule.styles || []).includes(prevStyle) ? prevStyle : '';
-        els.styleInput.parentElement.style.display = '';
       } else {
-        els.styleInput.parentElement.style.display = 'none';
+        els.styleInput.value = '';
       }
+      toggleFieldVisibility(els.styleInput, !videoFamily && !!(rule.styles && rule.styles.length));
+
+      const durations = rule.durations || [];
+      const prevDuration = String(els.durationInput.value || rule.defaultDuration || durations[0] || '');
+      els.durationInput.innerHTML = '';
+      if (videoFamily) {
+        const items = durations.length ? durations : [5];
+        items.forEach((d) => {
+          const opt = document.createElement('option');
+          opt.value = String(d);
+          opt.textContent = `${d} 秒`;
+          els.durationInput.appendChild(opt);
+        });
+        els.durationInput.value = items.includes(Number(prevDuration)) ? prevDuration : String(rule.defaultDuration || items[0] || 5);
+      } else {
+        els.durationInput.innerHTML = '<option value="">-</option>';
+        els.durationInput.value = '';
+      }
+      toggleFieldVisibility(els.durationInput, videoFamily);
+      toggleFieldVisibility(els.negativeInput, !videoFamily);
+      toggleFieldVisibility(els.sampleInput, !videoFamily);
+      toggleFieldVisibility(els.nInput, !videoFamily);
+      toggleFieldVisibility(els.asyncInput, !videoFamily);
+      toggleFieldVisibility(els.targetUrlInput, rule.family === 'kling');
 
       els.modelRatioText.textContent = (rule.ratios || []).join(' / ') || '-';
       els.modelResolutionText.textContent = (rule.resolutions || []).join(' / ') || '-';
+      if (videoFamily && currentMode === 'img2img' && !videoSupportsImageInput(rule)) {
+        setMode('txt2img');
+      } else {
+        setMode(currentMode);
+      }
       // 更新生成按钮文案
       const genBtn = document.getElementById('generateBtn');
       if (genBtn && !genBtn.disabled) {
-        genBtn.textContent = ['doubao-video', 'qwen-video'].includes(rule.family) ? '开始生成视频' : '开始生图';
+        genBtn.textContent = videoFamily ? '开始生成视频' : '开始生图';
       }
       validateParams(false);
     }
@@ -572,14 +807,22 @@
     function validateParams(showMessage = true) {
       const model = normalizeModel(els.modelSelect.value);
       const rule = getModelRule(model);
+      const videoFamily = isVideoFamily(rule.family);
       const warnings = [];
       const ratio = els.ratioInput.value.trim();
       const resolution = els.resolutionInput.value.trim();
+      const duration = els.durationInput.value.trim();
       if (rule.ratios && ratio && !rule.ratios.includes(ratio)) {
         warnings.push(`当前模型建议 ratio 使用：${rule.ratios.join(' / ')}；你填的是 ${ratio}`);
       }
       if (rule.resolutions && resolution && !rule.resolutions.includes(resolution)) {
         warnings.push(`当前模型建议 resolution 使用：${rule.resolutions.join(' / ')}；你填的是 ${resolution}`);
+      }
+      if (videoFamily && rule.durations && duration && !rule.durations.includes(Number(duration))) {
+        warnings.push(`当前模型建议 duration 使用：${rule.durations.join(' / ')} 秒；你填的是 ${duration} 秒`);
+      }
+      if (videoFamily && currentMode === 'img2img' && !videoSupportsImageInput(rule)) {
+        warnings.push('当前视频模型不支持参考图输入，请切回文生视频模式。');
       }
       if (inferModelFamily(model) === 'kling' && els.asyncInput.value !== 'true') {
         warnings.push('Kling 网页模式建议保持 async=true，这样页面会自动轮询任务并展示日志。');
@@ -601,8 +844,8 @@
         if (!item || !item.id) return false;
         // 包含 doubao-seedance 视频模型
         if (item.id.startsWith('doubao-seedance')) return true;
-        // 包含 qwen 视频模型
-        if (item.id.startsWith('qwen-')) return true;
+        // 包含 qwen / wan 视频模型
+        if (item.id.startsWith('qwen-') || item.id.startsWith('wan2.') || item.id.startsWith('wanx2.')) return true;
         // 排除其他视频/seedance模型
         if (item.id.includes('video') || item.id.startsWith('seedance')) return false;
         return true;
@@ -617,6 +860,7 @@
         doubao: document.createElement('optgroup'),
         'doubao-video': document.createElement('optgroup'),
         'qwen-video': document.createElement('optgroup'),
+        'qwen-image': document.createElement('optgroup'),
         xyq: document.createElement('optgroup'),
       };
       groups.seedream.label = 'Seedream 统一接口（自动轮询）';
@@ -625,6 +869,7 @@
       groups.doubao.label = 'Doubao Seedream 图片模型';
       groups['doubao-video'].label = 'Doubao 视频模型';
       groups['qwen-video'].label = 'Qwen (千问) 视频模型';
+      groups['qwen-image'].label = 'Qwen (千问) 图片模型';
       groups.xyq.label = 'XYQ (小云雀) 图片模型';
 
       for (const item of modelCatalog) {
@@ -637,7 +882,10 @@
       if (groups.jimeng.children.length) els.modelSelect.appendChild(groups.jimeng);
       if (groups.kling.children.length) els.modelSelect.appendChild(groups.kling);
       if (groups.doubao.children.length) els.modelSelect.appendChild(groups.doubao);
+      if (groups['qwen-image'].children.length) els.modelSelect.appendChild(groups['qwen-image']);
       if (groups.xyq.children.length) els.modelSelect.appendChild(groups.xyq);
+      if (groups['doubao-video'].children.length) els.modelSelect.appendChild(groups['doubao-video']);
+      if (groups['qwen-video'].children.length) els.modelSelect.appendChild(groups['qwen-video']);
 
       const preferred = ['seedream-4.5', 'seedream-5.0', 'jimeng-4.5', 'jimeng-4.6', 'jimeng-5.0'];
       const target = current && modelCatalog.some((o) => o.id === current)
@@ -648,7 +896,8 @@
     }
 
     function setResult(value) {
-      els.resultJson.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+      const sanitizedValue = sanitizeForDisplay(value);
+      els.resultJson.textContent = typeof sanitizedValue === 'string' ? sanitizedValue : JSON.stringify(sanitizedValue, null, 2);
     }
 
     function downloadImage(url, filename) {
@@ -709,7 +958,22 @@
     }
 
     async function fetchJson(url, options = {}) {
-      const res = await fetch(url, options);
+      const { timeoutMs, ...fetchOptions } = options;
+      const controller = new AbortController();
+      const timer = timeoutMs ? setTimeout(() => controller.abort(new DOMException('请求超时', 'AbortError')), timeoutMs) : null;
+      let res;
+      try {
+        res = await fetch(url, { ...fetchOptions, signal: controller.signal });
+      } catch (error) {
+        if (timer) clearTimeout(timer);
+        if (error?.name === 'AbortError') {
+          const timeoutError = new Error(`请求超时（>${Math.ceil(timeoutMs / 1000)} 秒）`);
+          timeoutError.name = 'TimeoutError';
+          throw timeoutError;
+        }
+        throw error;
+      }
+      if (timer) clearTimeout(timer);
       const text = await res.text();
       let json = null;
       try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text }; }
@@ -752,6 +1016,8 @@
         els.doubaoStat.innerHTML = doubao.configured ? `<span class="ok">已配置</span> ${doubao.token_count || 0} token` : '<span class="bad">未配置</span>';
         const xyq = data.credentials?.xyq || {};
         els.xyqStat.innerHTML = xyq.configured ? `<span class="ok">已配置</span> ${xyq.token_count || 0} token` : '<span class="bad">未配置</span>';
+        const qwen = data.credentials?.qwen || {};
+        els.qwenStat.innerHTML = qwen.configured ? `<span class="ok">已配置</span>` : '<span class="bad">未配置</span>';
         if (Array.isArray(modelCatalog) && modelCatalog.length) {
           els.modelStat.textContent = String(modelCatalog.length);
         }
@@ -773,11 +1039,12 @@
     async function saveCredsToServer(clear = false) {
       try {
         appendLog('info', clear ? '开始清空服务端凭证' : '开始保存服务端凭证');
-        const body = clear ? { clear_jimeng: true, clear_kling: true, clear_doubao: true, persist: true } : {
+        const body = clear ? { clear_jimeng: true, clear_kling: true, clear_doubao: true, clear_xyq: true, clear_qwen: true, persist: true } : {
           jimeng_sessionid: els.jimengInput.value.trim(),
           kling_storage_state: els.klingInput.value.trim(),
           doubao_sessionid: els.doubaoInput.value.trim(),
           xyq_sessionid: els.xyqInput.value.trim(),
+          qwen_cookie: normalizeQwenCookie(els.qwenInput.value),
           persist: true,
         };
         const data = await fetchJson('/console/credentials', {
@@ -799,6 +1066,7 @@
       appendLog('info', `开始轮询 Kling 任务：${taskId}`);
       const start = Date.now();
       let tries = 0;
+      const timeoutMs = getTimeoutMs('image');
 
       return new Promise((resolve, reject) => {
         activePoller = setInterval(async () => {
@@ -823,10 +1091,10 @@
               reject(new Error(task.task_status_msg || data.message || 'Kling 任务失败'));
               return;
             }
-            if (Date.now() - start > 240000) {
+            if (Date.now() - start > timeoutMs) {
               stopActivePoller();
               appendLog('warn', 'Kling 轮询超时，任务仍未完成', data);
-              reject(new Error('Kling 任务轮询超时，建议看日志或稍后继续查询'));
+              reject(new Error(`Kling 任务轮询超时（>${getTimeoutSeconds('image')} 秒），建议看日志或稍后继续查询`));
             }
           } catch (error) {
             stopActivePoller();
@@ -840,47 +1108,67 @@
     async function generate() {
       const model = normalizeModel(els.modelSelect.value);
       const prompt = els.promptInput.value.trim();
+      const family = inferModelFamily(model);
+      const videoFamily = isVideoFamily(family);
       if (!prompt) {
         alert('请输入提示词');
         return;
       }
       if (currentMode === 'img2img' && inputImages.length === 0) {
-        alert('图生图模式请至少添加 1 张参考图片');
+        alert(videoFamily ? '参考图视频模式请至少添加 1 张参考图片' : '图生图模式请至少添加 1 张参考图片');
         return;
       }
       clearLogs();
       setPreview([]);
       stopActivePoller();
       validateParams(true);
-      appendLog('info', `准备发起 ${model} ${currentMode === 'img2img' ? '图生图' : '文生图'}任务`);
+      appendLog('info', `准备发起 ${model} ${currentMode === 'img2img' ? (videoFamily ? '参考图视频' : '图生图') : (videoFamily ? '文生视频' : '文生图')}任务`);
+      appendLog('info', `当前超时设置：图片 ${getTimeoutSeconds('image')} 秒，视频 ${getTimeoutSeconds('video')} 秒`);
       els.generateBtn.disabled = true;
-      els.generateBtn.textContent = ['doubao-video', 'qwen-video'].includes(inferModelFamily(model)) ? '视频生成中...' : '生成中...';
+      els.generateBtn.textContent = videoFamily ? '视频生成中...' : '生成中...';
       try {
+        const requestTimeoutMs = videoFamily ? getTimeoutMs('video') : getTimeoutMs('image');
         const baseParams = {
           model,
           prompt,
           ratio: els.ratioInput.value.trim() || '1:1',
-          resolution: els.resolutionInput.value.trim() || '1k',
-          negative_prompt: els.negativeInput.value.trim() || undefined,
-          sample_strength: Number(els.sampleInput.value),
-          n: Number(els.nInput.value),
-          async: inferModelFamily(model) === 'kling' ? true : els.asyncInput.value === 'true',
           response_format: 'url',
         };
-        // doubao/xyq/seedream 模型传递 style 参数
-        const styleVal = els.styleInput.value.trim();
-        if (styleVal && ['doubao', 'xyq', 'seedream'].includes(inferModelFamily(model))) {
-          baseParams.style = styleVal;
-        }
-        if (inferModelFamily(model) === 'kling') {
-          baseParams.provider_options = {
-            transport: 'web',
-            target_url: els.targetUrlInput.value.trim() || 'https://klingai.com/app/image/new',
-          };
+        if (videoFamily) {
+          const rule = getModelRule(model);
+          const durations = rule.durations || [];
+          const durationValue = Number(els.durationInput.value);
+          baseParams.duration = durations.includes(durationValue)
+            ? durationValue
+            : Number(rule.defaultDuration || durations[0] || 5);
+          if (rule.resolutions && rule.resolutions.length) {
+            const resolutionValue = els.resolutionInput.value.trim();
+            baseParams.resolution = rule.resolutions.includes(resolutionValue)
+              ? resolutionValue
+              : (rule.defaultResolution || rule.resolutions[0]);
+          }
+          baseParams.timeout_ms = requestTimeoutMs;
+        } else {
+          baseParams.resolution = els.resolutionInput.value.trim() || '1k';
+          baseParams.negative_prompt = els.negativeInput.value.trim() || undefined;
+          baseParams.sample_strength = Number(els.sampleInput.value);
+          baseParams.n = Number(els.nInput.value);
+          baseParams.async = family === 'kling' ? true : els.asyncInput.value === 'true';
+
+          // doubao/xyq/seedream 模型传递 style 参数
+          const styleVal = els.styleInput.value.trim();
+          if (styleVal && ['doubao', 'xyq', 'seedream'].includes(family)) {
+            baseParams.style = styleVal;
+          }
+          if (family === 'kling') {
+            baseParams.provider_options = {
+              transport: 'web',
+              target_url: els.targetUrlInput.value.trim() || 'https://klingai.com/app/image/new',
+            };
+          }
         }
 
         let data;
-        const family = inferModelFamily(model);
         const endpoint = family === 'seedream'
           ? '/v1/seedream/generations'
           : family === 'doubao-video'
@@ -889,7 +1177,7 @@
           ? '/v1/qwen/videos/generations'
           : currentMode === 'img2img' ? '/v1/images/compositions' : '/v1/images/generations';
 
-        if (currentMode === 'img2img') {
+        if (currentMode === 'img2img' && !videoFamily) {
           // 把本地文件读成 data URL，和 URL 图片统一走 JSON
           appendLog('info', `正在处理 ${inputImages.length} 张参考图片...`);
           const imageUrls = [];
@@ -910,23 +1198,35 @@
             method: 'POST',
             headers: headers(),
             body: JSON.stringify(body),
+            timeoutMs: requestTimeoutMs,
           });
         } else {
-          // 文生图
+          if (videoFamily && inputImages.length > 0) {
+            const videoImages = [];
+            for (const item of inputImages) {
+              if (item.type === 'url') {
+                videoImages.push(item.value);
+              } else {
+                videoImages.push(await readFileAsDataUrl(item.value));
+              }
+            }
+            baseParams.images = videoImages.filter(Boolean);
+          }
           appendLog('info', '提交请求体', baseParams);
           data = await fetchJson(endpoint, {
             method: 'POST',
             headers: headers(),
             body: JSON.stringify(baseParams),
+            timeoutMs: requestTimeoutMs,
           });
         }
 
         setResult(data);
         appendLog('info', '创建任务返回成功', data);
 
-        if (inferModelFamily(model) === 'kling' && data?.task_id && data?.status && ['processing', 'queued', 'submitted'].includes(data.status)) {
+        if (family === 'kling' && data?.task_id && data?.status && ['processing', 'queued', 'submitted'].includes(data.status)) {
           await pollKlingTask(data.task_id);
-        } else if (inferModelFamily(model) === 'doubao-video') {
+        } else if (videoFamily) {
           // 视频结果处理
           if (data?.error) {
             appendLog('warn', '视频生成提示', data.error.message || data.error);
@@ -935,6 +1235,10 @@
             setPreview(urls, true); // true = isVideo
             appendLog('info', `视频生成完成，获取到 ${urls.length} 个视频`);
           }
+        } else if (currentMode === 'img2img') {
+          const urls = Array.isArray(data?.data) ? data.data.map((item) => item.url).filter(Boolean) : [];
+          setPreview(urls);
+          appendLog('info', `图生图完成，获取到 ${urls.length} 张图片`);
         } else {
           const urls = Array.isArray(data?.data) ? data.data.map((item) => item.url).filter(Boolean) : [];
           setPreview(urls);
@@ -942,11 +1246,11 @@
         }
         await refreshStatus();
       } catch (error) {
-        setResult({ error: '生图失败', message: error.message, detail: error.response || null });
-        appendLog('error', '生图失败', error.response || error.message);
+        setResult({ error: videoFamily ? '视频生成失败' : '生图失败', message: error.message, detail: error.response || null });
+        appendLog('error', videoFamily ? '视频生成失败' : '生图失败', error.response || error.message);
       } finally {
         els.generateBtn.disabled = false;
-        els.generateBtn.textContent = ['doubao-video', 'qwen-video'].includes(inferModelFamily(model)) ? '开始生成视频' : '开始生图';
+        els.generateBtn.textContent = videoFamily ? '开始生成视频' : '开始生图';
       }
     }
 
@@ -962,7 +1266,12 @@
       localStorage.removeItem('kling-console-jimeng');
       localStorage.removeItem('kling-console-kling');
       localStorage.removeItem('kling-console-doubao');
+      localStorage.removeItem('kling-console-xyq');
+      localStorage.removeItem('kling-console-qwen');
       localStorage.removeItem('kling-console-target-url');
+      localStorage.removeItem('kling-console-duration');
+      localStorage.removeItem('kling-console-image-timeout');
+      localStorage.removeItem('kling-console-video-timeout');
       loadUi();
       appendLog('info', '已清空浏览器本地缓存');
     });
@@ -973,8 +1282,11 @@
     els.modelSelect.addEventListener('change', refreshModelHints);
     els.ratioInput.addEventListener('change', () => validateParams(false));
     els.resolutionInput.addEventListener('change', () => validateParams(false));
+    els.durationInput.addEventListener('change', () => validateParams(false));
     els.styleInput.addEventListener('change', () => validateParams(false));
     els.asyncInput.addEventListener('change', () => validateParams(false));
+    els.imageTimeoutInput.addEventListener('change', () => validateParams(false));
+    els.videoTimeoutInput.addEventListener('change', () => validateParams(false));
 
     // 模式切换
     document.querySelectorAll('.mode-tab').forEach(tab => {
