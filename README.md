@@ -15,15 +15,84 @@
 ## 快速部署
 
 ```bash
-git clone https://github.com/djtiger056/image-api.git
-cd image-api
-bash scripts/setup.sh        # 一键安装依赖+构建+浏览器+systemd
-vi local.env                 # 填写平台凭证
-sudo systemctl start images-api
-curl http://127.0.0.1:8000/ping
+git clone https://github.com/djtiger056/image-api.git   # 克隆项目到本地
+cd image-api                                            # 进入项目目录
+bash scripts/setup.sh                                   # 一键安装依赖、构建项目、安装浏览器并生成 systemd 服务
+vi local.env                                            # 编辑本地配置文件，填写各平台凭证
+sudo systemctl start images-api                         # 启动 images-api 服务
+sudo systemctl enable images-api                        # 设置开机自启，避免服务器重启后服务丢失
+curl http://127.0.0.1:8000/ping                         # 调用健康检查接口，确认服务已正常启动
 ```
 
 详细部署文档见 [DEPLOY.md](DEPLOY.md)。
+
+## 服务管理指令
+
+如果你是通过 `bash scripts/setup.sh` 安装，默认生成的服务名就是 `images-api`。下面这套命令可直接用于日常后台管理。
+
+### 基础管理
+
+```bash
+sudo systemctl start images-api                         # 启动服务，适合首次启动或服务已停止时使用
+sudo systemctl stop images-api                          # 停止服务，适合维护、升级或临时下线时使用
+sudo systemctl restart images-api                       # 重启服务，适合更新代码或修改配置后使其立即生效
+sudo systemctl reload images-api                        # 重新加载服务配置，前提是该服务支持 reload 动作
+sudo systemctl status images-api                        # 查看服务当前状态、最近日志和退出码
+sudo systemctl is-active images-api                     # 只检查服务是否正在运行，适合脚本里做状态判断
+sudo systemctl is-enabled images-api                    # 检查服务是否已设置为开机自启
+```
+
+### 开机自启管理
+
+```bash
+sudo systemctl enable images-api                        # 设置服务开机自启，推荐生产环境开启
+sudo systemctl disable images-api                       # 取消开机自启，但不会立刻停止当前正在运行的服务
+sudo systemctl reenable images-api                      # 重新写入开机自启链接，适合 service 文件调整后修复自启配置
+```
+
+### 查看日志
+
+```bash
+sudo journalctl -u images-api -f                        # 实时追踪服务日志，排查启动失败和运行时报错最常用
+sudo journalctl -u images-api -n 100 --no-pager         # 查看最近 100 行日志，适合快速回溯最近一次故障
+sudo journalctl -u images-api --since "1 hour ago"      # 查看最近 1 小时日志，适合定位某个时间段的问题
+tail -f logs/$(date +%Y-%m-%d).log                      # 实时查看项目当天生成的应用日志文件
+```
+
+### 配置修改后生效
+
+```bash
+vi local.env                                            # 编辑项目配置，例如端口、API Key、各平台凭证
+sudo systemctl restart images-api                       # 配置文件修改后重启服务，使新的环境变量立即生效
+```
+
+如果你修改的是 systemd 服务文件本身，例如 `/etc/systemd/system/images-api.service`，需要先执行下面这组命令：
+
+```bash
+sudo systemctl daemon-reload                            # 重新加载 systemd 配置，识别更新后的 service 文件
+sudo systemctl restart images-api                       # 重启服务，应用新的 service 启动参数
+sudo systemctl status images-api                        # 再次确认服务是否已按新配置正常运行
+```
+
+### 发布更新
+
+```bash
+cd /path/to/image-api                                   # 进入项目实际部署目录
+git pull origin main                                    # 拉取远端最新代码到本地
+npm install --registry https://registry.npmmirror.com/  # 安装或同步最新依赖
+npm run build                                           # 重新构建项目产物
+sudo systemctl restart images-api                       # 重启服务，让新版本代码正式生效
+sudo systemctl status images-api                        # 检查更新后服务状态是否正常
+```
+
+### 健康检查与端口排查
+
+```bash
+curl http://127.0.0.1:8000/ping                         # 检查接口是否返回健康状态
+curl http://127.0.0.1:8000/v1/models                    # 检查模型列表接口是否可正常访问
+ss -ltnp | grep 8000                                    # 查看 8000 端口是否已被服务监听
+ps -ef | grep images-api | grep -v grep                # 辅助查看是否存在相关进程
+```
 
 ## API 端点
 
