@@ -190,6 +190,70 @@ function isQuotaExhaustedMessage(text: string): boolean {
   ].some((phrase) => normalized.includes(phrase));
 }
 
+function looksLikeVideoUrl(value: string): boolean {
+  const normalized = String(value || "").trim();
+  if (!/^https?:\/\//i.test(normalized)) return false;
+
+  if (/\.(mp4|mov|webm|m4v|m3u8)(?:[?#].*)?$/i.test(normalized)) return true;
+
+  return /(?:video|videos|capcut|doubao|jimeng|dreamina|vlabvod|seedance|byte(?:img|vid|cdn)|snssdk)/i.test(normalized);
+}
+
+function collectVideoUrls(
+  node: any,
+  urls: string[],
+  seenUrls: Set<string>,
+  visited: WeakSet<object>,
+  depth = 0,
+  videoContext = false
+) {
+  if (node == null || depth > 8) return;
+
+  if (typeof node === "string") {
+    const matches = node.match(/https?:\/\/[^\s"'<>]+/g) || [];
+    for (const match of matches) {
+      const candidate = match.trim();
+      if (!candidate) continue;
+      if (!videoContext && !looksLikeVideoUrl(candidate)) continue;
+      if (seenUrls.has(candidate)) continue;
+      seenUrls.add(candidate);
+      urls.push(candidate);
+    }
+    return;
+  }
+
+  if (typeof node !== "object") return;
+  if (visited.has(node)) return;
+  visited.add(node);
+
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      collectVideoUrls(item, urls, seenUrls, visited, depth + 1, videoContext);
+    }
+    return;
+  }
+
+  for (const [key, value] of Object.entries(node)) {
+    const lowerKey = String(key || "").toLowerCase();
+    const nextVideoContext =
+      videoContext ||
+      lowerKey.includes("video") ||
+      lowerKey.includes("url") ||
+      lowerKey.includes("uri") ||
+      lowerKey.includes("download") ||
+      lowerKey.includes("play") ||
+      lowerKey.includes("preview") ||
+      lowerKey.includes("origin") ||
+      lowerKey.includes("media") ||
+      lowerKey.includes("asset") ||
+      lowerKey.includes("creation") ||
+      lowerKey.includes("result") ||
+      lowerKey.includes("item");
+
+    collectVideoUrls(value, urls, seenUrls, visited, depth + 1, nextVideoContext);
+  }
+}
+
 // ─── 底层请求 ──────────────────────────────────────────────────────
 
 async function doubaoVideoRequest(
@@ -254,6 +318,7 @@ function extractVideoUrlsFromPayload(
   if (!payload) return [];
 
   const urls: string[] = [];
+  const seenUrls = new Set<string>();
 
   if (Array.isArray(payload.creations)) {
     for (const creation of payload.creations) {
@@ -265,14 +330,44 @@ function extractVideoUrlsFromPayload(
         if (emittedVideoKeys.has(key)) continue;
         emittedVideoKeys.add(key);
       }
-      urls.push(url);
+      if (!seenUrls.has(url)) {
+        seenUrls.add(url);
+        urls.push(url);
+      }
     }
   }
 
-  if (payload.url) urls.push(payload.url);
-  if (payload.video_url) urls.push(payload.video_url);
-  if (payload.data?.uri) urls.push(payload.data.uri);
-  if (payload.data?.url) urls.push(payload.data.url);
+  const directCandidates = [
+    payload.url,
+    payload.video_url,
+    payload.videoUrl,
+    payload.result_url,
+    payload.play_url,
+    payload.download_url,
+    payload.data?.uri,
+    payload.data?.url,
+    payload.data?.video_url,
+    payload.data?.videoUrl,
+    payload.data?.result_url,
+    payload.data?.play_url,
+    payload.data?.download_url,
+    payload.result?.url,
+    payload.result?.video_url,
+    payload.result?.videoUrl,
+  ];
+
+  for (const candidate of directCandidates) {
+    if (typeof candidate !== "string") continue;
+    const normalized = candidate.trim();
+    if (!normalized || !/^https?:\/\//i.test(normalized)) continue;
+    if (seenUrls.has(normalized)) continue;
+    seenUrls.add(normalized);
+    urls.push(normalized);
+  }
+
+  if (urls.length === 0) {
+    collectVideoUrls(payload, urls, seenUrls, new WeakSet<object>());
+  }
 
   return urls.filter(Boolean);
 }
@@ -367,7 +462,10 @@ export function receiveVideoStream(stream: any): Promise<DoubaoVideoResult> {
         }
 
         // event_type 2001 = 数据事件
-        if (rawResult.event_type !== 2001) return;
+        if (rawResult.event_type !== 2001) {
+          logger.info(`[DoubaoVideo DEBUG] 跳过 event_type: ${rawResult.event_type}`);
+          return;
+        }
 
         const result = _.attempt(() => JSON.parse(rawResult.event_data));
         if (_.isError(result))
@@ -378,9 +476,17 @@ export function receiveVideoStream(stream: any): Promise<DoubaoVideoResult> {
         }
 
         const message = result.message;
-        if (!message || !message.content) return;
+        if (!message || !message.content) {
+          logger.info(`[DoubaoVideo DEBUG] 消息为空或无 content, is_finish=${result.is_finish}`);
+          // is_finish = true 时也需要结束
+          if (result.is_finish) {
+            finalize();
+          }
+          return;
+        }
 
         const ctype = message.content_type;
+        logger.info(`[DoubaoVideo DEBUG] 收到消息: content_type=${ctype}, is_finish=${result.is_finish}, content长度=${String(message.content).length}`);
 
         // 只识别明确的“额度已用完”语义，避免把“剩余 2 额度”等正常回复误判掉
         const parsedContent = _.attempt(() => JSON.parse(message.content));
@@ -410,24 +516,21 @@ export function receiveVideoStream(stream: any): Promise<DoubaoVideoResult> {
           if (text) textContent += text;
         }
 
-        // content_type 2076 = 视频结果（类似图片的 2074）
-        // 也可能使用其他 content_type，需要灵活处理
-        if (ctype === 2076 || ctype === 2075 || ctype === 2077) {
-          const payload = _.isError(parsedContent)
-            ? _.attempt(() => JSON.parse(message.content))
-            : parsedContent;
+        const payload = _.isError(parsedContent) ? null : parsedContent;
+        if (payload && typeof payload === "object") {
+          logger.info(`[DoubaoVideo DEBUG] 视频候选 payload: ${JSON.stringify(payload).substring(0, 500)}`);
+          const urls = extractVideoUrlsFromPayload(payload, emittedVideoKeys);
+          logger.info(`[DoubaoVideo DEBUG] 提取到 ${urls.length} 个视频 URL`);
 
-          if (!_.isError(payload) && payload) {
-            const urls = extractVideoUrlsFromPayload(payload, emittedVideoKeys);
-
-            if (urls.length > 0 && !videoUrl) {
-              videoUrl = urls[0];
-              logger.info(`[DoubaoVideo] 视频 URL 获取到: ${videoUrl}`);
-              logger.info(`[DoubaoVideo] 已获取视频结果，提前结束等待`);
-              finalize({ videoUrl });
-              return;
-            }
+          if (urls.length > 0 && !videoUrl) {
+            videoUrl = urls[0];
+            logger.info(`[DoubaoVideo] 视频 URL 获取到: ${videoUrl}`);
+            logger.info(`[DoubaoVideo] 已获取视频结果，提前结束等待`);
+            finalize({ videoUrl });
+            return;
           }
+        } else if (ctype === 2076 || ctype === 2075 || ctype === 2077) {
+          logger.warn(`[DoubaoVideo DEBUG] 视频结果解析失败: ${JSON.stringify(message.content).substring(0, 300)}`);
         }
 
         // is_finish = true 时结束
@@ -823,24 +926,10 @@ function createVideoTransStream(
       const content = _.attempt(() => JSON.parse(message.content));
       const ctype = message.content_type;
 
-      // 视频结果事件 (content_type = 2076/2075/2077)
-      if ((ctype === 2076 || ctype === 2075 || ctype === 2077) && !_.isError(content)) {
+      // 视频结果事件：优先从对象里提取任何可播放 URL，不再只依赖固定 content_type
+      if (!_.isError(content) && content && typeof content === "object") {
         const payload = content as any;
-        const urls: string[] = [];
-
-        if (Array.isArray(payload.creations)) {
-          for (const c of payload.creations) {
-            const v = c?.video || {};
-            const key = v?.key as string | undefined;
-            const url = v?.url || v?.video_ori?.url || v?.video_preview?.url;
-            if (key && url && !emittedVideoKeys.has(key)) {
-              emittedVideoKeys.add(key);
-              urls.push(url);
-            }
-          }
-        }
-        if (payload.url) urls.push(payload.url);
-        if (payload.video_url) urls.push(payload.video_url);
+        const urls = extractVideoUrlsFromPayload(payload, emittedVideoKeys);
 
         if (urls.length > 0) {
           if (!videoNoticeSent) {
@@ -863,7 +952,7 @@ function createVideoTransStream(
                 object: "video.completion.chunk",
                 choices: [{ index: 0, delta: { role: "assistant", content: `${url}\n` }, finish_reason: null }],
                 created,
-              })}\n\n`
+            })}\n\n`
             );
           }
         }

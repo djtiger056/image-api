@@ -171,6 +171,14 @@ const DEFAULT_HEADERS = {
 
 // ─── 额度查询 ──────────────────────────────────────────────────────
 
+/** Cookie 过期/鉴权失败专用错误 */
+export class QwenAuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "QwenAuthError";
+  }
+}
+
 export async function getCredit(
   cookie: string
 ): Promise<{ totalAmount: number }> {
@@ -186,11 +194,24 @@ export async function getCredit(
     }
   );
 
-  if (response.data.code !== 0) {
-    throw new Error(`查询额度失败: ${response.data.msg}`);
+  const { code, msg } = response.data;
+
+  // 1013 = 登录校验未通过（cookie 过期）
+  if (code === 1013) {
+    throw new QwenAuthError("千问 Cookie 已过期，请更新 QWEN_COOKIE");
   }
 
-  return response.data.data;
+  if (code !== 0) {
+    throw new Error(`查询额度失败: ${msg}`);
+  }
+
+  // 二次校验：code=0 但 data 为空或 totalAmount 缺失，也视为鉴权异常
+  const data = response.data.data;
+  if (!data || typeof data.totalAmount !== "number") {
+    throw new QwenAuthError("千问 Cookie 可能已过期（额度接口返回异常）");
+  }
+
+  return data;
 }
 
 // ─── 通用轮询 ──────────────────────────────────────────────────────
@@ -456,9 +477,11 @@ export async function createVideoCompletion(
 
   if (!isDashScopeModel) {
     // 检查额度
+    let isCookieExpired = false;
     try {
       const credit = await getCredit(credential);
       if (credit.totalAmount <= 0) {
+        // 真正额度为0，直接返回
         return {
           success: false,
           error: "千问视频额度已用完",
@@ -467,7 +490,13 @@ export async function createVideoCompletion(
       }
       logger.info(`[Qwen] 当前额度: ${credit.totalAmount}`);
     } catch (e) {
-      logger.warn(`[Qwen] 查询额度失败，继续尝试: ${(e as Error).message}`);
+      if (e instanceof QwenAuthError) {
+        // Cookie 过期，标记后继续尝试提交（API 可能仍然可用）
+        isCookieExpired = true;
+        logger.warn(`[Qwen] Cookie 鉴权异常: ${(e as Error).message}`);
+      } else {
+        logger.warn(`[Qwen] 查询额度失败，继续尝试: ${(e as Error).message}`);
+      }
     }
 
     // 构建请求参数
@@ -508,9 +537,17 @@ export async function createVideoCompletion(
     });
 
     if (submitResponse.data.code !== 0) {
+      const submitMsg = submitResponse.data.msg || "提交失败";
+      // 如果之前额度检查就发现 cookie 过期，明确提示
+      if (isCookieExpired || submitResponse.data.code === 1013) {
+        return {
+          success: false,
+          error: `千问 Cookie 已过期，请更新 QWEN_COOKIE。原始错误: ${submitMsg}`,
+        };
+      }
       return {
         success: false,
-        error: `提交失败: ${submitResponse.data.msg}`,
+        error: `提交失败: ${submitMsg}`,
       };
     }
 

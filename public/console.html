@@ -957,6 +957,55 @@
       }
     }
 
+    function extractVideoUrlsFromResponse(data) {
+      const urls = [];
+      const seen = new Set();
+      const push = (value) => {
+        if (typeof value !== 'string') return;
+        const url = value.trim();
+        if (!url) return;
+        if (!/^https?:\/\//i.test(url)) return;
+        if (seen.has(url)) return;
+        seen.add(url);
+        urls.push(url);
+      };
+      const walk = (node, depth = 0, videoContext = false, visited = new WeakSet()) => {
+        if (node == null || depth > 8) return;
+        if (typeof node === 'string') {
+          const matches = node.match(/https?:\/\/[^\s"'<>]+/g) || [];
+          for (const match of matches) {
+            if (videoContext || /\.(mp4|mov|webm|m4v|m3u8)(?:[?#].*)?$/i.test(match) || /(?:video|videos|capcut|doubao|jimeng|dreamina|vlabvod|seedance|byte(?:img|vid|cdn)|snssdk)/i.test(match)) {
+              push(match);
+            }
+          }
+          return;
+        }
+        if (typeof node !== 'object') return;
+        if (visited.has(node)) return;
+        visited.add(node);
+        if (Array.isArray(node)) {
+          for (const item of node) walk(item, depth + 1, videoContext, visited);
+          return;
+        }
+        for (const [key, value] of Object.entries(node)) {
+          const lower = String(key || '').toLowerCase();
+          const nextVideoContext = videoContext || lower.includes('video') || lower.includes('url') || lower.includes('uri') || lower.includes('download') || lower.includes('play') || lower.includes('preview') || lower.includes('origin') || lower.includes('media') || lower.includes('asset') || lower.includes('creation') || lower.includes('result') || lower.includes('item');
+          if (typeof value === 'string') {
+            push(value);
+          } else {
+            walk(value, depth + 1, nextVideoContext, visited);
+          }
+        }
+      };
+      if (data?.data?.[0]?.url) push(data.data[0].url);
+      if (data?.data?.[0]?.videoUrl) push(data.data[0].videoUrl);
+      if (data?.videoUrl) push(data.videoUrl);
+      if (data?.url) push(data.url);
+      if (data?.result_url) push(data.result_url);
+      if (urls.length === 0) walk(data);
+      return urls;
+    }
+
     async function fetchJson(url, options = {}) {
       const { timeoutMs, ...fetchOptions } = options;
       const controller = new AbortController();
@@ -1229,11 +1278,21 @@
         } else if (videoFamily) {
           // 视频结果处理
           if (data?.error) {
-            appendLog('warn', '视频生成提示', data.error.message || data.error);
+            const msg = data.error.message || data.error;
+            setResult(data);
+            appendLog('warn', '视频生成提示', msg);
           } else {
-            const urls = Array.isArray(data?.data) ? data.data.map((item) => item.url).filter(Boolean) : [];
-            setPreview(urls, true); // true = isVideo
-            appendLog('info', `视频生成完成，获取到 ${urls.length} 个视频`);
+            const urls = extractVideoUrlsFromResponse(data);
+            if (urls.length > 0) {
+              setPreview(urls, true); // true = isVideo
+              appendLog('info', `视频生成完成，获取到 ${urls.length} 个视频`);
+            } else if (Array.isArray(data?.data) && data.data.some((item) => item?.b64_json)) {
+              setResult(data);
+              appendLog('warn', '视频结果返回了 b64_json，当前页面不做内嵌预览', data);
+            } else {
+              setResult(data);
+              appendLog('warn', '视频生成结果中未提取到可播放链接', data);
+            }
           }
         } else if (currentMode === 'img2img') {
           const urls = Array.isArray(data?.data) ? data.data.map((item) => item.url).filter(Boolean) : [];
@@ -1246,8 +1305,14 @@
         }
         await refreshStatus();
       } catch (error) {
-        setResult({ error: videoFamily ? '视频生成失败' : '生图失败', message: error.message, detail: error.response || null });
-        appendLog('error', videoFamily ? '视频生成失败' : '生图失败', error.response || error.message);
+        const response = error?.response || null;
+        const message = response?.error?.message || response?.message || error.message;
+        setResult({
+          error: videoFamily ? '视频生成失败' : '生图失败',
+          message,
+          detail: response,
+        });
+        appendLog('error', videoFamily ? '视频生成失败' : '生图失败', response || error.message);
       } finally {
         els.generateBtn.disabled = false;
         els.generateBtn.textContent = videoFamily ? '开始生成视频' : '开始生图';
