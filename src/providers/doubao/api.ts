@@ -241,6 +241,8 @@ export async function receiveStream(stream: any): Promise<StreamResult> {
         if (_.isError(result))
           throw new Error(`Stream response invalid: ${rawResult.event_data}`);
 
+        logger.info(`[Doubao SSE] event_type=${rawResult.event_type}, is_finish=${result.is_finish}, content_type=${result.message?.content_type}, conv_id=${result.conversation_id}`);
+
         if (result.is_finish) {
           isEnd = true;
           finalize();
@@ -311,6 +313,9 @@ export async function receiveStream(stream: any): Promise<StreamResult> {
     stream.once("error", (err: Error) => reject(err));
     stream.once("close", () => {
       finalize();
+      if (imageUrls.length === 0) {
+        logger.warn(`[Doubao SSE] 流关闭但无图片, conv_id=${data.id}, content长度=${data.choices[0].message.content.length}, content=${data.choices[0].message.content.substring(0, 200)}`);
+      }
       resolve(data);
     });
   });
@@ -616,6 +621,14 @@ export async function createImageCompletion(
     removeConversation(answer.id, sessionId).catch((err) =>
       console.error("[Doubao] 移除图片生成会话失败：", err)
     );
+
+    // 如果没有返回图片且还有重试次数，重试
+    const imageUrls = answer.choices[0]?.message?.images || [];
+    if (imageUrls.length === 0 && retryCount < MAX_RETRY_COUNT) {
+      logger.warn(`[Doubao] 未返回图片，${RETRY_DELAY / 1000}秒后重试 (${retryCount + 1}/${MAX_RETRY_COUNT})...`);
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+      return createImageCompletion(params, sessionId, retryCount + 1);
+    }
 
     return answer;
   } catch (err: any) {

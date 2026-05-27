@@ -12,6 +12,7 @@ import consoleRoutes from './console.ts';
 import seedream from './seedream.ts';
 import doubaoVideo from './doubao-video.ts';
 import qwenVideo from './qwen-video.ts';
+import xyqVideo from './xyq-video.ts';
 
 export default [
     {
@@ -38,4 +39,5 @@ export default [
     seedream
     ,doubaoVideo
     ,qwenVideo
+    ,xyqVideo
 ];

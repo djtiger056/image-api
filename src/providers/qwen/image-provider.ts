@@ -36,6 +36,7 @@ import {
   normalizeCookieString,
   uploadImageToQwen,
 } from "@/providers/qwen/upload.ts";
+import { resolveQwenSession } from "@/providers/qwen/session.ts";
 
 // ─── Cookie 解析 ──────────────────────────────────────────────────
 
@@ -76,7 +77,9 @@ export default class QwenImageProvider implements ImageProvider {
     input: UnifiedImageGenerateInput,
     context: ImageProviderContext
   ): Promise<UnifiedImageGenerateOutput> {
-    const cookie = pickQwenCookie(context.authorization);
+    const session = context.authorization
+      ? await resolveQwenSession(pickQwenCookie(context.authorization))
+      : await resolveQwenSession();
     const responseFormat = _.defaultTo(input.responseFormat, "url");
 
     // 解析模型参数
@@ -105,7 +108,7 @@ export default class QwenImageProvider implements ImageProvider {
             logger.warn("[QwenImage] 不支持的图片格式，跳过");
             continue;
           }
-          const materialId = await uploadImageToQwen(imageSource, cookie);
+          const materialId = await uploadImageToQwen(imageSource, session);
           attachments.push({ type: "image", materialId });
           logger.info(`[QwenImage] 参考图上传成功: materialId=${materialId}`);
         } catch (uploadErr) {
@@ -135,7 +138,7 @@ export default class QwenImageProvider implements ImageProvider {
         num,
         attachments,
       },
-      cookie
+      session
     );
 
     if (!result.success || !result.imageUrls || result.imageUrls.length === 0) {

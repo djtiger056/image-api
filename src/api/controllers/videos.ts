@@ -3,13 +3,16 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { ProxyAgent as UndiciProxyAgent } from "undici";
-import { ProxyAgent as UndiciProxyAgent } from "undici";
 import APIException from "@/lib/exceptions/APIException.ts";
 import EX from "@/api/consts/exceptions.ts";
 import util from "@/lib/util.ts";
 import { getCredit, receiveCredit, request, DEFAULT_ASSISTANT_ID as CORE_ASSISTANT_ID, WEB_ID, acquireToken, parseRegionFromToken, getAssistantId } from "./core.ts";
 import logger from "@/lib/logger.ts";
 import browserService from "@/lib/browser-service.ts";
+import {
+  inferClosestRatioFromImageBuffer,
+  inferClosestRatioFromImageSource,
+} from "@/lib/image-ratio.ts";
 
 const DEFAULT_ASSISTANT_ID = 513695;
 export const DEFAULT_MODEL = "jimeng-video-3.0";
@@ -174,6 +177,8 @@ const MATERIAL_TYPE_CODE: Record<SeedanceMaterialType, number> = {
   image: 1, video: 2, audio: 3,
 };
 
+const SUPPORTED_VIDEO_RATIOS = ["1:1", "4:3", "3:4", "16:9", "9:16"];
+
 /**
  * 检测上传文件的素材类型
  * 优先通过 MIME 类型判断，兜底通过文件扩展名
@@ -208,6 +213,112 @@ function detectMaterialTypeFromUrl(url: string): SeedanceMaterialType {
   } catch {}
   // 默认视为图片（向后兼容）
   return "image";
+}
+
+async function resolveImageToVideoRatio(
+  {
+    ratio,
+    fallbackRatio,
+    filePaths = [],
+    files = [],
+  }: {
+    ratio?: string;
+    fallbackRatio: string;
+    filePaths?: string[];
+    files?: any[];
+  }
+): Promise<string> {
+  const fallback = ratio || fallbackRatio;
+
+  const firstImageFile = (files || []).find((file) => {
+    if (!file?.filepath) return false;
+    return detectMaterialType(file) === "image";
+  });
+  if (firstImageFile?.filepath) {
+    try {
+      return inferClosestRatioFromImageBuffer(
+        fs.readFileSync(firstImageFile.filepath),
+        SUPPORTED_VIDEO_RATIOS,
+        fallback
+      );
+    } catch (error: any) {
+      logger.warn(`无法读取首张参考图比例，使用默认比例 ${fallback}: ${error.message}`);
+      return fallback;
+    }
+  }
+
+  const firstImagePath = (filePaths || []).find((item) => item && detectMaterialTypeFromUrl(item) === "image");
+  if (firstImagePath) {
+    try {
+      return await inferClosestRatioFromImageSource(
+        firstImagePath,
+        SUPPORTED_VIDEO_RATIOS,
+        fallback
+      );
+    } catch (error: any) {
+      logger.warn(`无法解析首张参考图比例，使用默认比例 ${fallback}: ${error.message}`);
+      return fallback;
+    }
+  }
+
+  return fallback;
+}
+
+async function resolveInternationalImageToVideoRatio(
+  {
+    ratio,
+    fallbackRatio,
+    filePaths = [],
+    filesMap = {},
+    body = {},
+  }: {
+    ratio?: string;
+    fallbackRatio: string;
+    filePaths?: string[];
+    filesMap?: Record<string, any[]>;
+    body?: any;
+  }
+): Promise<string> {
+  const fallback = ratio || fallbackRatio;
+  const { imageFields } = collectInternationalMaterialFields(filesMap, body);
+
+  for (const fieldName of imageFields) {
+    const imageFile = filesMap?.[fieldName]?.[0];
+    const imageUrl = body?.[fieldName];
+    try {
+      if (imageFile?.filepath) {
+        return inferClosestRatioFromImageBuffer(
+          fs.readFileSync(imageFile.filepath),
+          SUPPORTED_VIDEO_RATIOS,
+          fallback
+        );
+      }
+      if (typeof imageUrl === "string" && imageUrl) {
+        return await inferClosestRatioFromImageSource(
+          imageUrl,
+          SUPPORTED_VIDEO_RATIOS,
+          fallback
+        );
+      }
+    } catch (error: any) {
+      logger.warn(`无法解析首张国际参考图比例，继续尝试下一张: ${error.message}`);
+    }
+  }
+
+  const firstImagePath = (filePaths || []).find((item) => item && detectMaterialTypeFromUrl(item) === "image");
+  if (firstImagePath) {
+    try {
+      return await inferClosestRatioFromImageSource(
+        firstImagePath,
+        SUPPORTED_VIDEO_RATIOS,
+        fallback
+      );
+    } catch (error: any) {
+      logger.warn(`无法解析首张国际参考图 URL 比例，使用默认比例 ${fallback}: ${error.message}`);
+    }
+  }
+
+  return fallback;
 }
 
 // 视频支持的分辨率和比例配置
@@ -1273,10 +1384,15 @@ export async function generateVideo(
 ) {
   const model = getModel(_model);
 
-  // 解析分辨率参数获取实际的宽高
-  const { width, height } = resolveVideoResolution(resolution, ratio);
+  const videoRatio = await resolveImageToVideoRatio({
+    ratio,
+    fallbackRatio: "1:1",
+    filePaths,
+    files,
+  });
+  const { width, height } = resolveVideoResolution(resolution, videoRatio);
 
-  logger.info(`使用模型: ${_model} 映射模型: ${model} ${width}x${height} (${ratio}@${resolution}) 时长: ${duration}秒`);
+  logger.info(`使用模型: ${_model} 映射模型: ${model} ${width}x${height} (${videoRatio}@${resolution}) 时长: ${duration}秒`);
 
   // 检查积分
   const { totalCredit } = await getCredit(refreshToken);
@@ -1767,10 +1883,15 @@ export async function generateSeedanceVideo(
   // Seedance 2.0 默认时长为4秒
   const actualDuration = duration || 4;
 
-  // 解析分辨率参数获取实际的宽高
-  const { width, height } = resolveVideoResolution(resolution, ratio);
+  const videoRatio = await resolveImageToVideoRatio({
+    ratio,
+    fallbackRatio: "4:3",
+    filePaths,
+    files,
+  });
+  const { width, height } = resolveVideoResolution(resolution, videoRatio);
 
-  logger.info(`Seedance 2.0 生成: 模型=${_model} 映射=${model} ${width}x${height} (${ratio}@${resolution}) 时长=${actualDuration}秒`);
+  logger.info(`Seedance 2.0 生成: 模型=${_model} 映射=${model} ${width}x${height} (${videoRatio}@${resolution}) 时长=${actualDuration}秒`);
 
   // 检查积分
   const { totalCredit } = await getCredit(refreshToken);
@@ -2396,10 +2517,16 @@ async function generateInternationalVideoCore(
 
   const model = getInternationalVideoModel(_model);
   const assistantId = getAssistantId(regionInfo);
-  const { width, height } = resolveVideoResolution(resolution, ratio);
+  const videoRatio = await resolveImageToVideoRatio({
+    ratio,
+    fallbackRatio: "1:1",
+    filePaths,
+    files,
+  });
+  const { width, height } = resolveVideoResolution(resolution, videoRatio);
   const draftVersion = getInternationalVideoDraftVersion(_model);
 
-  logger.info(`国际普通视频生成: 模型=${_model} 映射=${model} ${width}x${height} (${ratio}@${resolution}) 时长=${duration}秒`);
+  logger.info(`国际普通视频生成: 模型=${_model} 映射=${model} ${width}x${height} (${videoRatio}@${resolution}) 时长=${duration}秒`);
 
   const { totalCredit } = await getCredit(refreshToken);
   if (totalCredit <= 0) await receiveCredit(refreshToken);
@@ -2483,7 +2610,7 @@ async function generateInternationalVideoCore(
       materialTypes: [],
     }]),
   });
-  const aspectRatio = ratio;
+  const aspectRatio = videoRatio;
 
   const internationalVideoReferer = regionInfo.isUS
     ? "https://dreamina-api.us.capcut.com/ai-tool/generate?type=video"
@@ -2627,7 +2754,14 @@ export async function generateInternationalSeedanceVideo(
   if (regionInfo.isUS) throw new APIException(EX.API_REQUEST_FAILED, "US token 暂不支持国际 Seedance 2.0 / 2.0-fast");
 
   const actualDuration = Math.max(4, Math.min(15, duration));
-  const { width, height } = resolveVideoResolution(resolution, ratio);
+  const videoRatio = await resolveInternationalImageToVideoRatio({
+    ratio,
+    fallbackRatio: "4:3",
+    filePaths,
+    filesMap,
+    body,
+  });
+  const { width, height } = resolveVideoResolution(resolution, videoRatio);
   const model = INTERNATIONAL_SEEDANCE_MODEL_MAP[_model];
   const assistantId = getAssistantId(regionInfo);
   const seed = Math.floor(Math.random() * 4294967296);
@@ -2810,7 +2944,7 @@ export async function generateInternationalSeedanceVideo(
                 meta_list,
               },
             }],
-            video_aspect_ratio: ratio,
+            video_aspect_ratio: videoRatio,
             seed,
             model_req_key: model,
             priority: 0,
@@ -2914,7 +3048,14 @@ async function _generateInternationalSeedanceVideoWithHistoryId(
   if (regionInfo.isUS) throw new APIException(EX.API_REQUEST_FAILED, "US token 暂不支持国际 Seedance 2.0 / 2.0-fast");
 
   const actualDuration = Math.max(4, Math.min(15, duration));
-  const { width, height } = resolveVideoResolution(resolution, ratio);
+  const videoRatio = await resolveInternationalImageToVideoRatio({
+    ratio,
+    fallbackRatio: "4:3",
+    filePaths,
+    filesMap,
+    body,
+  });
+  const { width, height } = resolveVideoResolution(resolution, videoRatio);
   const model = INTERNATIONAL_SEEDANCE_MODEL_MAP[_model];
   const assistantId = getAssistantId(regionInfo);
   const seed = Math.floor(Math.random() * 4294967296);
@@ -3000,7 +3141,7 @@ async function _generateInternationalSeedanceVideoWithHistoryId(
 
   const draftContent = JSON.stringify({
     type: "draft", id: util.uuid(), min_version: "3.3.9", min_features: ["AIGC_Video_UnifiedEdit"], is_from_tsn: true, version: "3.3.12", main_component_id: componentId,
-    component_list: [{ type: "video_base_component", id: componentId, min_version: "1.0.0", aigc_mode: "workbench", metadata: { type: "", id: util.uuid(), created_platform: 3, created_platform_version: "", created_time_in_ms: String(Date.now()), created_did: "" }, generate_type: "gen_video", abilities: { type: "", id: util.uuid(), gen_video: { type: "", id: util.uuid(), text_to_video_params: { type: "", id: util.uuid(), video_gen_inputs: [{ type: "", id: util.uuid(), min_version: "3.3.9", prompt: "", video_mode: 2, fps: 24, duration_ms: actualDuration * 1000, idip_meta_list: [], unified_edit_input: { type: "", id: util.uuid(), material_list: materialList, meta_list } }], video_aspect_ratio: ratio, seed, model_req_key: model, priority: 0 }, video_task_extra: metricsExtra } }, process_type: 1 }],
+    component_list: [{ type: "video_base_component", id: componentId, min_version: "1.0.0", aigc_mode: "workbench", metadata: { type: "", id: util.uuid(), created_platform: 3, created_platform_version: "", created_time_in_ms: String(Date.now()), created_did: "" }, generate_type: "gen_video", abilities: { type: "", id: util.uuid(), gen_video: { type: "", id: util.uuid(), text_to_video_params: { type: "", id: util.uuid(), video_gen_inputs: [{ type: "", id: util.uuid(), min_version: "3.3.9", prompt: "", video_mode: 2, fps: 24, duration_ms: actualDuration * 1000, idip_meta_list: [], unified_edit_input: { type: "", id: util.uuid(), material_list: materialList, meta_list } }], video_aspect_ratio: videoRatio, seed, model_req_key: model, priority: 0 }, video_task_extra: metricsExtra } }, process_type: 1 }],
   });
 
   const generateBody = {
@@ -3660,9 +3801,15 @@ async function _generateVideoWithHistoryId(
 ): Promise<{ url: string; historyId: string }> {
   const model = getModel(_model);
   const { ratio = "1:1", resolution = "720p", duration = 5, filePaths = [], files = [] } = options;
-  const { width, height } = resolveVideoResolution(resolution, ratio);
+  const videoRatio = await resolveImageToVideoRatio({
+    ratio,
+    fallbackRatio: "1:1",
+    filePaths,
+    files,
+  });
+  const { width, height } = resolveVideoResolution(resolution, videoRatio);
 
-  logger.info(`异步任务-普通视频: 模型=${_model} 映射=${model} ${width}x${height} (${ratio}@${resolution}) 时长=${duration}秒`);
+  logger.info(`异步任务-普通视频: 模型=${_model} 映射=${model} ${width}x${height} (${videoRatio}@${resolution}) 时长=${duration}秒`);
 
   // 检查积分
   const { totalCredit } = await getCredit(refreshToken);
@@ -3798,9 +3945,15 @@ async function _generateSeedanceVideoWithHistoryId(
   const benefitType = SEEDANCE_BENEFIT_TYPE_MAP[_model] || "dreamina_video_seedance_20_pro";
   const { ratio = "4:3", resolution = "720p", duration = 4, filePaths = [], files = [] } = options;
   const actualDuration = duration || 4;
-  const { width, height } = resolveVideoResolution(resolution, ratio);
+  const videoRatio = await resolveImageToVideoRatio({
+    ratio,
+    fallbackRatio: "4:3",
+    filePaths,
+    files,
+  });
+  const { width, height } = resolveVideoResolution(resolution, videoRatio);
 
-  logger.info(`异步任务-Seedance: 模型=${_model} 映射=${model} ${width}x${height} (${ratio}@${resolution}) 时长=${actualDuration}秒`);
+  logger.info(`异步任务-Seedance: 模型=${_model} 映射=${model} ${width}x${height} (${videoRatio}@${resolution}) 时长=${actualDuration}秒`);
 
   // 检查积分
   const { totalCredit } = await getCredit(refreshToken);
@@ -4134,7 +4287,7 @@ export async function queryAsyncVideoTask(
     if (task._promise) {
       logger.info(`查询接口等待后台轮询完成: ${taskId}`);
       await task._promise;
-      if (task.status === "succeeded" || task.status === "failed") {
+      if ((task.status as AsyncTaskStatus) === "succeeded" || (task.status as AsyncTaskStatus) === "failed") {
         return task;
       }
     }

@@ -22,6 +22,7 @@ const MAX_RETRY_COUNT = 3;
 const RETRY_DELAY = 5000;
 const POLL_INTERVAL = 8000;
 const POLL_TIMEOUT = 300000;
+const VIDEO_POLL_TIMEOUT = 75 * 60 * 1000;
 const XYQ_BASE = "https://xyq.jianying.com";
 
 const FAKE_HEADERS: Record<string, string> = {
@@ -194,6 +195,9 @@ interface XyqImageSettings {
   preferred_generation_strategy?: string;
   resolution?: string;
   image_model?: string;
+  video_model?: string;
+  duration?: number;
+  mode?: "image" | "video";
 }
 
 /** 将 xyq-seedream-5.0 格式转为 seedream_5.0 格式 */
@@ -211,11 +215,13 @@ function buildSubmitMessage(
   settings?: XyqImageSettings
 ): any {
   const content: Array<any> = [];
+  const mode = settings?.mode === "video" ? "video" : "image";
 
-  // 网页端在"生成图片"模式下会给 prompt 加 "生成图片：" 前缀
+  // 网页端在对应生成模式下会给 prompt 加明确前缀
   const effectivePrompt = prompt.trim();
   if (effectivePrompt) {
-    const prefixed = effectivePrompt.startsWith("生成图片") ? effectivePrompt : `生成图片：${effectivePrompt}`;
+    const prefix = mode === "video" ? "生成视频" : "生成图片";
+    const prefixed = effectivePrompt.startsWith(prefix) ? effectivePrompt : `${prefix}：${effectivePrompt}`;
     content.push({
       type: "data",
       sub_type: "biz/x_data_prompt_text",
@@ -240,32 +246,36 @@ function buildSubmitMessage(
     });
   }
 
-  // image_settings: ratio, preferred_generation_strategy (模型), resolution
-  if (settings && (settings.ratio || settings.preferred_generation_strategy || settings.resolution || settings.image_model)) {
+  // image_settings/video_settings: ratio, preferred_generation_strategy (模型), resolution/duration
+  if (settings && (settings.ratio || settings.preferred_generation_strategy || settings.resolution || settings.image_model || settings.video_model || settings.duration)) {
     const imageSettings: Record<string, string> = {};
     if (settings.ratio) imageSettings.ratio = settings.ratio;
     // 模型放在 preferred_generation_strategy 里（格式：seedream_5.0）
-    const modelSlug = settings.image_model;
+    const modelSlug = mode === "video" ? settings.video_model : settings.image_model;
     if (modelSlug) {
       imageSettings.preferred_generation_strategy = modelSlug;
     } else if (settings.preferred_generation_strategy && settings.preferred_generation_strategy !== "auto") {
       imageSettings.preferred_generation_strategy = settings.preferred_generation_strategy;
     }
     if (settings.resolution) imageSettings.resolution = settings.resolution.toUpperCase();
+    if (settings.duration) imageSettings.duration = String(settings.duration);
 
     content.push({
       type: "data",
-      sub_type: "biz/image_settings",
+      sub_type: mode === "video" ? "biz/video_settings" : "biz/image_settings",
       data: JSON.stringify(imageSettings),
     });
   }
 
-  // general_agent_settings: 指定 image_model
-  if (settings?.image_model) {
+  // general_agent_settings: 指定 image_model/video_model
+  if (settings?.image_model || settings?.video_model) {
     content.push({
       type: "data",
       sub_type: "biz/general_agent_settings",
-      data: JSON.stringify({ image_model: settings.image_model }),
+      data: JSON.stringify(mode === "video"
+        ? { video_model: settings.video_model }
+        : { image_model: settings.image_model }
+      ),
     });
   }
 
@@ -351,6 +361,27 @@ function extractResultsFromThread(thread: any): XyqImageResult {
   let state = 0;
   let failReason: string | undefined;
 
+  const collectMediaUrls = (node: any, depth = 0, visited = new WeakSet<object>()) => {
+    if (node == null || depth > 10) return;
+    if (typeof node === "string") {
+      const matches = node.match(/https?:\/\/[^\s"'<>\\]+/g) || [];
+      for (const raw of matches) {
+        const url = raw.replace(/[),\]}]+$/g, "");
+        if (/\.(png|jpg|jpeg|webp|gif)(?:[?#].*)?$/i.test(url)) imageUrls.push(url);
+        if (/\.(mp4|mov|avi|webm|m4v|m3u8)(?:[?#].*)?$/i.test(url) || /(?:video|vod|vlabvod|bytevid|tos-cn|snssdk|pstatp)/i.test(url)) videoUrls.push(url);
+      }
+      return;
+    }
+    if (typeof node !== "object") return;
+    if (visited.has(node)) return;
+    visited.add(node);
+    if (Array.isArray(node)) {
+      for (const item of node) collectMediaUrls(item, depth + 1, visited);
+      return;
+    }
+    for (const value of Object.values(node)) collectMediaUrls(value, depth + 1, visited);
+  };
+
   const run = thread?.run_list?.[0] || thread?.run || thread?.runs?.[0];
   if (run) {
     state = run.state || run.status || 0;
@@ -385,11 +416,16 @@ function extractResultsFromThread(thread: any): XyqImageResult {
               imageUrls.push(parsed.image.url);
             }
           }
+          if (content?.type === "data" && typeof content.data === "string") {
+            const parsed = _.attempt(() => JSON.parse(content.data));
+            if (!_.isError(parsed)) collectMediaUrls(parsed);
+          }
           if (content?.url) {
             const url = content.url;
             if (/\.(png|jpg|jpeg|webp|gif)/i.test(url)) imageUrls.push(url);
             if (/\.(mp4|mov|avi|webm)/i.test(url)) videoUrls.push(url);
           }
+          collectMediaUrls(content);
         }
       }
     }
@@ -411,13 +447,24 @@ export interface XyqImageParams {
   genModel?: string;
   referenceImage?: Buffer | string;
   referenceImages?: Array<Buffer | string>;
+  duration?: number;
 }
 
-async function pollForResult(threadId: string, sessionId: string, runId?: string): Promise<XyqImageResult> {
+async function pollForResult(
+  threadId: string,
+  sessionId: string,
+  runId?: string,
+  options: { timeoutMs?: number; mode?: "image" | "video" } = {}
+): Promise<XyqImageResult> {
   const startTime = Date.now();
   let emptyRunListCount = 0;
+  const mode = options.mode === "video" ? "video" : "image";
+  const timeoutMs = _.isFinite(options.timeoutMs) && Number(options.timeoutMs) > 0
+    ? Number(options.timeoutMs)
+    : mode === "video" ? VIDEO_POLL_TIMEOUT : POLL_TIMEOUT;
+  const label = mode === "video" ? "云雀视频" : "云雀生图";
 
-  while (Date.now() - startTime < POLL_TIMEOUT) {
+  while (Date.now() - startTime < timeoutMs) {
     const thread = await getThread(threadId, sessionId, runId);
     const result = extractResultsFromThread(thread);
     const run = thread?.run_list?.[0] || thread?.run || thread?.runs?.[0];
@@ -426,11 +473,12 @@ async function pollForResult(threadId: string, sessionId: string, runId?: string
     if (!run) {
       emptyRunListCount++;
       logger.warn(`[XYQ] get_thread 返回空 run_list (第${emptyRunListCount}次)，thread_id=${threadId}。原始 thread keys: ${JSON.stringify(Object.keys(thread || {}))}`);
-      // 如果连续 3 次返回空 run_list，说明任务可能有问题，提前终止
-      if (emptyRunListCount >= 3) {
+      // 视频任务排队很慢，给平台更长时间把 run 写入线程。
+      const maxEmptyRunListCount = mode === "video" ? 30 : 3;
+      if (emptyRunListCount >= maxEmptyRunListCount) {
         throw new APIException(
           EX.API_REQUEST_FAILED,
-          `[云雀生图异常] get_thread 连续返回空 run_list (${emptyRunListCount}次)，thread_id=${threadId}。可能原因：submit_run 未真正提交成功，或 sessionid 无效。`
+          `[${label}异常] get_thread 连续返回空 run_list (${emptyRunListCount}次)，thread_id=${threadId}。可能原因：submit_run 未真正提交成功，或 sessionid 无效。`
         );
       }
     } else {
@@ -443,20 +491,20 @@ async function pollForResult(threadId: string, sessionId: string, runId?: string
     if (state === 4 || state === "failed") {
       throw new APIException(
         EX.API_REQUEST_FAILED,
-        `[云雀生图失败]: ${result.failReason || "未知失败原因"}`
+        `[${label}失败]: ${result.failReason || "未知失败原因"}`
       );
     }
     if (state === 5 || state === "cancelled") {
-      throw new APIException(EX.API_REQUEST_FAILED, "[云雀生图已被取消]");
+      throw new APIException(EX.API_REQUEST_FAILED, `[${label}已被取消]`);
     }
 
-    logger.info(`[XYQ] 任务进行中 (state=${state})，${POLL_INTERVAL / 1000}秒后继续查询...`);
+    logger.info(`[XYQ] ${mode === "video" ? "视频" : "图片"}任务进行中 (state=${state})，${POLL_INTERVAL / 1000}秒后继续查询...`);
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
   }
 
   throw new APIException(
     EX.API_REQUEST_FAILED,
-    `[云雀生图超时] 等待超过 ${POLL_TIMEOUT / 1000} 秒`
+    `[${label}超时] 等待超过 ${Math.round(timeoutMs / 1000)} 秒`
   );
 }
 
@@ -495,7 +543,7 @@ export async function createImageCompletion(
       throw new APIException(EX.API_REQUEST_FAILED, "[云雀] 未返回 thread_id");
     }
 
-    const result = await pollForResult(submitResult.thread_id, sessionId, submitResult.run_id);
+    const result = await pollForResult(submitResult.thread_id, sessionId, submitResult.run_id, { mode: "image" });
     if (result.imageUrls.length === 0) {
       throw new APIException(
         EX.API_REQUEST_FAILED,
@@ -514,6 +562,71 @@ export async function createImageCompletion(
       logger.warn(`[XYQ] ${RETRY_DELAY / 1000}秒后重试...`);
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
       return createImageCompletion(params, sessionId, retryCount + 1);
+    }
+    throw err;
+  }
+}
+
+export async function createVideoCompletion(
+  params: XyqImageParams,
+  sessionId: string,
+  options: { maxWaitTimeMs?: number } = {},
+  retryCount = 0
+): Promise<{ videoUrls: string[]; textContent: string; threadId: string }> {
+  try {
+    const { prompt, ratio = "16:9", genModel, duration = 5 } = params;
+    const modelSlug = toXyqModelSlug(genModel);
+    const settings: XyqImageSettings = {
+      ratio,
+      duration,
+      video_model: modelSlug,
+      preferred_generation_strategy: modelSlug,
+      mode: "video",
+    };
+
+    const imageItems: XyqUploadResult[] = [];
+    const uploadSources = params.referenceImages && params.referenceImages.length > 0
+      ? params.referenceImages
+      : params.referenceImage
+        ? [params.referenceImage]
+        : [];
+
+    for (const source of uploadSources) {
+      imageItems.push(await uploadImageToXyq(source, sessionId));
+    }
+
+    logger.info(
+      `[XYQ] 视频生成请求: prompt=${prompt}, ratio=${ratio}, duration=${duration}, model=${genModel}, refImage=${imageItems.length}`
+    );
+
+    const submitResult = await submitRun(prompt, sessionId, undefined, imageItems, settings);
+    if (!submitResult.thread_id) {
+      throw new APIException(EX.API_REQUEST_FAILED, "[云雀] 未返回 thread_id");
+    }
+
+    const result = await pollForResult(submitResult.thread_id, sessionId, submitResult.run_id, {
+      mode: "video",
+      timeoutMs: options.maxWaitTimeMs,
+    });
+    if (result.videoUrls.length === 0) {
+      throw new APIException(
+        EX.API_REQUEST_FAILED,
+        `[云雀] 视频生成未返回任何视频。${result.textContent || ""}`
+      );
+    }
+
+    return {
+      videoUrls: result.videoUrls,
+      textContent: result.textContent,
+      threadId: submitResult.thread_id,
+    };
+  } catch (err: any) {
+    const isTimeout = String(err?.message || "").includes("云雀视频超时");
+    if (!isTimeout && retryCount < MAX_RETRY_COUNT) {
+      logger.error(`[XYQ] 视频生成失败: ${err.stack || err.message}`);
+      logger.warn(`[XYQ] ${RETRY_DELAY / 1000}秒后重试...`);
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+      return createVideoCompletion(params, sessionId, options, retryCount + 1);
     }
     throw err;
   }

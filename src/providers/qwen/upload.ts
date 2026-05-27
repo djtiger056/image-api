@@ -8,6 +8,11 @@ import axios from "axios";
 
 import util from "@/lib/util.ts";
 import logger from "@/lib/logger.ts";
+import {
+  absorbQwenSetCookie,
+  createQwenSessionFromCookie,
+  QwenSession,
+} from "@/providers/qwen/session.ts";
 
 export const RESOURCE_API_BASE = "https://aistudio-resource.qianwen.com";
 
@@ -64,9 +69,12 @@ export async function fetchImageData(
 
 export async function uploadImageToQwen(
   imageSource: string,
-  cookie: string,
+  sessionInput: string | QwenSession,
   logPrefix: string = "Qwen"
 ): Promise<string> {
+  const session = typeof sessionInput === "string"
+    ? createQwenSessionFromCookie(sessionInput, { source: "authorization", canPersist: false })
+    : sessionInput;
   const { buffer: imageBuffer, contentType } = await fetchImageData(imageSource);
   const crypto = await import("crypto");
 
@@ -93,10 +101,11 @@ export async function uploadImageToQwen(
         entry: "ugc",
       },
       {
-        headers: { Cookie: cookie, ...DEFAULT_QWEN_HEADERS },
+        headers: { Cookie: session.cookieHeader, ...DEFAULT_QWEN_HEADERS },
         timeout: 15000,
       }
     );
+    await absorbQwenSetCookie(session, tokenResp);
     if (tokenResp.data.code !== 0) {
       throw new Error(tokenResp.data.msg || "获取 OSS 凭证失败");
     }
@@ -156,10 +165,11 @@ export async function uploadImageToQwen(
         endpoint: ossData.endpoint,
       },
       {
-        headers: { Cookie: cookie, ...DEFAULT_QWEN_HEADERS },
+        headers: { Cookie: session.cookieHeader, ...DEFAULT_QWEN_HEADERS },
         timeout: 15000,
       }
     );
+    await absorbQwenSetCookie(session, materialResp);
   } catch (e: any) {
     const status = e.response?.status;
     const data = e.response?.data;
@@ -181,4 +191,3 @@ export async function uploadImageToQwen(
   logger.success(`[${logPrefix}] 图片上传成功，material_id=${materialId}`);
   return materialId;
 }
-

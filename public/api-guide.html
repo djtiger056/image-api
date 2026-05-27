@@ -36,7 +36,7 @@
 
     <div class="card">
       <h1>外部调用说明</h1>
-      <p>本服务对外提供 OpenAI 风格的图片接口，并同时兼容 Jimeng / Kling / Doubao (豆包) 三条链路。</p>
+      <p>本服务对外提供统一图片与视频接口，兼容 Jimeng、Seedance、Doubao、Qwen / Wan 等多条链路。</p>
       <p>如果你在服务端保存了凭证，调用时通常只需要传模型和提示词；如果部署了 <code>x-api-key</code>，再额外带上请求头即可。</p>
     </div>
 
@@ -109,6 +109,65 @@
     </div>
 
     <div class="card">
+      <h2>5.2 Wan 2.7 视频生成</h2>
+      <pre>curl -X POST http://127.0.0.1:18080/v1/qwen/videos/generations \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer your-qwen-cookie' \
+  -d '{
+    "model": "wan2.7-t2v",
+    "prompt": "赛博都市夜景中，一辆银色跑车从高架桥快速驶过，镜头横向跟拍，霓虹反光明显",
+    "ratio": "16:9",
+    "resolution": "1080P",
+    "duration": 5
+  }'</pre>
+      <ul>
+        <li>推荐模型：<code>wan2.7-t2v</code></li>
+        <li>支持比例：<code>16:9</code> <code>9:16</code> <code>1:1</code> <code>4:3</code> <code>3:4</code></li>
+        <li>支持时长：<code>2-15</code> 秒</li>
+        <li>支持分辨率：<code>720P</code> / <code>1080P</code></li>
+        <li>支持首帧参考图，使用 <code>images</code> 数组传 URL</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>5.3 Wan 2.7 首帧参考图视频</h2>
+      <pre>curl -X POST http://127.0.0.1:18080/v1/qwen/videos/generations \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer your-qwen-cookie' \
+  -d '{
+    "model": "wan2.7-t2v",
+    "prompt": "保持参考图主体一致，让人物抬头看向远处，风吹动头发，镜头缓慢推进",
+    "ratio": "9:16",
+    "resolution": "1080P",
+    "duration": 5,
+    "images": [
+      "https://example.com/first-frame.jpg"
+    ]
+  }'</pre>
+    </div>
+
+    <div class="card">
+      <h2>5.4 统一视频接口</h2>
+      <pre>curl -X POST http://127.0.0.1:18080/v1/videos/generations \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer your-jimeng-sessionid' \
+  -d '{
+    "model": "seedance-2.0-fast",
+    "prompt": "@1 中的人物抬头看向镜头，然后微笑",
+    "ratio": "4:3",
+    "duration": 4,
+    "file_paths": [
+      "https://example.com/input-1.jpg"
+    ]
+  }'</pre>
+      <ul>
+        <li>适合即梦 / Seedance 统一接入</li>
+        <li>Seedance 推荐模型：<code>seedance-2.0-fast</code></li>
+        <li>新项目如果只关心免费视频和高质量文生视频，优先接 <code>/v1/doubao/videos/generations</code> 与 <code>/v1/qwen/videos/generations</code></li>
+      </ul>
+    </div>
+
+    <div class="card">
       <h2>6. 带 API Key</h2>
       <pre>curl -X POST http://127.0.0.1:18080/v1/images/generations \
   -H 'Content-Type: application/json' \
@@ -122,7 +181,10 @@
         <li>Jimeng 凭证可通过控制台保存为 <code>sessionid</code> 或 <code>Authorization</code>。</li>
         <li>Kling 凭证可直接粘贴 <code>storageState JSON</code> 或 cookies 导出 JSON。</li>
         <li>Doubao 凭证通过环境变量 <code>DOUBAO_AUTHORIZATION</code> 或 <code>DOUBAO_SESSIONID</code> 配置，也可在请求头中直接传入。</li>
+        <li>Qwen / Wan 视频通过 <code>QWEN_COOKIE</code> 配置，也可在请求头直接传完整 Cookie。</li>
         <li>如果服务配置了 API Key，控制台和外部调用都要带上 <code>x-api-key</code>。</li>
+        <li>更完整的视频接入说明见仓库文档 <code>docs/video-external-api.md</code>。</li>
+        <li>给前端 / 后端同事直接复制的模板见 <code>docs/video-integration-templates.md</code>。</li>
       </ul>
     </div>
   </div>

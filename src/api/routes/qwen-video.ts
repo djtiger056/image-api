@@ -4,11 +4,14 @@ import Request from "@/lib/request/Request.ts";
 import Response from "@/lib/response/Response.ts";
 import util from "@/lib/util.ts";
 import logger from "@/lib/logger.ts";
+import { inferClosestRatioFromImageSource } from "@/lib/image-ratio.ts";
 import {
   createVideoCompletion,
   getCredit,
   tokenSplit,
 } from "@/providers/qwen/api.ts";
+import { normalizeCookieString } from "@/providers/qwen/upload.ts";
+import { resolveQwenSession } from "@/providers/qwen/session.ts";
 import {
   resolveQwenVideoModel,
   normalizeQwenRatio,
@@ -25,11 +28,11 @@ function resolveQwenCookie(authorization?: string): string {
   const incoming = String(authorization || "").trim();
   if (incoming) {
     // 支持 "Bearer cookie" 或直接 cookie
-    return incoming.replace(/^Bearer\s+/i, "");
+    return normalizeCookieString(incoming.replace(/^Bearer\s+/i, ""));
   }
 
   const envCookie = String(process.env.QWEN_COOKIE || "").trim();
-  if (envCookie) return envCookie;
+  if (envCookie) return normalizeCookieString(envCookie);
 
   throw new Error(
     "千问视频服务未配置可用凭证。请设置 QWEN_COOKIE 环境变量。"
@@ -42,6 +45,28 @@ function pickQwenCookie(authorization?: string): string {
   const cookie = _.sample(cookies);
   if (!cookie) throw new Error("QWEN_COOKIE 中没有可用 cookie");
   return cookie;
+}
+
+const QWEN_VIDEO_REFERENCE_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4"];
+
+async function resolveQwenVideoRatio(ratio: string, images: any[]): Promise<string> {
+  const fallback = normalizeQwenRatio(ratio);
+  const firstImage = Array.isArray(images)
+    ? images.find((item) => _.isString(item) && item.trim())
+    : undefined;
+
+  if (!firstImage) return fallback;
+
+  try {
+    return await inferClosestRatioFromImageSource(
+      String(firstImage).trim(),
+      QWEN_VIDEO_REFERENCE_RATIOS,
+      fallback
+    );
+  } catch (error: any) {
+    logger.warn(`[QwenVideo Route] 无法解析参考图比例，使用默认比例 ${fallback}: ${error.message}`);
+    return fallback;
+  }
 }
 
 export default {
@@ -87,9 +112,10 @@ export default {
           (v) => _.isUndefined(v) || _.isFinite(v)
         );
 
-      const cookie = pickQwenCookie(
-        request.headers.authorization as string | undefined
-      );
+      const authorization = request.headers.authorization as string | undefined;
+      const qwenSession = authorization
+        ? await resolveQwenSession(pickQwenCookie(authorization))
+        : await resolveQwenSession();
 
       const {
         model = DEFAULT_QWEN_VIDEO_MODEL,
@@ -103,7 +129,6 @@ export default {
       } = request.body;
 
       const modelMapping = resolveQwenVideoModel(model);
-      const normalizedRatio = normalizeQwenRatio(ratio);
       const normalizedDuration = normalizeQwenVideoDuration(model, duration);
       const normalizedResolution = normalizeQwenVideoResolution(
         model,
@@ -117,6 +142,10 @@ export default {
                 .map((item) => ({ type: "image", url: String(item).trim() }))
             : [])
         : [];
+      const normalizedRatio = await resolveQwenVideoRatio(
+        ratio,
+        normalizedImages.map((item) => item.url)
+      );
 
       logger.info(
         `[QwenVideo Route] 同步视频生成: model=${modelMapping.model}, ratio=${normalizedRatio}, resolution=${normalizedResolution}, duration=${normalizedDuration}s, images=${normalizedImages.length}`
@@ -131,8 +160,7 @@ export default {
           model,
           attachments: normalizedImages,
         },
-        cookie
-        ,
+        qwenSession,
         {
           maxWaitTimeMs: _.isFinite(timeout_ms) ? Number(timeout_ms) : undefined,
         }
@@ -183,10 +211,11 @@ export default {
      * 查询剩余信用额度
      */
     "/credit": async (request: Request) => {
-      const cookie = pickQwenCookie(
-        request.headers.authorization as string | undefined
-      );
-      const credit = await getCredit(cookie);
+      const authorization = request.headers.authorization as string | undefined;
+      const qwenSession = authorization
+        ? await resolveQwenSession(pickQwenCookie(authorization))
+        : await resolveQwenSession();
+      const credit = await getCredit(qwenSession);
       return {
         ok: true,
         total_amount: credit.totalAmount,

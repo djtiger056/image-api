@@ -1,0 +1,133 @@
+{
+  "cookies": [
+    {
+      "name": "_UP_28A_52_",
+      "value": "629",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "_qk_bx_ck_v1",
+      "value": "eyJkZXZpY2VJZCI6ImVDeSNBQU9YcWducGh2QVRpbG5PREh6NVAreXI3b1VMU3FqN3RFcFpDSXhLRnNFaHp6K0ttMVp4cENkeTY4Y3lOdFN0eFBRPSIsImRldmljZUZpbmdlcnByaW50IjoiZWM5YzY3ZGQ5ZTdiZGNjMzFkOTVhMzIxZGY3MDI4OTEifQ==",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "tfstk",
+      "value": "gOvoLX0Q3Q5757aqIyWSiKq0hrlYFT6CNeedJ9QEgZ7XeMnSNMyhoHx-VHe8KBbDRaCRUpAbKhtBe06KVTt5d9utWABHV36QsqrWApXVgGSKpMWF8T6quokunAH9V3rR4cKqBBL7C6Sd895PToyVlMsz4e5z3Z7fAMzPY8oD0Z_VYyyF8nSVVMNzzeWEmn7fY97e8_oD0ZsFLwlax07JPFpq5ComPfLw5KjlZN-m1JyHhRCP7370LVJcq2_w4Z2ULNsL6kKD2426DT9JSGL-38YM4C8e_Ek0EsOympf6dzoVL67AgL8Uz7SGEafwUsrifT1eiKXJU2N6DnbPstdxG4CdEUA15_ljlexcyeJlgz0AJCKvUsYZk-YCtQ8l0OSz8SPZMdwC0Dp4OW1PcibtLGGWx_drB5omm55CaisSnmm0OW1PcibtmmVNO_SfVxf..",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "sn",
+      "value": "5d312e5c-2ccb-47fe-8d3a-df2627f56989",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "ctoken",
+      "value": "_OAljs004dYYXowNzRftM_fv",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "_UP_HASH_UID",
+      "value": "uhash:c22043b368668951eaab6f9583159a27",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "b-user-id",
+      "value": "a6970c4f-2a46-44b8-4961-caa9f007f030",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "_UP_D_",
+      "value": "mobile",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "__itrace_wid",
+      "value": "b7edc0f6-d68d-47c0-8fa4-9b59b398268f",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "_ON_EXT_DVIDN",
+      "value": "eCy#AAOXqgnphvATilnODHz5P+yr7oULSqj7tEpZCIxKFsEhzz+Km1ZxpCdy68cyNtStxPQ=",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "_qk_bx_um_v1",
+      "value": "eyJ1ZCI6IlQyZ0FZSnJ3SU1jUWd1cXJTangyajJLQ0NSWjIwMk5PN0liVkNNcHdwcG5aV3d2V0FEWTZKa3FuMmNKOWRKNXBnZDA9IiwiZXAiOjE3Nzk0MzgxODc0Njl9",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "_qw_bx_timeout_v1",
+      "value": "1000",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "_UP_6D1_64_",
+      "value": "069",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "_UP_A4A_11_",
+      "value": "wba2d1bbc6cf47aba997250f4aa3adc9",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "_UP_BT_",
+      "value": "html5",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "_UP_KP",
+      "value": "1:629:126fe8aa3b84c8f58d2faaa413b6f9df:TiSxI4WeSsrZiWrXxgOb/WaBRS9eEf5DPwEHV/WJC63CIvPW92om29pq9FAE3T9NQfb2VGVTIe95FZhb8P8FdOZiLx8B4R6OByu8FtpePzGaLA==",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "_UP_WG_UID",
+      "value": "TiTgjHo6AgPB99Mb9V8HEIMd",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "cna",
+      "value": "gDMLInz23FACAXWxX0NYfVP+",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "isg",
+      "value": "BAgI59Oa9iAxoxkrNyh5oyz22XYasWy7c6J4ocK5VAN2nagHasE8S56cFXXtrSST",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "UM_distinctid",
+      "value": "19c2caf7d5113fd-0432aa1dcf92c5-4c657b58-190140-19c2caf7d52b32",
+      "domain": ".qianwen.com",
+      "path": "/"
+    },
+    {
+      "name": "XSRF-TOKEN",
+      "value": "57e02751-eb48-40bd-81ba-5cbcb877abdf",
+      "domain": ".qianwen.com",
+      "path": "/",
+      "httpOnly": true
+    }
+  ],
+  "browserId": "1a4ad588651e7efb662f9827b6d449d3",
+  "updatedAt": "2026-05-26T14:06:18.420Z"
+}

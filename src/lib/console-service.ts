@@ -9,6 +9,7 @@ import {
   normalizeKlingCookiesExport,
   resolveKlingWebStorageState,
 } from '@/providers/kling/web-utils.ts';
+import { getQwenStatePath, saveQwenCookieToState } from '@/providers/qwen/session.ts';
 
 const ROOT_DIR = path.resolve();
 const LOCAL_ENV_PATH = path.join(ROOT_DIR, 'local.env');
@@ -168,6 +169,7 @@ export async function saveConsoleCredentials(body: any) {
     delete process.env.QWEN_COOKIE;
     if (persist) {
       await removeLocalEnvValue('QWEN_COOKIE');
+      await fs.remove(getQwenStatePath());
     }
   }
 
@@ -175,6 +177,7 @@ export async function saveConsoleCredentials(body: any) {
     process.env.QWEN_COOKIE = qwenCookie;
     if (persist) {
       await upsertLocalEnvValue('QWEN_COOKIE', qwenCookie);
+      await saveQwenCookieToState(qwenCookie);
     }
   }
 
@@ -215,6 +218,7 @@ export async function getConsoleStatus({ deep = false }: { deep?: boolean } = {}
       qwen: {
         configured: false,
         source: 'none',
+        state_path: getQwenStatePath(),
       },
     },
   };
@@ -326,11 +330,13 @@ export async function getConsoleStatus({ deep = false }: { deep?: boolean } = {}
   // Qwen (千问) 凭证检查
   try {
     const qwenCookie = String(process.env.QWEN_COOKIE || '').trim();
-    if (qwenCookie) {
+    const hasQwenState = await fs.pathExists(getQwenStatePath());
+    if (qwenCookie || hasQwenState) {
       response.credentials.qwen = {
         configured: true,
-        source: 'cookie',
-        preview: maskSecret(qwenCookie.substring(0, 30)),
+        source: hasQwenState ? 'qwen.json' : 'cookie',
+        state_path: getQwenStatePath(),
+        ...(qwenCookie ? { preview: maskSecret(qwenCookie.substring(0, 30)) } : {}),
       };
     }
   } catch (error) {

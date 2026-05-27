@@ -179,7 +179,7 @@
 
         <div class="field">
           <label for="qwenInput">Qwen (千问) cookie</label>
-          <textarea id="qwenInput" class="small" placeholder="粘贴 cookie 字符串 或 Cookie-Editor 导出的 JSON 数组，均支持"></textarea>
+          <textarea id="qwenInput" class="small" placeholder="粘贴 create.qianwen.com 完整 Cookie 字符串或 Cookie-Editor JSON 数组；服务端会写入 qwen.json 并自动合并 Set-Cookie"></textarea>
         </div>
 
         <div class="toolbar">
@@ -188,7 +188,7 @@
         </div>
 
         <div class="help" style="margin-top:10px;">
-          提示：保存后会立即写入服务运行时。Jimeng 会写到 <code>local.env</code>；Kling 会写到 <code>kling.json</code> 或环境状态；Doubao 会写到 <code>DOUBAO_SESSIONID</code> 环境变量。XYQ (小云雀) 会写到 <code>XYQ_SESSIONID</code> 环境变量。Qwen (千问) 会写到 <code>QWEN_COOKIE</code> 环境变量。
+          提示：保存后会立即写入服务运行时。Jimeng 会写到 <code>local.env</code>；Kling 会写到 <code>kling.json</code> 或环境状态；Doubao 会写到 <code>DOUBAO_SESSIONID</code> 环境变量。XYQ (小云雀) 会写到 <code>XYQ_SESSIONID</code> 环境变量。Qwen (千问) 会写到 <code>QWEN_COOKIE</code> 环境变量并同步到 <code>qwen.json</code>，后续请求会自动合并服务端返回的新 Cookie。
         </div>
 
         <div class="split" style="margin-top:16px;">
@@ -248,7 +248,9 @@
           <div class="field"><label for="nInput">n</label><input id="nInput" value="1" /></div>
           <div class="field"><label for="asyncInput">async</label><select id="asyncInput"><option value="true">true</option><option value="false">false</option></select></div>
           <div class="field"><label for="imageTimeoutInput">图片超时（秒）</label><input id="imageTimeoutInput" value="180" /></div>
-          <div class="field"><label for="videoTimeoutInput">视频超时（秒）</label><input id="videoTimeoutInput" value="900" /></div>
+          <div class="field"><label for="videoTimeoutInput">视频超时（秒）</label><input id="videoTimeoutInput" value="4500" /></div>
+          <div class="field"><label for="doubaoPollTimeoutInput">豆包结果轮询超时（秒）</label><input id="doubaoPollTimeoutInput" value="240" /></div>
+          <div class="field"><label for="doubaoPollIntervalInput">豆包轮询间隔（秒）</label><input id="doubaoPollIntervalInput" value="10" /></div>
         </div>
 
         <div class="toolbar">
@@ -302,16 +304,19 @@
       'doubao-seedream-4.5': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['最新 Doubao Seedream 模型', '支持 style 参数'], limit: '豆包 Seedream 4.5 模型，使用 ratio 和 style 参数。' },
       'doubao-seedream-4.0': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['Doubao Seedream 4.0', '支持 style 参数'], limit: '豆包 Seedream 4.0 模型，使用 ratio 和 style 参数。' },
       'doubao-seedream-3.0': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['Doubao Seedream 3.0', '支持 style 参数'], limit: '豆包 Seedream 3.0 模型，使用 ratio 和 style 参数。' },
-      'doubao-seedance-2.0-fast': { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], durations: [5], defaultDuration: 5, supportsImageInput: true, notes: ['豆包 Seedance 2.0 Fast 视频模型', '固定 5 秒', '支持参考图', '每日10次免费额度'], limit: '豆包免费视频生成，每日10次额度，当前固定 5 秒。支持文生视频和参考图视频。' },
+      'doubao-seedance-2.0-fast': { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], fixedDuration: 10, supportsImageInput: true, notes: ['豆包 Seedance 2.0 Fast 视频模型', '固定 10 秒', '支持参考图', '每日10次免费额度'], limit: '豆包免费视频生成，每日10次额度，视频时长固定 10 秒且不可修改。支持文生视频和参考图视频。' },
       'xyq-seedream-5.0': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['最新云雀 Seedream 模型', '使用 ratio 和 style 参数'], limit: '小云雀 Seedream 5.0 模型，通过云雀平台免费额度生图。' },
       'xyq-seedream-4.5': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['云雀 Seedream 4.5', '使用 ratio 和 style 参数'], limit: '小云雀 Seedream 4.5 模型。' },
       'xyq-seedream-4.0': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['云雀 Seedream 4.0', '使用 ratio 和 style 参数'], limit: '小云雀 Seedream 4.0 模型。' },
+      'xyq-seedance-2.0': { family: 'xyq-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], durations: [5,10], defaultDuration: 5, supportsImageInput: true, recommendedTimeoutSeconds: 4500, notes: ['小云雀 Seedance 2.0 视频模型', '生成很慢', '建议等待 4500 秒以上', '支持参考图'], limit: '小云雀视频生成可能超过 1 小时。控制台会使用长超时同步等待；如反向代理在前面，请同步放大代理超时。' },
+      'xyq-seedance-2.0-fast': { family: 'xyq-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], durations: [5,10], defaultDuration: 5, supportsImageInput: true, recommendedTimeoutSeconds: 4500, notes: ['小云雀 Seedance 2.0 Fast 视频模型', '仍可能超过 1 小时', '建议等待 4500 秒以上', '支持参考图'], limit: '小云雀 Fast 视频仍可能非常慢。控制台默认给 4500 秒等待窗口，并把 timeout_ms 传给后端。' },
       default_xyq: { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['小云雀 Seedream 模型'], limit: '小云雀 Seedream 模型，使用 ratio 和 style 参数。' },
       default_jimeng: { family: 'jimeng', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], resolutions: ['1k','2k'], notes: ['普通账号建议先保守'], limit: '即梦图像模型通常支持常见比例；若账号非会员或积分不足，不建议上高分辨率。' },
       default_kling: { family: 'kling', ratios: ['1:1','16:9','9:16'], resolutions: ['1k'], notes: ['网页自动化链路'], limit: 'Kling 网页模式建议先用保守参数，并等待任务轮询完成。' },
       default_seedream: { family: 'seedream', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['统一 Seedream 模型', '自动轮询多提供商'], limit: '统一接口，自动选择最优提供商。' },
       default_doubao: { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['豆包 Seedream 模型'], limit: '豆包 Seedream 模型，使用 ratio 和 style 参数。' },
-      default_doubao_video: { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], durations: [5], defaultDuration: 5, supportsImageInput: true, notes: ['豆包视频生成模型', '固定 5 秒', '支持参考图', '每日10次免费额度'], limit: '豆包免费视频生成，每日10次额度，当前固定 5 秒。支持参考图视频。' },
+      default_doubao_video: { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], fixedDuration: 10, supportsImageInput: true, notes: ['豆包视频生成模型', '固定 10 秒', '支持参考图', '每日10次免费额度'], limit: '豆包免费视频生成，每日10次额度，视频时长固定 10 秒且不可修改。支持参考图视频。' },
+      default_xyq_video: { family: 'xyq-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], durations: [5,10], defaultDuration: 5, supportsImageInput: true, recommendedTimeoutSeconds: 4500, notes: ['小云雀视频生成模型', '生成很慢', '建议等待 4500 秒以上'], limit: '小云雀视频生成可能超过 1 小时，建议保持长超时。' },
       'qwen-happyhorse-1.0': { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P'], defaultResolution: '720P', durations: [5, 10], defaultDuration: 10, supportsImageInput: false, notes: ['千问 HappyHorse 1.0 视频模型', '通过 create.qianwen.com', '支持 5/10 秒'], limit: '千问视频生成，需要 QWEN_COOKIE 凭证。支持 5/10 秒视频。' },
       'wan2.6-t2v': { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P','1080P'], defaultResolution: '1080P', durations: [2,3,4,5,6,7,8,9,10,11,12,13,14,15], defaultDuration: 5, supportsImageInput: false, notes: ['通义万相 Wan 2.6 文生视频模型', 'DashScope', '支持 720P / 1080P'], limit: '千问视频生成，支持 Wan 2.6 文生视频。' },
       'wan2.7-t2v': { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P','1080P'], defaultResolution: '1080P', durations: [2,3,4,5,6,7,8,9,10,11,12,13,14,15], defaultDuration: 5, supportsImageInput: true, notes: ['通义万相 Wan 2.7 文生视频模型', '支持首帧参考图', '支持 720P / 1080P'], limit: '千问视频生成，支持 Wan 2.7 文生视频与首帧参考图。' },
@@ -343,6 +348,8 @@
       asyncInput: document.getElementById('asyncInput'),
       imageTimeoutInput: document.getElementById('imageTimeoutInput'),
       videoTimeoutInput: document.getElementById('videoTimeoutInput'),
+      doubaoPollTimeoutInput: document.getElementById('doubaoPollTimeoutInput'),
+      doubaoPollIntervalInput: document.getElementById('doubaoPollIntervalInput'),
       resultJson: document.getElementById('resultJson'),
       previewBox: document.getElementById('previewBox'),
       pingStat: document.getElementById('pingStat'),
@@ -387,7 +394,9 @@
     let modelCatalog = [];
     let activePoller = null;
     const DEFAULT_IMAGE_TIMEOUT_SECONDS = 180;
-    const DEFAULT_VIDEO_TIMEOUT_SECONDS = 900;
+    const DEFAULT_VIDEO_TIMEOUT_SECONDS = 4500;
+    const DEFAULT_DOUBAO_POLL_TIMEOUT_SECONDS = 240;
+    const DEFAULT_DOUBAO_POLL_INTERVAL_SECONDS = 10;
 
     // 图生图状态
     let currentMode = 'txt2img'; // 'txt2img' | 'img2img'
@@ -403,6 +412,14 @@
 
     function videoSupportsImageInput(rule = currentRule()) {
       return isVideoFamily(rule.family) && !!rule.supportsImageInput;
+    }
+
+    function isDoubaoVideoRule(rule = currentRule()) {
+      return rule.family === 'doubao-video';
+    }
+
+    function isReferenceVideoMode(rule = currentRule()) {
+      return isVideoFamily(rule.family) && currentMode === 'img2img' && videoSupportsImageInput(rule);
     }
 
     function canUseReferenceImages(rule = currentRule()) {
@@ -425,15 +442,29 @@
       els.referenceInputLabel.textContent = videoFamily ? '参考图片（最多 2 张）' : '参考图片（最多 10 张）';
       if (videoFamily) {
         els.referenceInputHint.textContent = supportsRef
-          ? '当前模型支持首帧参考图，最多上传 2 张图片或 URL。'
+          ? '当前模型支持参考图，最多上传 2 张图片或 URL。'
           : '当前视频模型仅支持文生视频，不支持参考图输入。';
         els.dropZoneText.innerHTML = supportsRef
           ? '拖拽参考图到此处，或 <b>点击选择文件</b>'
           : '当前模型不支持参考图输入';
         els.imageUrlInput.placeholder = supportsRef ? '或输入参考图 URL，回车添加' : '当前模型不支持参考图 URL';
         els.modeHint.textContent = supportsRef
-          ? '当前为视频模型，第二个标签表示“首帧参考图视频”；其余图片专属参数会自动隐藏。'
+          ? '当前为视频模型，第二个标签表示“参考图视频”；其余图片专属参数会自动隐藏。'
           : '当前为视频模型，仅支持文生视频；图片专属模式和参数已自动收起。';
+        if (isDoubaoVideoRule(rule)) {
+          els.modeHint.textContent = supportsRef
+            ? '当前为豆包视频模型，视频固定 10 秒；只需填写提示词、比例和参考图。'
+            : '当前为豆包视频模型，视频固定 10 秒；只需填写提示词和比例。';
+        }
+        if (rule.family === 'xyq-video') {
+          const recommended = Number(rule.recommendedTimeoutSeconds || 4500);
+          if (getTimeoutSeconds('video') < recommended) {
+            els.videoTimeoutInput.value = String(recommended);
+          }
+          els.modeHint.textContent = supportsRef
+            ? `当前为小云雀视频模型，生成可能超过 1 小时；已建议视频超时 ${recommended} 秒，并支持参考图视频。`
+            : `当前为小云雀视频模型，生成可能超过 1 小时；已建议视频超时 ${recommended} 秒。`;
+        }
       } else {
         els.referenceInputHint.textContent = '图生图模式支持上传本地图片或输入 URL。';
         els.dropZoneText.innerHTML = '拖拽图片到此处，或 <b>点击选择文件</b>';
@@ -441,7 +472,7 @@
         els.modeHint.textContent = '当前模型默认按图片生成流程展示；切换到支持视频的模型后，页面会自动调整为视频语义与参数。';
       }
       els.pageFooter.textContent = videoFamily
-        ? '页面支持图片生成与视频生成；视频模型会按真实能力显示清晰度、时长与参考图入口。'
+        ? '页面支持图片生成与视频生成；视频模型会按真实能力显示清晰度、时长与参考图入口。小云雀视频可能需要超过 1 小时，请保持长超时。'
         : '页面支持 Jimeng / Kling / Doubao / XYQ (小云雀) / Qwen 图片生成与视频生成；Kling 异步任务会自动轮询结果并记录日志。';
     }
 
@@ -462,6 +493,10 @@
         inputImages = [];
         renderInputImages();
       }
+      updateRatioControlState(rule);
+      els.modelRatioText.textContent = isReferenceVideoMode(rule)
+        ? '按首张参考图比例自动处理'
+        : ((rule.ratios || []).join(' / ') || '-');
     }
 
     function renderInputImages() {
@@ -536,6 +571,20 @@
 
     function getTimeoutMs(kind) {
       return getTimeoutSeconds(kind) * 1000;
+    }
+
+    function getDoubaoPollSeconds(kind) {
+      const input = kind === 'interval' ? els.doubaoPollIntervalInput : els.doubaoPollTimeoutInput;
+      const fallback = kind === 'interval' ? DEFAULT_DOUBAO_POLL_INTERVAL_SECONDS : DEFAULT_DOUBAO_POLL_TIMEOUT_SECONDS;
+      const min = kind === 'interval' ? 3 : 30;
+      const max = kind === 'interval' ? 60 : 900;
+      const value = Number(String(input.value || '').trim());
+      if (!Number.isFinite(value) || value <= 0) return fallback;
+      return Math.min(Math.max(Math.round(value), min), max);
+    }
+
+    function getDoubaoPollMs(kind) {
+      return getDoubaoPollSeconds(kind) * 1000;
     }
 
     function nowText() {
@@ -655,6 +704,8 @@
       localStorage.setItem('kling-console-duration', els.durationInput.value);
       localStorage.setItem('kling-console-image-timeout', String(getTimeoutSeconds('image')));
       localStorage.setItem('kling-console-video-timeout', String(getTimeoutSeconds('video')));
+      localStorage.setItem('kling-console-doubao-poll-timeout', String(getDoubaoPollSeconds('timeout')));
+      localStorage.setItem('kling-console-doubao-poll-interval', String(getDoubaoPollSeconds('interval')));
       appendLog('info', '已保存当前表单到浏览器本地缓存');
     }
 
@@ -669,6 +720,8 @@
       els.durationInput.value = localStorage.getItem('kling-console-duration') || '';
       els.imageTimeoutInput.value = localStorage.getItem('kling-console-image-timeout') || String(DEFAULT_IMAGE_TIMEOUT_SECONDS);
       els.videoTimeoutInput.value = localStorage.getItem('kling-console-video-timeout') || String(DEFAULT_VIDEO_TIMEOUT_SECONDS);
+      els.doubaoPollTimeoutInput.value = localStorage.getItem('kling-console-doubao-poll-timeout') || String(DEFAULT_DOUBAO_POLL_TIMEOUT_SECONDS);
+      els.doubaoPollIntervalInput.value = localStorage.getItem('kling-console-doubao-poll-interval') || String(DEFAULT_DOUBAO_POLL_INTERVAL_SECONDS);
       renderApiKeyBadge();
     }
 
@@ -681,7 +734,7 @@
     }
 
     function isVideoFamily(family) {
-      return family === 'doubao-video' || family === 'qwen-video';
+      return family === 'doubao-video' || family === 'qwen-video' || family === 'xyq-video';
     }
 
     function toggleFieldVisibility(element, visible) {
@@ -694,6 +747,7 @@
       if (model.startsWith('kling-')) return 'kling';
       if (model.startsWith('doubao-seedance-') || model.startsWith('doubao-seed2fast')) return 'doubao-video';
       if (model.startsWith('doubao-')) return 'doubao';
+      if (model.startsWith('xyq-seedance-')) return 'xyq-video';
       if (model.startsWith('xyq-')) return 'xyq';
       if (model.startsWith('qwen-image') || model === 'qwen' || model === 'qwen-full') return 'qwen-image';
       if (model.startsWith('qwen-happyhorse') || model.startsWith('wan2.') || model.startsWith('wanx2.')) return 'qwen-video';
@@ -704,7 +758,7 @@
 
     function getModelRule(model) {
       const family = inferModelFamily(model);
-      const defaults = { seedream: MODEL_RULES.default_seedream, kling: MODEL_RULES.default_kling, 'doubao-video': MODEL_RULES.default_doubao_video, 'qwen-video': MODEL_RULES.default_qwen_video, 'qwen-image': MODEL_RULES.default_qwen_image, doubao: MODEL_RULES.default_doubao, xyq: MODEL_RULES.default_xyq, jimeng: MODEL_RULES.default_jimeng };
+      const defaults = { seedream: MODEL_RULES.default_seedream, kling: MODEL_RULES.default_kling, 'doubao-video': MODEL_RULES.default_doubao_video, 'xyq-video': MODEL_RULES.default_xyq_video, 'qwen-video': MODEL_RULES.default_qwen_video, 'qwen-image': MODEL_RULES.default_qwen_image, doubao: MODEL_RULES.default_doubao, xyq: MODEL_RULES.default_xyq, jimeng: MODEL_RULES.default_jimeng };
       return MODEL_RULES[model] || defaults[family] || MODEL_RULES.default_jimeng;
     }
 
@@ -713,10 +767,12 @@
       const rule = getModelRule(model);
       const videoFamily = isVideoFamily(rule.family);
       syncConsoleCopy(rule);
-      const familyName = { seedream: 'Seedream 统一', kling: 'Kling', 'doubao-video': 'Doubao 视频', 'qwen-video': 'Qwen 视频', 'qwen-image': 'Qwen 图片', doubao: 'Doubao', xyq: 'XYQ (小云雀)', jimeng: 'Jimeng' }[rule.family] || rule.family;
+      const familyName = { seedream: 'Seedream 统一', kling: 'Kling', 'doubao-video': 'Doubao 视频', 'xyq-video': 'XYQ (小云雀) 视频', 'qwen-video': 'Qwen 视频', 'qwen-image': 'Qwen 图片', doubao: 'Doubao', xyq: 'XYQ (小云雀)', jimeng: 'Jimeng' }[rule.family] || rule.family;
       els.modelFamilyBadge.textContent = `模型类型：${familyName} / ${model}`;
       els.modelLimitText.textContent = rule.limit || '-';
-      els.modelDurationText.textContent = (rule.durations || []).join(' / ') || '-';
+      els.modelDurationText.textContent = rule.fixedDuration
+        ? `固定 ${rule.fixedDuration} 秒`
+        : ((rule.durations || []).join(' / ') || '-');
       els.modelNotesText.innerHTML = (rule.notes || []).length ? `<ul class="note-list">${rule.notes.map((x) => `<li>${x}</li>`).join('')}</ul>` : '-';
 
       // 填充 ratio 下拉框
@@ -767,29 +823,34 @@
       toggleFieldVisibility(els.styleInput, !videoFamily && !!(rule.styles && rule.styles.length));
 
       const durations = rule.durations || [];
-      const prevDuration = String(els.durationInput.value || rule.defaultDuration || durations[0] || '');
+      const prevDuration = String(els.durationInput.value || rule.defaultDuration || rule.fixedDuration || durations[0] || '');
       els.durationInput.innerHTML = '';
       if (videoFamily) {
-        const items = durations.length ? durations : [5];
+        const items = durations.length ? durations : [rule.fixedDuration || 5];
         items.forEach((d) => {
           const opt = document.createElement('option');
           opt.value = String(d);
           opt.textContent = `${d} 秒`;
           els.durationInput.appendChild(opt);
         });
-        els.durationInput.value = items.includes(Number(prevDuration)) ? prevDuration : String(rule.defaultDuration || items[0] || 5);
+        els.durationInput.value = items.includes(Number(prevDuration)) ? prevDuration : String(rule.defaultDuration || rule.fixedDuration || items[0] || 5);
       } else {
         els.durationInput.innerHTML = '<option value="">-</option>';
         els.durationInput.value = '';
       }
-      toggleFieldVisibility(els.durationInput, videoFamily);
+      toggleFieldVisibility(els.durationInput, videoFamily && !isDoubaoVideoRule(rule));
       toggleFieldVisibility(els.negativeInput, !videoFamily);
       toggleFieldVisibility(els.sampleInput, !videoFamily);
       toggleFieldVisibility(els.nInput, !videoFamily);
       toggleFieldVisibility(els.asyncInput, !videoFamily);
       toggleFieldVisibility(els.targetUrlInput, rule.family === 'kling');
+      toggleFieldVisibility(els.doubaoPollTimeoutInput, isDoubaoVideoRule(rule));
+      toggleFieldVisibility(els.doubaoPollIntervalInput, isDoubaoVideoRule(rule));
 
       els.modelRatioText.textContent = (rule.ratios || []).join(' / ') || '-';
+      if (isReferenceVideoMode(rule)) {
+        els.modelRatioText.textContent = '按首张参考图比例自动处理';
+      }
       els.modelResolutionText.textContent = (rule.resolutions || []).join(' / ') || '-';
       if (videoFamily && currentMode === 'img2img' && !videoSupportsImageInput(rule)) {
         setMode('txt2img');
@@ -804,6 +865,19 @@
       validateParams(false);
     }
 
+    function updateRatioControlState(rule = currentRule()) {
+      const field = els.ratioInput.closest('.field');
+      const autoReferenceRatio = isReferenceVideoMode(rule);
+      els.ratioInput.disabled = autoReferenceRatio;
+      if (field) {
+        field.style.opacity = autoReferenceRatio ? '.55' : '';
+      }
+      const label = field?.querySelector('label');
+      if (label) {
+        label.textContent = autoReferenceRatio ? 'ratio（按参考图自动）' : 'ratio';
+      }
+    }
+
     function validateParams(showMessage = true) {
       const model = normalizeModel(els.modelSelect.value);
       const rule = getModelRule(model);
@@ -812,17 +886,29 @@
       const ratio = els.ratioInput.value.trim();
       const resolution = els.resolutionInput.value.trim();
       const duration = els.durationInput.value.trim();
-      if (rule.ratios && ratio && !rule.ratios.includes(ratio)) {
+      if (!isReferenceVideoMode(rule) && rule.ratios && ratio && !rule.ratios.includes(ratio)) {
         warnings.push(`当前模型建议 ratio 使用：${rule.ratios.join(' / ')}；你填的是 ${ratio}`);
       }
       if (rule.resolutions && resolution && !rule.resolutions.includes(resolution)) {
         warnings.push(`当前模型建议 resolution 使用：${rule.resolutions.join(' / ')}；你填的是 ${resolution}`);
       }
-      if (videoFamily && rule.durations && duration && !rule.durations.includes(Number(duration))) {
+      if (videoFamily && !isDoubaoVideoRule(rule) && rule.durations && duration && !rule.durations.includes(Number(duration))) {
         warnings.push(`当前模型建议 duration 使用：${rule.durations.join(' / ')} 秒；你填的是 ${duration} 秒`);
       }
       if (videoFamily && currentMode === 'img2img' && !videoSupportsImageInput(rule)) {
         warnings.push('当前视频模型不支持参考图输入，请切回文生视频模式。');
+      }
+      if (isDoubaoVideoRule(rule)) {
+        const pollTimeout = getDoubaoPollSeconds('timeout');
+        const pollInterval = getDoubaoPollSeconds('interval');
+        if (pollTimeout < 90) warnings.push('豆包视频通常需要 1-3 分钟，结果轮询超时建议至少 90 秒。');
+        if (pollInterval > pollTimeout) warnings.push('豆包轮询间隔不应大于结果轮询超时。');
+      }
+      if (rule.family === 'xyq-video') {
+        const recommended = Number(rule.recommendedTimeoutSeconds || 4500);
+        if (getTimeoutSeconds('video') < recommended) {
+          warnings.push(`小云雀视频生成很慢，建议视频超时设置至少 ${recommended} 秒。`);
+        }
       }
       if (inferModelFamily(model) === 'kling' && els.asyncInput.value !== 'true') {
         warnings.push('Kling 网页模式建议保持 async=true，这样页面会自动轮询任务并展示日志。');
@@ -844,6 +930,8 @@
         if (!item || !item.id) return false;
         // 包含 doubao-seedance 视频模型
         if (item.id.startsWith('doubao-seedance')) return true;
+        // 包含小云雀 Seedance 视频模型
+        if (item.id.startsWith('xyq-seedance')) return true;
         // 包含 qwen / wan 视频模型
         if (item.id.startsWith('qwen-') || item.id.startsWith('wan2.') || item.id.startsWith('wanx2.')) return true;
         // 排除其他视频/seedance模型
@@ -859,6 +947,7 @@
         kling: document.createElement('optgroup'),
         doubao: document.createElement('optgroup'),
         'doubao-video': document.createElement('optgroup'),
+        'xyq-video': document.createElement('optgroup'),
         'qwen-video': document.createElement('optgroup'),
         'qwen-image': document.createElement('optgroup'),
         xyq: document.createElement('optgroup'),
@@ -868,6 +957,7 @@
       groups.kling.label = 'Kling 图片模型';
       groups.doubao.label = 'Doubao Seedream 图片模型';
       groups['doubao-video'].label = 'Doubao 视频模型';
+      groups['xyq-video'].label = 'XYQ (小云雀) 视频模型';
       groups['qwen-video'].label = 'Qwen (千问) 视频模型';
       groups['qwen-image'].label = 'Qwen (千问) 图片模型';
       groups.xyq.label = 'XYQ (小云雀) 图片模型';
@@ -885,6 +975,7 @@
       if (groups['qwen-image'].children.length) els.modelSelect.appendChild(groups['qwen-image']);
       if (groups.xyq.children.length) els.modelSelect.appendChild(groups.xyq);
       if (groups['doubao-video'].children.length) els.modelSelect.appendChild(groups['doubao-video']);
+      if (groups['xyq-video'].children.length) els.modelSelect.appendChild(groups['xyq-video']);
       if (groups['qwen-video'].children.length) els.modelSelect.appendChild(groups['qwen-video']);
 
       const preferred = ['seedream-4.5', 'seedream-5.0', 'jimeng-4.5', 'jimeng-4.6', 'jimeng-5.0'];
@@ -960,11 +1051,18 @@
     function extractVideoUrlsFromResponse(data) {
       const urls = [];
       const seen = new Set();
+      const isDoubaoProxyUrl = (url) => /^\/v1\/doubao\/videos\/proxy\/[A-Za-z0-9_-]+/.test(url);
+      const looksLikeVideoUrl = (url) => {
+        if (isDoubaoProxyUrl(url)) return true;
+        if (!/^https?:\/\//i.test(url)) return false;
+        if (/\.(png|jpe?g|webp|gif|bmp|avif|svg)(?:[?#].*)?$/i.test(url)) return false;
+        return /\.(mp4|mov|webm|m4v|m3u8)(?:[?#].*)?$/i.test(url) || /(?:video|videos|capcut|vlabvod|seedance|bytevid|douyin|vod|snssdk)/i.test(url);
+      };
       const push = (value) => {
         if (typeof value !== 'string') return;
         const url = value.trim();
         if (!url) return;
-        if (!/^https?:\/\//i.test(url)) return;
+        if (!looksLikeVideoUrl(url)) return;
         if (seen.has(url)) return;
         seen.add(url);
         urls.push(url);
@@ -974,7 +1072,7 @@
         if (typeof node === 'string') {
           const matches = node.match(/https?:\/\/[^\s"'<>]+/g) || [];
           for (const match of matches) {
-            if (videoContext || /\.(mp4|mov|webm|m4v|m3u8)(?:[?#].*)?$/i.test(match) || /(?:video|videos|capcut|doubao|jimeng|dreamina|vlabvod|seedance|byte(?:img|vid|cdn)|snssdk)/i.test(match)) {
+            if (videoContext || looksLikeVideoUrl(match)) {
               push(match);
             }
           }
@@ -989,7 +1087,7 @@
         }
         for (const [key, value] of Object.entries(node)) {
           const lower = String(key || '').toLowerCase();
-          const nextVideoContext = videoContext || lower.includes('video') || lower.includes('url') || lower.includes('uri') || lower.includes('download') || lower.includes('play') || lower.includes('preview') || lower.includes('origin') || lower.includes('media') || lower.includes('asset') || lower.includes('creation') || lower.includes('result') || lower.includes('item');
+          const nextVideoContext = videoContext || lower.includes('video') || lower.includes('download') || lower.includes('play') || lower.includes('origin') || lower.includes('media') || lower.includes('creation') || lower.includes('result');
           if (typeof value === 'string') {
             push(value);
           } else {
@@ -997,11 +1095,14 @@
           }
         }
       };
-      if (data?.data?.[0]?.url) push(data.data[0].url);
+      if (data?.data?.[0]?.playback_url) push(data.data[0].playback_url);
       if (data?.data?.[0]?.videoUrl) push(data.data[0].videoUrl);
-      if (data?.videoUrl) push(data.videoUrl);
-      if (data?.url) push(data.url);
-      if (data?.result_url) push(data.result_url);
+      if (data?.playbackUrl) push(data.playbackUrl);
+      if (data?.playback_url) push(data.playback_url);
+      if (urls.length === 0 && data?.data?.[0]?.url) push(data.data[0].url);
+      if (urls.length === 0 && data?.videoUrl) push(data.videoUrl);
+      if (urls.length === 0 && data?.url) push(data.url);
+      if (urls.length === 0 && data?.result_url) push(data.result_url);
       if (urls.length === 0) walk(data);
       return urls;
     }
@@ -1173,6 +1274,9 @@
       validateParams(true);
       appendLog('info', `准备发起 ${model} ${currentMode === 'img2img' ? (videoFamily ? '参考图视频' : '图生图') : (videoFamily ? '文生视频' : '文生图')}任务`);
       appendLog('info', `当前超时设置：图片 ${getTimeoutSeconds('image')} 秒，视频 ${getTimeoutSeconds('video')} 秒`);
+      if (family === 'doubao-video') {
+        appendLog('info', `豆包结果轮询：超时 ${getDoubaoPollSeconds('timeout')} 秒，间隔 ${getDoubaoPollSeconds('interval')} 秒`);
+      }
       els.generateBtn.disabled = true;
       els.generateBtn.textContent = videoFamily ? '视频生成中...' : '生成中...';
       try {
@@ -1180,16 +1284,23 @@
         const baseParams = {
           model,
           prompt,
-          ratio: els.ratioInput.value.trim() || '1:1',
           response_format: 'url',
         };
+        if (!isReferenceVideoMode(getModelRule(model))) {
+          baseParams.ratio = els.ratioInput.value.trim() || '1:1';
+        }
         if (videoFamily) {
           const rule = getModelRule(model);
-          const durations = rule.durations || [];
-          const durationValue = Number(els.durationInput.value);
-          baseParams.duration = durations.includes(durationValue)
-            ? durationValue
-            : Number(rule.defaultDuration || durations[0] || 5);
+          if (!isDoubaoVideoRule(rule)) {
+            const durations = rule.durations || [];
+            const durationValue = Number(els.durationInput.value);
+            baseParams.duration = durations.includes(durationValue)
+              ? durationValue
+              : Number(rule.defaultDuration || rule.fixedDuration || durations[0] || 5);
+          } else {
+            baseParams.poll_timeout_ms = getDoubaoPollMs('timeout');
+            baseParams.poll_interval_ms = getDoubaoPollMs('interval');
+          }
           if (rule.resolutions && rule.resolutions.length) {
             const resolutionValue = els.resolutionInput.value.trim();
             baseParams.resolution = rule.resolutions.includes(resolutionValue)
@@ -1222,6 +1333,8 @@
           ? '/v1/seedream/generations'
           : family === 'doubao-video'
           ? '/v1/doubao/videos/generations'
+          : family === 'xyq-video'
+          ? '/v1/xyq/videos/generations'
           : family === 'qwen-video'
           ? '/v1/qwen/videos/generations'
           : currentMode === 'img2img' ? '/v1/images/compositions' : '/v1/images/generations';
@@ -1286,9 +1399,6 @@
             if (urls.length > 0) {
               setPreview(urls, true); // true = isVideo
               appendLog('info', `视频生成完成，获取到 ${urls.length} 个视频`);
-            } else if (Array.isArray(data?.data) && data.data.some((item) => item?.b64_json)) {
-              setResult(data);
-              appendLog('warn', '视频结果返回了 b64_json，当前页面不做内嵌预览', data);
             } else {
               setResult(data);
               appendLog('warn', '视频生成结果中未提取到可播放链接', data);
@@ -1337,6 +1447,8 @@
       localStorage.removeItem('kling-console-duration');
       localStorage.removeItem('kling-console-image-timeout');
       localStorage.removeItem('kling-console-video-timeout');
+      localStorage.removeItem('kling-console-doubao-poll-timeout');
+      localStorage.removeItem('kling-console-doubao-poll-interval');
       loadUi();
       appendLog('info', '已清空浏览器本地缓存');
     });
@@ -1352,6 +1464,8 @@
     els.asyncInput.addEventListener('change', () => validateParams(false));
     els.imageTimeoutInput.addEventListener('change', () => validateParams(false));
     els.videoTimeoutInput.addEventListener('change', () => validateParams(false));
+    els.doubaoPollTimeoutInput.addEventListener('change', () => validateParams(false));
+    els.doubaoPollIntervalInput.addEventListener('change', () => validateParams(false));
 
     // 模式切换
     document.querySelectorAll('.mode-tab').forEach(tab => {

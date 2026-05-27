@@ -34,10 +34,13 @@ const RETRY_DELAY = 5000;
 function parseModel(model: string) {
   const [_model, size] = model.split(":");
   const [_, width, height] = /(\d+)[\W\w](\d+)/.exec(size) ?? [];
+  const parsedWidth = size ? Math.ceil(parseInt(width) / 2) * 2 : 1024;
+  const parsedHeight = size ? Math.ceil(parseInt(height) / 2) * 2 : 1024;
   return {
     model: _model,
-    width: size ? Math.ceil(parseInt(width) / 2) * 2 : 1024,
-    height: size ? Math.ceil(parseInt(height) / 2) * 2 : 1024,
+    width: parsedWidth,
+    height: parsedHeight,
+    ratio: `${parsedWidth}:${parsedHeight}`,
   };
 }
 
@@ -109,7 +112,7 @@ export async function createCompletion(
     if (messages.length === 0)
       throw new APIException(EX.API_REQUEST_PARAMS_INVALID, "消息不能为空");
 
-    const { model, width, height } = parseModel(_model);
+    const { model, ratio } = parseModel(_model);
     logger.info(messages);
 
     // 检查是否为视频生成请求
@@ -327,8 +330,7 @@ export async function createCompletion(
         model,
         messages[messages.length - 1].content,
         {
-          width,
-          height,
+          ratio,
         },
         refreshToken
       );
@@ -382,7 +384,7 @@ export async function createCompletionStream(
   retryCount = 0
 ) {
   return (async () => {
-    const { model, width, height } = parseModel(_model);
+    const { model, ratio } = parseModel(_model);
     logger.info(messages);
 
     const stream = new PassThrough();
@@ -720,7 +722,7 @@ export async function createCompletionStream(
       generateImages(
         model,
         messages[messages.length - 1].content,
-        { width, height },
+        { ratio },
         refreshToken
       )
         .then((imageUrls) => {

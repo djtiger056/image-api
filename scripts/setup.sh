@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # images-api 一键部署脚本
-# 用法: bash scripts/setup.sh [--port 8000] [--no-browser] [--no-systemd] [--install-dir /path]
+# 用法: bash scripts/setup.sh [--port 8006] [--no-browser] [--no-systemd] [--install-dir /path]
 set -euo pipefail
 
 # ==================== 默认值 ====================
-PORT=8000
+PORT=8006
 INSTALL_BROWSER=true
 SETUP_SYSTEMD=true
 INSTALL_DIR=""
@@ -22,7 +22,7 @@ while [[ $# -gt 0 ]]; do
       echo "用法: bash scripts/setup.sh [选项]"
       echo ""
       echo "选项:"
-      echo "  --port PORT          服务端口 (默认: 8000)"
+      echo "  --port PORT          服务端口 (默认: 8006)"
       echo "  --no-browser         跳过浏览器安装"
       echo "  --no-systemd         跳过 systemd 服务配置"
       echo "  --install-dir DIR    指定安装目录 (默认: 当前项目目录)"

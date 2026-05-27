@@ -20,7 +20,8 @@ function getConfiguredApiKeys(): string[] {
 }
 
 function isPublicRoute(path: string): boolean {
-    return ['/', '/ping', '/console', '/docs/api-guide'].includes(path);
+    return ['/', '/ping', '/console', '/docs/api-guide'].includes(path)
+        || path.startsWith('/v1/doubao/videos/proxy/');
 }
 
 function verifyApiKey(request: Request) {

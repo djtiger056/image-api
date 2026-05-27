@@ -18,10 +18,10 @@ sudo systemctl start images-api
 sudo systemctl enable images-api  # 开机自启
 
 # 5. 验证
-curl http://127.0.0.1:8000/ping
+curl http://127.0.0.1:8006/ping
 ```
 
-管理后台: `http://你的IP:8000/console`
+管理后台: `http://你的IP:8006/console`
 
 ## 手动部署
 
@@ -93,13 +93,13 @@ sudo systemctl enable images-api
 
 ```bash
 # 健康检查
-curl http://127.0.0.1:8000/ping
+curl http://127.0.0.1:8006/ping
 
 # 查看模型列表
-curl http://127.0.0.1:8000/v1/models
+curl http://127.0.0.1:8006/v1/models
 
 # 测试生图（需先配置 JIMENG_SESSIONID）
-curl -X POST http://127.0.0.1:8000/v1/images/generations \
+curl -X POST http://127.0.0.1:8006/v1/images/generations \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer 你的jimeng_sessionid" \
   -d '{"model":"jimeng-4.5","prompt":"美丽的日落风景","ratio":"16:9"}'
@@ -113,7 +113,7 @@ docker build -t images-api:latest .
 
 # 运行
 docker run -d --name images-api \
-  -p 8000:8000 \
+  -p 8006:8006 \
   -e TZ=Asia/Shanghai \
   -e JIMENG_SESSIONID=你的sessionid \
   images-api:latest
@@ -123,10 +123,10 @@ docker run -d --name images-api \
 
 ## 端口冲突
 
-如果 8000 端口被占用，修改 `local.env` 中的 `SERVER_PORT`，或使用一键脚本：
+如果 8006 端口被占用，修改 `local.env` 中的 `SERVER_PORT`，或使用一键脚本：
 
 ```bash
-bash scripts/setup.sh --port 18000
+bash scripts/setup.sh --port 18006
 ```
 
 ## 常见问题

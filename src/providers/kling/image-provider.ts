@@ -501,8 +501,8 @@ export default class KlingImageProvider implements ImageProvider {
       mapUnifiedToKlingGenerationBody(input),
       context
     );
-    const taskId = createResponse?.data?.task_id;
-    const taskStatus = createResponse?.data?.task_status;
+    const taskId = createResponse?.task_id;
+    const taskStatus = createResponse?.status;
 
     if (!taskId) {
       throw new Error("Kling 创建任务成功但未返回 task_id");

@@ -10,7 +10,7 @@ export interface QwenVideoModelMapping {
   model: string;
   description: string;
   backend: "qianwen-web" | "dashscope";
-  scene: string;
+  scene?: string;
   sceneWithImage?: string;
   dashscopeModel?: string;
   resolutions?: string[];

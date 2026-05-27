@@ -23,6 +23,11 @@ import logger from "@/lib/logger.ts";
 import APIException from "@/lib/exceptions/APIException.ts";
 import EX from "@/api/consts/exceptions.ts";
 import { uploadImageToQwen } from "@/providers/qwen/upload.ts";
+import {
+  absorbQwenSetCookie,
+  createQwenSessionFromCookie,
+  QwenSession,
+} from "@/providers/qwen/session.ts";
 
 // ─── 常量 ────────────────────────────────────────────────────────────
 
@@ -38,9 +43,11 @@ const MAX_POLL_TIME = 300000; // 最长等待5分钟
 const IMAGE_POLL_TIME = 120000; // 图片最长等待2分钟
 const VIDEO_POLL_TIME = 420000; // 视频最长等待7分钟
 
-// signKey 缓存（每次页面加载会变化，缓存30分钟）
-let cachedSignKey: { nonceId: string; signKey: string; ts: number } | null = null;
+// signKey 缓存（每次页面加载会变化，缓存30分钟；按会话隔离）
+const signKeyCache = new Map<string, { nonceId: string; signKey: string; ts: number }>();
 const SIGNKEY_TTL = 30 * 60 * 1000; // 30分钟
+
+type QwenSessionLike = QwenSession;
 
 // ─── 工具函数 ──────────────────────────────────────────────────────
 
@@ -72,10 +79,23 @@ export function buildApiUrl(path: string): string {
  * 从 create.qianwen.com 页面提取 signKey 和 nonceId
  * 结果会缓存30分钟
  */
-export async function getSignKeyAndNonce(cookie: string): Promise<{
+function toQwenSession(input: string | QwenSessionLike): QwenSessionLike {
+  if (typeof input === "string") {
+    return createQwenSessionFromCookie(input, { source: "authorization", canPersist: false });
+  }
+  return input;
+}
+
+function clearSignKey(session: QwenSessionLike) {
+  signKeyCache.delete(session.key);
+}
+
+export async function getSignKeyAndNonce(sessionInput: string | QwenSessionLike): Promise<{
   nonceId: string;
   signKey: string;
 }> {
+  const session = toQwenSession(sessionInput);
+  const cachedSignKey = signKeyCache.get(session.key);
   if (cachedSignKey && Date.now() - cachedSignKey.ts < SIGNKEY_TTL) {
     return { nonceId: cachedSignKey.nonceId, signKey: cachedSignKey.signKey };
   }
@@ -84,12 +104,13 @@ export async function getSignKeyAndNonce(cookie: string): Promise<{
 
   const response = await axios.get(PAGE_URL, {
     headers: {
-      Cookie: cookie,
+      Cookie: session.cookieHeader,
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     },
     timeout: 15000,
   });
+  await absorbQwenSetCookie(session, response);
 
   const html = response.data as string;
   const match = html.match(
@@ -103,11 +124,11 @@ export async function getSignKeyAndNonce(cookie: string): Promise<{
     );
   }
 
-  cachedSignKey = {
+  signKeyCache.set(session.key, {
     nonceId: match[1],
     signKey: match[2],
     ts: Date.now(),
-  };
+  });
 
   logger.success(`[Qwen] signKey 获取成功`);
   return { nonceId: match[1], signKey: match[2] };
@@ -140,9 +161,10 @@ interface QwenApiParams {
   signKey: string;
 }
 
-async function buildCommonParams(cookie: string): Promise<QwenApiParams> {
-  const { nonceId, signKey } = await getSignKeyAndNonce(cookie);
-  const browserId = generateHexId(32);
+async function buildCommonParams(sessionInput: string | QwenSessionLike): Promise<QwenApiParams> {
+  const session = toQwenSession(sessionInput);
+  const { nonceId, signKey } = await getSignKeyAndNonce(session);
+  const browserId = session.browserId || generateHexId(32);
   const chid = generateHexId(32);
   const timestamp = Date.now();
   const token = generateToken(browserId, nonceId, signKey, timestamp, chid);
@@ -180,24 +202,27 @@ export class QwenAuthError extends Error {
 }
 
 export async function getCredit(
-  cookie: string
+  sessionInput: string | QwenSessionLike
 ): Promise<{ totalAmount: number }> {
-  const params = await buildCommonParams(cookie);
+  const session = toQwenSession(sessionInput);
+  const params = await buildCommonParams(session);
   const url = buildApiUrl("/api/web/credit/total");
 
   const response = await axios.post(
     url,
     buildSignFields(params),
     {
-      headers: { Cookie: cookie, ...DEFAULT_HEADERS },
+      headers: { Cookie: session.cookieHeader, ...DEFAULT_HEADERS },
       timeout: 15000,
     }
   );
+  await absorbQwenSetCookie(session, response);
 
   const { code, msg } = response.data;
 
   // 1013 = 登录校验未通过（cookie 过期）
   if (code === 1013) {
+    clearSignKey(session);
     throw new QwenAuthError("千问 Cookie 已过期，请更新 QWEN_COOKIE");
   }
 
@@ -234,22 +259,23 @@ interface PollResult {
  * 轮询任务结果（视频和图片通用）
  * @param recordId 提交时的 chid
  * @param scene 场景标识（如 "hh_t2v", "qwen2_t2i" 等）
- * @param cookie cookie 字符串
+ * @param sessionInput Qwen 会话
  * @param maxWaitTime 最长等待时间（毫秒）
  */
 async function pollForResult(
   recordId: string,
   scene: string,
-  cookie: string,
+  sessionInput: string | QwenSessionLike,
   maxWaitTime: number = MAX_POLL_TIME
 ): Promise<PollResult> {
+  const session = toQwenSession(sessionInput);
   const startTime = Date.now();
 
   while (Date.now() - startTime < maxWaitTime) {
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
 
     try {
-      const params = await buildCommonParams(cookie);
+      const params = await buildCommonParams(session);
       const pollUrl = buildApiUrl("/api/web/assets/v1/batch/get");
 
       const pollResponse = await axios.post(
@@ -260,12 +286,14 @@ async function pollForResult(
           ...buildSignFields(params),
         },
         {
-          headers: { Cookie: cookie, ...DEFAULT_HEADERS },
+          headers: { Cookie: session.cookieHeader, ...DEFAULT_HEADERS },
           timeout: 15000,
         }
       );
+      await absorbQwenSetCookie(session, pollResponse);
 
       if (pollResponse.data.code !== 0) {
+        if (pollResponse.data.code === 1013) clearSignKey(session);
         logger.warn(`[Qwen] 轮询返回错误: ${pollResponse.data.msg}`);
         continue;
       }
@@ -359,8 +387,9 @@ function buildDashScopeHeaders(apiKey: string): Record<string, string> {
 
 async function prepareQwenVideoAttachments(
   attachments: Array<{ type: string; url?: string; materialId?: string; material_id?: string; objOrBg?: string }>,
-  cookie: string
+  sessionInput: string | QwenSessionLike
 ): Promise<Array<{ type: string; materialId: string; objOrBg?: string }>> {
+  const session = toQwenSession(sessionInput);
   const normalized: Array<{ type: string; materialId: string; objOrBg?: string }> = [];
 
   for (const attachment of attachments.slice(0, 2)) {
@@ -377,7 +406,7 @@ async function prepareQwenVideoAttachments(
     if (!attachment.url) continue;
 
     try {
-      const materialId = await uploadImageToQwen(attachment.url, cookie, "QwenVideo");
+      const materialId = await uploadImageToQwen(attachment.url, session, "QwenVideo");
       normalized.push({
         type: attachment.type || "image",
         materialId,
@@ -464,9 +493,10 @@ async function pollDashScopeVideoTask(
  */
 export async function createVideoCompletion(
   params: QwenVideoParams,
-  credential: string,
+  credentialInput: string | QwenSessionLike,
   options?: { apiKey?: string; maxWaitTimeMs?: number }
 ): Promise<QwenVideoResult> {
+  const credential = toQwenSession(credentialInput);
   const { prompt, ratio = "16:9", duration = 10, resolution = "720P", attachments = [], model } = params;
   const maxWaitTimeMs = Number(options?.maxWaitTimeMs) > 0 ? Number(options?.maxWaitTimeMs) : VIDEO_POLL_TIME;
   const lowerModel = String(model || "").toLowerCase();
@@ -532,14 +562,16 @@ export async function createVideoCompletion(
 
     // 提交任务
     const submitResponse = await axios.post(submitUrl, submitBody, {
-      headers: { Cookie: credential, ...DEFAULT_HEADERS },
+      headers: { Cookie: credential.cookieHeader, ...DEFAULT_HEADERS },
       timeout: 30000,
     });
+    await absorbQwenSetCookie(credential, submitResponse);
 
     if (submitResponse.data.code !== 0) {
       const submitMsg = submitResponse.data.msg || "提交失败";
       // 如果之前额度检查就发现 cookie 过期，明确提示
       if (isCookieExpired || submitResponse.data.code === 1013) {
+        clearSignKey(credential);
         return {
           success: false,
           error: `千问 Cookie 已过期，请更新 QWEN_COOKIE。原始错误: ${submitMsg}`,
@@ -573,7 +605,7 @@ export async function createVideoCompletion(
     };
   }
 
-  const apiKey = resolveDashScopeApiKey(options?.apiKey || credential);
+  const apiKey = resolveDashScopeApiKey(options?.apiKey || credential.cookieHeader);
   const dashModel = lowerModel || "wan2.6-t2v";
 
   logger.info(
@@ -623,8 +655,9 @@ export interface QwenImageParams {
  */
 export async function createImageCompletion(
   params: QwenImageParams,
-  cookie: string
+  sessionInput: string | QwenSessionLike
 ): Promise<QwenImageResult> {
+  const session = toQwenSession(sessionInput);
   const {
     prompt,
     modelKey,
@@ -643,7 +676,7 @@ export async function createImageCompletion(
     }))
     .filter((attachment) => Boolean(attachment.materialId));
 
-  const common = await buildCommonParams(cookie);
+  const common = await buildCommonParams(session);
   const submitUrl = buildApiUrl("/api/web/ai/image/function");
 
   const submitBody: Record<string, any> = {
@@ -672,15 +705,17 @@ export async function createImageCompletion(
   );
 
   const submitResponse = await axios.post(submitUrl, submitBody, {
-    headers: { Cookie: cookie, ...DEFAULT_HEADERS },
+    headers: { Cookie: session.cookieHeader, ...DEFAULT_HEADERS },
     timeout: 30000,
   });
+  await absorbQwenSetCookie(session, submitResponse);
 
   logger.info(
-    `[Qwen] 图片任务响应: code=${submitResponse.data.code}, msg=${submitResponse.data.msg}, cookie前50=${cookie.substring(0, 50)}`
+    `[Qwen] 图片任务响应: code=${submitResponse.data.code}, msg=${submitResponse.data.msg}, cookie前50=${session.cookieHeader.substring(0, 50)}`
   );
 
   if (submitResponse.data.code !== 0) {
+    if (submitResponse.data.code === 1013) clearSignKey(session);
     return {
       success: false,
       error: `提交失败: ${submitResponse.data.msg}`,
@@ -691,7 +726,7 @@ export async function createImageCompletion(
   logger.success(`[Qwen] 图片任务已提交 (recordId=${recordId})，开始轮询...`);
 
   // 轮询结果
-  const pollResult = await pollForResult(recordId, scene, cookie, IMAGE_POLL_TIME);
+  const pollResult = await pollForResult(recordId, scene, session, IMAGE_POLL_TIME);
 
   if (!pollResult.success) {
     return { success: false, error: pollResult.error };

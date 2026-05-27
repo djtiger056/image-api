@@ -4,7 +4,7 @@ import _ from "lodash";
 import axios from "axios";
 import fs from "fs-extra";
 import mime from "mime";
-import { Browser, FilePayload, Page, chromium } from "playwright-core";
+import { Browser, Page, chromium } from "playwright-core";
 
 import logger from "@/lib/logger.ts";
 import util from "@/lib/util.ts";
@@ -23,6 +23,12 @@ import {
 
 let browserInstance: Browser | null = null;
 let browserLaunching: Promise<Browser> | null = null;
+
+type FilePayload = {
+  name: string;
+  mimeType: string;
+  buffer: Buffer;
+};
 
 function getHeadless(): boolean {
   return String(process.env.KLING_WEB_HEADLESS || "true").toLowerCase() !== "false";

@@ -1,6 +1,8 @@
 import Exception from './Exception.js';
 
 export default class APIException extends Exception {
+    code: number;
+    historyId?: string;
 
     /**
      * 构造异常
@@ -9,6 +11,7 @@ export default class APIException extends Exception {
      */
     constructor(exception: (string | number)[], errmsg?: string) {
         super(exception, errmsg);
+        this.code = this.errcode;
     }
 
 }
