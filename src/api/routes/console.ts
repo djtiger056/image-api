@@ -15,6 +15,15 @@ export default {
         },
       });
     },
+    '/accounts': async () => {
+      const content = await fs.readFile('public/accounts.html');
+      return new Response(content, {
+        type: 'html',
+        headers: {
+          Expires: '-1',
+        },
+      });
+    },
     '/docs/api-guide': async () => {
       const content = await fs.readFile('public/api-guide.html');
       return new Response(content, {

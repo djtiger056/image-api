@@ -1,0 +1,17 @@
+{
+  "accounts": {
+    "jimeng": [],
+    "doubao": [],
+    "kling": [],
+    "xyq": [],
+    "qwen": []
+  },
+  "api_keys": [],
+  "settings": {
+    "health_check_interval_ms": 300000,
+    "auto_receive_daily_credits": true,
+    "failover_strategy": "priority",
+    "rotation_strategy": "weighted-random",
+    "max_retry_count": 2
+  }
+}
