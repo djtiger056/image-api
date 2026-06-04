@@ -364,16 +364,16 @@ curl -X POST http://your-server:8006/v1/images/generations \
     <pre><code>{
   "data": [
     {
-      "id": "jimeng-4.5",
+      "id": "jimeng-5.0",
       "object": "model",
       "owned_by": "images-api",
-      "description": "即梦AI图像生成模型 4.5 版本"
+      "description": "即梦AI图像生成模型 5.0 版本（最新）"
     },
     {
-      "id": "doubao-seedream-4.5",
+      "id": "doubao-seedream-5.0-lite",
       "object": "model",
       "owned_by": "images-api",
-      "description": "豆包 Seedream 4.5 生图模型（最新，默认推荐）"
+      "description": "豆包 Seedream 5.0 Lite 生图模型（最新，支持联网检索）"
     }
     // ... 更多模型
   ]
@@ -404,13 +404,13 @@ curl -X POST http://your-server:8006/v1/images/generations \
         <span class="param-name">ratio</span>
         <span class="param-type">string</span>
         <span class="param-required">可选</span>
-        <span class="param-desc">图片比例：<code>1:1</code> <code>16:9</code> <code>9:16</code> <code>4:3</code> <code>3:4</code>，默认 <code>1:1</code></span>
+        <span class="param-desc">图片比例：<code>1:1</code> <code>16:9</code> <code>9:16</code> <code>4:3</code> <code>3:4</code> <code>3:2</code> <code>2:3</code> <code>21:9</code>（豆包/小云雀/即梦），<code>auto</code>（千问），默认 <code>1:1</code></span>
       </div>
       <div class="param">
         <span class="param-name">resolution</span>
         <span class="param-type">string</span>
         <span class="param-required">可选</span>
-        <span class="param-desc">分辨率：<code>1k</code> <code>2k</code>，默认 <code>1k</code></span>
+        <span class="param-desc">分辨率：<code>1k</code> <code>2k</code>，默认 <code>1k</code>。仅 <code>wan2.7-image</code> 支持自定义分辨率；即梦/豆包/小云雀使用平台默认分辨率（约2K），其他千问模型不支持此参数</span>
       </div>
       <div class="param">
         <span class="param-name">negative_prompt</span>
@@ -463,27 +463,28 @@ curl -X POST http://your-server:8006/v1/images/generations \
     </div>
     <div class="tip warn">
       <strong>⚠️ 注意</strong>
-      不支持 <code>size</code>、<code>width</code>、<code>height</code> 参数，请统一使用 <code>ratio</code> + <code>resolution</code> 控制尺寸。
+      不支持 <code>size</code>、<code>width</code>、<code>height</code> 参数，请统一使用 <code>ratio</code> 控制比例。即梦/豆包/小云雀使用平台默认分辨率（约2K），仅千问 <code>wan2.7-image</code> 支持通过 <code>resolution</code> 参数自定义 <code>1k</code>/<code>2k</code>。
     </div>
 
     <h3>4.2 支持的图片模型</h3>
     <div class="table-wrap">
       <table>
         <tr><th>模型 ID</th><th>平台</th><th>说明</th></tr>
-        <tr><td><code>jimeng-4.0</code></td><td>即梦</td><td>4.0 版本</td></tr>
-        <tr><td><code>jimeng-4.1</code></td><td>即梦</td><td>4.1 版本</td></tr>
-        <tr><td><code>jimeng-4.5</code></td><td>即梦</td><td>4.5 版本</td></tr>
-        <tr><td><code>jimeng-4.6</code></td><td>即梦</td><td>4.6 版本</td></tr>
         <tr><td><code>jimeng-5.0</code> <span class="tag tag-new">NEW</span></td><td>即梦</td><td>5.0 版本（最新）</td></tr>
-        <tr><td><code>kling-v2-1</code></td><td>可灵</td><td>官方 API v2.1</td></tr>
+        <tr><td><code>jimeng-4.7</code></td><td>即梦</td><td>4.7 版本</td></tr>
+        <tr><td><code>jimeng-4.6</code></td><td>即梦</td><td>4.6 版本</td></tr>
+        <tr><td><code>jimeng-4.5</code></td><td>即梦</td><td>4.5 版本</td></tr>
+        <tr><td><code>jimeng-4.1</code></td><td>即梦</td><td>4.1 版本</td></tr>
+        <tr><td><code>jimeng-4.0</code></td><td>即梦</td><td>4.0 版本</td></tr>
         <tr><td><code>kling-v3-omni</code></td><td>可灵</td><td>官方 API v3 omni</td></tr>
         <tr><td><code>kling-image-o1</code></td><td>可灵</td><td>支持 1K/2K 与智能比例</td></tr>
-        <tr><td><code>doubao-seedream-3.0</code></td><td>豆包</td><td>Seedream 3.0</td></tr>
+        <tr><td><code>doubao-seedream-5.0-lite</code> <span class="tag tag-new">NEW</span></td><td>豆包</td><td>Seedream 5.0 Lite（最新，支持联网检索）</td></tr>
         <tr><td><code>doubao-seedream-4.0</code></td><td>豆包</td><td>Seedream 4.0</td></tr>
-        <tr><td><code>doubao-seedream-4.5</code></td><td>豆包</td><td>Seedream 4.5（推荐）</td></tr>
+        <tr><td><code>doubao-seedream-4.5</code></td><td>豆包</td><td>Seedream 4.5</td></tr>
         <tr><td><code>xyq-seedream-4.0</code></td><td>小云雀</td><td>小云雀 Seedream 4.0</td></tr>
         <tr><td><code>xyq-seedream-4.5</code></td><td>小云雀</td><td>小云雀 Seedream 4.5</td></tr>
         <tr><td><code>xyq-seedream-5.0</code></td><td>小云雀</td><td>小云雀 Seedream 5.0（最新）</td></tr>
+        <tr><td><code>wan2.7-image</code> <span class="tag tag-free">免费</span></td><td>千问</td><td>Wan 2.7-Image（最新，支持多图参考，支持1K/2K）</td></tr>
         <tr><td><code>qwen-image-1.0</code> <span class="tag tag-free">免费</span></td><td>千问</td><td>Qwen-Image 1.0</td></tr>
         <tr><td><code>qwen-image-1.0-pro</code> <span class="tag tag-free">免费</span></td><td>千问</td><td>Qwen-Image 1.0 Pro</td></tr>
         <tr><td><code>qwen-image-2.0</code> <span class="tag tag-free">免费</span></td><td>千问</td><td>Qwen-Image 2.0（最新）</td></tr>
@@ -496,8 +497,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
   -d '{
     "model": "jimeng-4.5",
     "prompt": "一朵白色小花，极简插画风，纯净背景",
-    "ratio": "1:1",
-    "resolution": "1k"
+    "ratio": "1:1"
   }'</code></pre>
 
     <h3>4.4 豆包文生图示例</h3>
@@ -506,8 +506,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
   -d '{
     "model": "doubao-seedream-4.5",
     "prompt": "赛博朋克风格的城市夜景，霓虹灯倒映在雨水中",
-    "ratio": "16:9",
-    "resolution": "2k"
+    "ratio": "16:9"
   }'</code></pre>
 
     <h3>4.5 图生图示例</h3>
@@ -529,7 +528,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
     <pre><code>curl -X POST http://your-server:8006/v1/images/generations \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "kling-v2-1",
+    "model": "kling-v3-omni",
     "prompt": "一只在霓虹雨夜里的小狐狸，电影感，高清插画",
     "async": true,
     "provider_options": {
@@ -591,8 +590,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
   -d '{
     "model": "seedream-5.0",
     "prompt": "一只在月光下散步的白猫，梦幻水彩风格",
-    "ratio": "16:9",
-    "resolution": "2k"
+    "ratio": "16:9"
   }'</code></pre>
     <div class="tip">
       <strong>💡 推荐</strong>
@@ -1104,16 +1102,18 @@ curl -X POST http://your-server:8006/v1/images/generations \
       <table>
         <tr><th>模型 ID</th><th>平台</th><th>免费</th><th>推荐场景</th></tr>
         <tr><td><code>jimeng-5.0</code></td><td>即梦</td><td>需登录</td><td>最新即梦模型</td></tr>
+        <tr><td><code>jimeng-4.7</code></td><td>即梦</td><td>需登录</td><td>即梦 4.7</td></tr>
         <tr><td><code>jimeng-4.6</code></td><td>即梦</td><td>需登录</td><td>即梦高品质</td></tr>
         <tr><td><code>jimeng-4.5</code></td><td>即梦</td><td>需登录</td><td>通用即梦生图</td></tr>
         <tr><td><code>jimeng-4.1</code> / <code>4.0</code></td><td>即梦</td><td>需登录</td><td>旧版兼容</td></tr>
-        <tr><td><code>kling-v2-1</code></td><td>可灵</td><td>网页免费</td><td>可灵官方 API</td></tr>
         <tr><td><code>kling-v3-omni</code></td><td>可灵</td><td>网页免费</td><td>可灵 v3</td></tr>
         <tr><td><code>kling-image-o1</code></td><td>可灵</td><td>网页免费</td><td>可灵智能比例</td></tr>
-        <tr><td><code>doubao-seedream-4.5</code></td><td>豆包</td><td>需登录</td><td>豆包推荐</td></tr>
-        <tr><td><code>doubao-seedream-4.0</code> / <code>3.0</code></td><td>豆包</td><td>需登录</td><td>豆包兼容</td></tr>
+        <tr><td><code>doubao-seedream-5.0-lite</code> <span class="tag tag-new">NEW</span></td><td>豆包</td><td>需登录</td><td>豆包最新，支持联网检索</td></tr>
+        <tr><td><code>doubao-seedream-4.5</code></td><td>豆包</td><td>需登录</td><td>豆包 4.5</td></tr>
+        <tr><td><code>doubao-seedream-4.0</code></td><td>豆包</td><td>需登录</td><td>豆包兼容</td></tr>
         <tr><td><code>xyq-seedream-5.0</code></td><td>小云雀</td><td>需登录</td><td>小云雀最新</td></tr>
         <tr><td><code>xyq-seedream-4.5</code> / <code>4.0</code></td><td>小云雀</td><td>需登录</td><td>小云雀兼容</td></tr>
+        <tr><td><code>wan2.7-image</code></td><td>千问</td><td><span class="tag tag-free">免费</span></td><td>千问最新，支持1K/2K与多图参考</td></tr>
         <tr><td><code>qwen-image-2.0</code></td><td>千问</td><td><span class="tag tag-free">免费</span></td><td>免费高品质</td></tr>
         <tr><td><code>qwen-image-1.0-pro</code> / <code>1.0</code></td><td>千问</td><td><span class="tag tag-free">免费</span></td><td>免费生图</td></tr>
         <tr><td><code>seedream-5.0</code> / <code>4.5</code> / <code>4.0</code></td><td>统一</td><td>自动轮询</td><td><strong>推荐</strong>：自动选择最优平台</td></tr>
@@ -1153,6 +1153,10 @@ curl -X POST http://your-server:8006/v1/images/generations \
         <tr><td><code>9:16</code></td><td>竖屏</td><td>手机壁纸、短视频</td></tr>
         <tr><td><code>4:3</code></td><td>传统横屏</td><td>PPT、传统媒体</td></tr>
         <tr><td><code>3:4</code></td><td>传统竖屏</td><td>海报、印刷</td></tr>
+        <tr><td><code>3:2</code></td><td>摄影横屏</td><td>豆包/小云雀/即梦</td></tr>
+        <tr><td><code>2:3</code></td><td>摄影竖屏</td><td>豆包/小云雀/即梦</td></tr>
+        <tr><td><code>21:9</code></td><td>超宽银幕</td><td>豆包/小云雀/即梦</td></tr>
+        <tr><td><code>auto</code></td><td>自动比例</td><td>千问图片模型</td></tr>
       </table>
     </div>
 
