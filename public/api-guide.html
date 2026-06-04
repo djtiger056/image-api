@@ -3,69 +3,531 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>外部调用说明</title>
+  <title>Images-API 外部接入文档</title>
   <style>
-    :root { color-scheme: dark; }
-    body { margin: 0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background: #0b1020; color: #e5eefc; }
-    .wrap { max-width: 1060px; margin: 0 auto; padding: 40px 20px 64px; }
-    .card { background: #121a33; border: 1px solid #273255; border-radius: 18px; padding: 24px 28px; margin-bottom: 18px; }
-    h1,h2,h3 { margin-top: 0; }
-    p, li { line-height: 1.7; color: #bfd0f0; }
-    code, pre { background: #0a1226; border: 1px solid #24304f; border-radius: 10px; }
-    code { padding: 2px 6px; }
-    pre { padding: 16px; overflow: auto; }
-    a { color: #7dd3fc; }
-    .toplinks { display:flex; gap:12px; flex-wrap:wrap; margin-bottom: 18px; }
-    .pill { display:inline-block; padding: 8px 12px; border-radius: 999px; background:#1d294a; color:#dbeafe; text-decoration:none; }
+    :root {
+      color-scheme: dark;
+      --bg: #0a0e1a;
+      --card: #111827;
+      --card-border: #1e293b;
+      --accent: #3b82f6;
+      --accent-light: #60a5fa;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --code-bg: #0d1321;
+      --code-border: #1e293b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    /* 顶部栏 */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .top-links { display: flex; gap: 10px; flex-wrap: wrap; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 16px; border-radius: 999px;
+      background: #1e293b; color: #dbeafe; text-decoration: none;
+      font-size: 13px; transition: background .15s;
+    }
+    .pill:hover { background: #334155; }
+    .copy-btn {
+      position: relative;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border-radius: 8px;
+      background: var(--accent); color: #fff;
+      border: none; cursor: pointer;
+      font-size: 13px; font-weight: 600;
+      transition: background .15s, transform .1s;
+      box-shadow: 0 2px 8px rgba(59,130,246,.3);
+    }
+    .copy-btn:hover { background: #2563eb; }
+    .copy-btn:active { transform: scale(0.96); }
+    .copy-btn.copied { background: var(--green); }
+    .copy-btn svg { width: 15px; height: 15px; }
+
+    /* TOC */
+    .toc {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 20px 28px;
+      margin-bottom: 28px;
+    }
+    .toc h3 { font-size: 15px; margin-bottom: 12px; color: var(--accent-light); }
+    .toc-list { list-style: none; columns: 2; column-gap: 28px; }
+    .toc-list li { margin-bottom: 6px; }
+    .toc-list a { color: var(--text-dim); text-decoration: none; font-size: 13.5px; transition: color .15s; }
+    .toc-list a:hover { color: var(--accent-light); }
+    @media (max-width: 700px) { .toc-list { columns: 1; } }
+
+    /* 卡片 */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px 28px;
+      margin-bottom: 20px;
+    }
+    .card h1 { font-size: 26px; margin-bottom: 8px; }
+    .card h2 {
+      font-size: 19px; margin-bottom: 14px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--card-border);
+    }
+    .card h3 { font-size: 16px; margin: 18px 0 10px; color: var(--accent-light); }
+    .card h4 { font-size: 14px; margin: 14px 0 8px; color: var(--text-dim); }
+    p, li { color: #cbd5e1; line-height: 1.75; }
+    ul, ol { padding-left: 22px; margin: 8px 0; }
+    li { margin-bottom: 4px; }
+    strong { color: #f1f5f9; }
+    a { color: var(--accent-light); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* 代码块 */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 10px 0 14px;
+      position: relative;
+    }
+    pre .copy-code-btn {
+      position: absolute; top: 8px; right: 8px;
+      background: #1e293b; color: var(--text-dim);
+      border: 1px solid #334155; border-radius: 6px;
+      padding: 3px 10px; font-size: 11px;
+      cursor: pointer; transition: all .15s;
+      opacity: 0;
+    }
+    pre:hover .copy-code-btn { opacity: 1; }
+    pre .copy-code-btn:hover { background: #334155; color: #fff; }
+    pre .copy-code-btn.copied { background: var(--green); color: #fff; border-color: var(--green); }
+    code {
+      background: #162032;
+      border: 1px solid #1e293b;
+      border-radius: 5px;
+      padding: 1px 5px;
+      font-size: 13px;
+      font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+    }
+    pre code { background: none; border: none; padding: 0; }
+
+    /* 表格 */
+    .table-wrap { overflow-x: auto; margin: 12px 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    th, td {
+      padding: 10px 14px;
+      border: 1px solid var(--card-border);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #0f172a;
+      color: var(--accent-light);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    td { color: #cbd5e1; }
+    tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+
+    /* 标签 */
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .tag-get { background: rgba(34,197,94,0.15); color: var(--green); }
+    .tag-post { background: rgba(59,130,246,0.15); color: var(--accent-light); }
+    .tag-free { background: rgba(34,197,94,0.15); color: var(--green); }
+    .tag-auth { background: rgba(234,179,8,0.15); color: var(--yellow); }
+    .tag-new { background: rgba(168,85,247,0.15); color: #c084fc; }
+
+    /* 提示框 */
+    .tip {
+      background: rgba(59,130,246,0.08);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 13.5px;
+    }
+    .tip.warn {
+      background: rgba(234,179,8,0.08);
+      border-left-color: var(--yellow);
+    }
+    .tip.error {
+      background: rgba(239,68,68,0.08);
+      border-left-color: var(--red);
+    }
+    .tip strong { display: block; margin-bottom: 4px; }
+
+    /* 参数卡片 */
+    .param-group { margin: 10px 0; }
+    .param {
+      display: flex; gap: 12px; align-items: baseline;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 13.5px;
+    }
+    .param-name {
+      font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+      color: #fbbf24;
+      min-width: 160px;
+      flex-shrink: 0;
+    }
+    .param-type { color: #a78bfa; font-size: 12px; min-width: 60px; flex-shrink: 0; }
+    .param-required { color: var(--red); font-size: 11px; font-weight: 600; min-width: 32px; flex-shrink: 0; }
+    .param-desc { color: var(--text-dim); }
+
+    /* 分隔线 */
+    hr { border: none; border-top: 1px solid var(--card-border); margin: 16px 0; }
+
+    /* 响应示例标记 */
+    .resp-label {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 1px 8px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+    }
+    .resp-label.ok { background: rgba(34,197,94,0.15); color: var(--green); }
+    .resp-label.err { background: rgba(239,68,68,0.15); color: var(--red); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--green); color: #fff;
+      padding: 10px 24px; border-radius: 8px;
+      font-size: 14px; font-weight: 600;
+      box-shadow: 0 4px 20px rgba(0,0,0,.4);
+      transition: transform .3s ease, opacity .3s ease;
+      opacity: 0;
+      z-index: 9999;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
   </style>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      var base = location.origin;
-      document.querySelectorAll('pre').forEach(function(el) {
-        el.textContent = el.textContent.replace(/http:\/\/127\.0\.0\.1:\d+/g, base);
-      });
-    });
-  </script>
 </head>
 <body>
-  <div class="wrap">
-    <div class="toplinks">
-      <a class="pill" href="/">返回首页</a>
-      <a class="pill" href="/console">打开控制台</a>
+
+<div class="toast" id="toast">已复制到剪贴板</div>
+
+<div class="container">
+
+  <!-- 顶部栏 -->
+  <div class="top-bar">
+    <div class="top-links">
+      <a class="pill" href="/">首页</a>
+      <a class="pill" href="/console">生成控制台</a>
+      <a class="pill" href="/accounts">账号管理</a>
+    </div>
+    <button class="copy-btn" id="copyAllBtn" onclick="copyEntireDoc()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      复制完整文档
+    </button>
+  </div>
+
+  <!-- 目录 -->
+  <div class="toc">
+    <h3>目录</h3>
+    <ul class="toc-list">
+      <li><a href="#s0">概述与基地址</a></li>
+      <li><a href="#s1">认证方式</a></li>
+      <li><a href="#s2">健康检查</a></li>
+      <li><a href="#s3">获取模型列表</a></li>
+      <li><a href="#s4">图片生成（统一接口）</a></li>
+      <li><a href="#s5">Seedream 统一生图</a></li>
+      <li><a href="#s6">视频生成（即梦/Seedance）</a></li>
+      <li><a href="#s7">豆包视频生成</a></li>
+      <li><a href="#s8">通义千问 Wan 视频生成</a></li>
+      <li><a href="#s9">小云雀视频生成</a></li>
+      <li><a href="#s10">异步视频接口</a></li>
+      <li><a href="#s11">Token 管理接口</a></li>
+      <li><a href="#s12">OpenAI 兼容对话</a></li>
+      <li><a href="#s13">模型清单一览</a></li>
+      <li><a href="#s14">通用参数说明</a></li>
+      <li><a href="#s15">错误处理</a></li>
+      <li><a href="#s16">接入建议</a></li>
+    </ul>
+  </div>
+
+  <!-- ==================== 概述 ==================== -->
+  <div class="card" id="s0">
+    <h1>Images-API 外部接入文档</h1>
+    <p>本服务对外提供统一的 <strong>图片生成</strong>、<strong>视频生成</strong>、<strong>AI 对话</strong> 接口，兼容 OpenAI 格式。底层封装了即梦 (Jimeng)、可灵 (Kling)、豆包 (Doubao)、小云雀 (XYQ)、通义千问 (Qwen/Wan) 五大平台，支持自动轮询、额度降级。</p>
+    <hr />
+    <h3>Base URL</h3>
+    <pre><code>http://&lt;your-server&gt;:&lt;port&gt;</code></pre>
+    <p>所有接口路径均相对于此 Base URL。部署后请替换为你的实际服务地址。端口默认 <code>8006</code>（可在 <code>local.env</code> 中通过 <code>PORT</code> 修改）。</p>
+    <h3>Content-Type</h3>
+    <p>所有 POST 请求均需设置 <code>Content-Type: application/json</code>，图生图文件上传使用 <code>multipart/form-data</code>。</p>
+  </div>
+
+  <!-- ==================== 认证 ==================== -->
+  <div class="card" id="s1">
+    <h2>1. 认证方式</h2>
+    <p>本服务有两层认证：</p>
+    <h3>1.1 服务级 API Key（可选）</h3>
+    <p>如果服务端配置了 <code>SERVER_API_KEY</code> 或 <code>SERVER_API_KEYS</code>，所有请求需携带：</p>
+    <pre><code>x-api-key: your-api-key</code></pre>
+    <div class="tip">
+      <strong>💡 说明</strong>
+      未配置 API Key 时此 header 可省略。控制台页面和外部调用规则一致。
     </div>
 
-    <div class="card">
-      <h1>外部调用说明</h1>
-      <p>本服务对外提供统一图片与视频接口，兼容 Jimeng、Seedance、Doubao、Qwen / Wan 等多条链路。</p>
-      <p>如果你在服务端保存了凭证，调用时通常只需要传模型和提示词；如果部署了 <code>x-api-key</code>，再额外带上请求头即可。</p>
+    <h3>1.2 上游平台凭证</h3>
+    <p>用于授权上游平台（即梦、豆包等）执行生成任务。两种方式：</p>
+    <ul>
+      <li><strong>服务端配置（推荐）</strong>：在 <code>local.env</code> 或 <code>configs/accounts.json</code> 中预置凭证，调用时无需传 <code>Authorization</code></li>
+      <li><strong>请求时传入</strong>：通过 <code>Authorization: Bearer &lt;sessionid&gt;</code> 传入，多账号用逗号分隔</li>
+    </ul>
+    <pre><code># 服务端已配置凭证时，无需传 Authorization
+curl -X POST http://your-server:8006/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -d '{"model":"jimeng-4.5","prompt":"一朵白色小花"}'
+
+# 请求时传入凭证
+curl -X POST http://your-server:8006/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-jimeng-sessionid" \
+  -d '{"model":"jimeng-4.5","prompt":"一朵白色小花"}'
+
+# 传入 API Key + 上游凭证
+curl -X POST http://your-server:8006/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-api-key" \
+  -H "Authorization: Bearer your-jimeng-sessionid" \
+  -d '{"model":"jimeng-4.5","prompt":"一朵白色小花"}'</code></pre>
+
+    <h3>1.3 凭证获取方式</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>平台</th><th>获取方式</th><th>环境变量</th></tr>
+        <tr><td>即梦 Jimeng</td><td>登录 jimeng.jianying.com → F12 → Application → Cookies → <code>sessionid</code></td><td><code>JIMENG_SESSIONID</code></td></tr>
+        <tr><td>豆包 Doubao</td><td>登录 doubao.com → F12 → Cookies → <code>sessionid</code></td><td><code>DOUBAO_SESSIONID</code></td></tr>
+        <tr><td>小云雀 XYQ</td><td>登录 xyq.jianying.com → F12 → Cookies → <code>sessionid</code></td><td><code>XYQ_SESSIONID</code></td></tr>
+        <tr><td>可灵 Kling</td><td>官方 API: AccessKey/SecretKey；网页模式: 登录态 JSON</td><td><code>KLING_ACCESS_KEY</code></td></tr>
+        <tr><td>通义千问 Qwen</td><td>登录 create.qianwen.com → 复制完整 Cookie 字符串</td><td><code>QWEN_COOKIE</code></td></tr>
+      </table>
+    </div>
+    <p>多账号支持：逗号分隔多个 sessionid。Qwen 多账号使用 <code>|||</code> 分隔完整 Cookie。</p>
+  </div>
+
+  <!-- ==================== 健康检查 ==================== -->
+  <div class="card" id="s2">
+    <h2>2. 健康检查</h2>
+    <pre><code class="lang-bash"><span class="tag tag-get">GET</span> /ping</code></pre>
+    <p>确认服务是否正常运行。</p>
+    <h4>请求示例</h4>
+    <pre><code>curl http://your-server:8006/ping</code></pre>
+    <h4>响应</h4>
+    <pre><code>pong</code></pre>
+  </div>
+
+  <!-- ==================== 模型列表 ==================== -->
+  <div class="card" id="s3">
+    <h2>3. 获取模型列表</h2>
+    <pre><code class="lang-bash"><span class="tag tag-get">GET</span> /v1/models</code></pre>
+    <p>返回当前服务支持的所有模型及其描述。可用来动态获取可用模型后传给生成接口。</p>
+    <h4>请求示例</h4>
+    <pre><code>curl http://your-server:8006/v1/models</code></pre>
+    <h4>响应示例</h4>
+    <span class="resp-label ok">200 OK</span>
+    <pre><code>{
+  "data": [
+    {
+      "id": "jimeng-4.5",
+      "object": "model",
+      "owned_by": "images-api",
+      "description": "即梦AI图像生成模型 4.5 版本"
+    },
+    {
+      "id": "doubao-seedream-4.5",
+      "object": "model",
+      "owned_by": "images-api",
+      "description": "豆包 Seedream 4.5 生图模型（最新，默认推荐）"
+    }
+    // ... 更多模型
+  ]
+}</code></pre>
+  </div>
+
+  <!-- ==================== 图片生成 ==================== -->
+  <div class="card" id="s4">
+    <h2>4. 图片生成（统一接口）</h2>
+    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/images/generations</code></pre>
+    <p>支持文生图和图生图，兼容即梦、可灵、豆包、小云雀、千问等多个平台。通过 <code>model</code> 参数自动路由到对应 provider。</p>
+
+    <h3>4.1 请求参数</h3>
+    <div class="param-group">
+      <div class="param">
+        <span class="param-name">model</span>
+        <span class="param-type">string</span>
+        <span class="param-required">必填</span>
+        <span class="param-desc">模型名称，见下方模型列表</span>
+      </div>
+      <div class="param">
+        <span class="param-name">prompt</span>
+        <span class="param-type">string</span>
+        <span class="param-required">必填</span>
+        <span class="param-desc">生成提示词，支持中文/英文</span>
+      </div>
+      <div class="param">
+        <span class="param-name">ratio</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">图片比例：<code>1:1</code> <code>16:9</code> <code>9:16</code> <code>4:3</code> <code>3:4</code>，默认 <code>1:1</code></span>
+      </div>
+      <div class="param">
+        <span class="param-name">resolution</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">分辨率：<code>1k</code> <code>2k</code>，默认 <code>1k</code></span>
+      </div>
+      <div class="param">
+        <span class="param-name">negative_prompt</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">反向提示词，描述不想出现的内容</span>
+      </div>
+      <div class="param">
+        <span class="param-name">images</span>
+        <span class="param-type">string[]</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">图生图：URL 数组或含 url 字段的对象数组，最多 10 张</span>
+      </div>
+      <div class="param">
+        <span class="param-name">n</span>
+        <span class="param-type">number</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">生成图片数量，默认 1</span>
+      </div>
+      <div class="param">
+        <span class="param-name">sample_strength</span>
+        <span class="param-type">number</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">采样强度，控制生成的随机性</span>
+      </div>
+      <div class="param">
+        <span class="param-name">intelligent_ratio</span>
+        <span class="param-type">boolean</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">智能比例，让模型自动选择最佳比例</span>
+      </div>
+      <div class="param">
+        <span class="param-name">response_format</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc"><code>url</code>（默认）或 <code>b64_json</code></span>
+      </div>
+      <div class="param">
+        <span class="param-name">async</span>
+        <span class="param-type">boolean</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">异步模式（目前仅可灵支持）</span>
+      </div>
+      <div class="param">
+        <span class="param-name">provider_options</span>
+        <span class="param-type">object</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">透传给底层 provider 的额外参数</span>
+      </div>
+    </div>
+    <div class="tip warn">
+      <strong>⚠️ 注意</strong>
+      不支持 <code>size</code>、<code>width</code>、<code>height</code> 参数，请统一使用 <code>ratio</code> + <code>resolution</code> 控制尺寸。
     </div>
 
-    <div class="card">
-      <h2>1. 健康检查</h2>
-      <pre>curl http://127.0.0.1:18080/ping</pre>
+    <h3>4.2 支持的图片模型</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>模型 ID</th><th>平台</th><th>说明</th></tr>
+        <tr><td><code>jimeng-4.0</code></td><td>即梦</td><td>4.0 版本</td></tr>
+        <tr><td><code>jimeng-4.1</code></td><td>即梦</td><td>4.1 版本</td></tr>
+        <tr><td><code>jimeng-4.5</code></td><td>即梦</td><td>4.5 版本</td></tr>
+        <tr><td><code>jimeng-4.6</code></td><td>即梦</td><td>4.6 版本</td></tr>
+        <tr><td><code>jimeng-5.0</code> <span class="tag tag-new">NEW</span></td><td>即梦</td><td>5.0 版本（最新）</td></tr>
+        <tr><td><code>kling-v2-1</code></td><td>可灵</td><td>官方 API v2.1</td></tr>
+        <tr><td><code>kling-v3-omni</code></td><td>可灵</td><td>官方 API v3 omni</td></tr>
+        <tr><td><code>kling-image-o1</code></td><td>可灵</td><td>支持 1K/2K 与智能比例</td></tr>
+        <tr><td><code>doubao-seedream-3.0</code></td><td>豆包</td><td>Seedream 3.0</td></tr>
+        <tr><td><code>doubao-seedream-4.0</code></td><td>豆包</td><td>Seedream 4.0</td></tr>
+        <tr><td><code>doubao-seedream-4.5</code></td><td>豆包</td><td>Seedream 4.5（推荐）</td></tr>
+        <tr><td><code>xyq-seedream-4.0</code></td><td>小云雀</td><td>小云雀 Seedream 4.0</td></tr>
+        <tr><td><code>xyq-seedream-4.5</code></td><td>小云雀</td><td>小云雀 Seedream 4.5</td></tr>
+        <tr><td><code>xyq-seedream-5.0</code></td><td>小云雀</td><td>小云雀 Seedream 5.0（最新）</td></tr>
+        <tr><td><code>qwen-image-1.0</code> <span class="tag tag-free">免费</span></td><td>千问</td><td>Qwen-Image 1.0</td></tr>
+        <tr><td><code>qwen-image-1.0-pro</code> <span class="tag tag-free">免费</span></td><td>千问</td><td>Qwen-Image 1.0 Pro</td></tr>
+        <tr><td><code>qwen-image-2.0</code> <span class="tag tag-free">免费</span></td><td>千问</td><td>Qwen-Image 2.0（最新）</td></tr>
+      </table>
     </div>
 
-    <div class="card">
-      <h2>2. 模型列表</h2>
-      <pre>curl http://127.0.0.1:18080/v1/models</pre>
-    </div>
-
-    <div class="card">
-      <h2>3. Jimeng 生图</h2>
-      <pre>curl -X POST http://127.0.0.1:18080/v1/images/generations \
-  -H 'Content-Type: application/json' \
+    <h3>4.3 即梦文生图示例</h3>
+    <pre><code>curl -X POST http://your-server:8006/v1/images/generations \
+  -H "Content-Type: application/json" \
   -d '{
     "model": "jimeng-4.5",
     "prompt": "一朵白色小花，极简插画风，纯净背景",
     "ratio": "1:1",
     "resolution": "1k"
-  }'</pre>
-    </div>
+  }'</code></pre>
 
-    <div class="card">
-      <h2>4. Kling 网页模式生图</h2>
-      <pre>curl -X POST http://127.0.0.1:18080/v1/images/generations \
-  -H 'Content-Type: application/json' \
+    <h3>4.4 豆包文生图示例</h3>
+    <pre><code>curl -X POST http://your-server:8006/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedream-4.5",
+    "prompt": "赛博朋克风格的城市夜景，霓虹灯倒映在雨水中",
+    "ratio": "16:9",
+    "resolution": "2k"
+  }'</code></pre>
+
+    <h3>4.5 图生图示例</h3>
+    <pre><code>curl -X POST http://your-server:8006/v1/images/generations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "jimeng-4.5",
+    "prompt": "把这张图转换为水彩画风格",
+    "images": ["https://example.com/input.jpg"],
+    "ratio": "1:1"
+  }'</code></pre>
+    <p>也支持 <code>multipart/form-data</code> 文件上传：</p>
+    <pre><code>curl -X POST http://your-server:8006/v1/images/generations \
+  -F "model=jimeng-4.5" \
+  -F "prompt=转换为油画风格" \
+  -F "images=@/path/to/image.jpg"</code></pre>
+
+    <h3>4.6 可灵网页模式生图</h3>
+    <pre><code>curl -X POST http://your-server:8006/v1/images/generations \
+  -H "Content-Type: application/json" \
   -d '{
     "model": "kling-v2-1",
     "prompt": "一只在霓虹雨夜里的小狐狸，电影感，高清插画",
@@ -74,83 +536,149 @@
       "transport": "web",
       "target_url": "https://klingai.com/app/image/new"
     }
-  }'</pre>
+  }'</code></pre>
+
+    <h3>4.7 响应格式</h3>
+    <span class="resp-label ok">成功响应</span>
+    <pre><code>{
+  "created": 1717000000,
+  "data": [
+    {
+      "url": "https://cdn.example.com/generated-image.jpg",
+      "revised_prompt": "一朵白色小花，极简插画风"
+    }
+  ]
+}</code></pre>
+    <span class="resp-label err">失败响应</span>
+    <pre><code>{
+  "error": {
+    "message": "生成失败: prompt 不能为空",
+    "type": "invalid_request_error"
+  }
+}</code></pre>
+  </div>
+
+  <!-- ==================== Seedream 统一 ==================== -->
+  <div class="card" id="s5">
+    <h2>5. Seedream 统一生图接口</h2>
+    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/seedream/generations</code></pre>
+    <p><span class="tag tag-new">自动轮询</span> 统一 Seedream 模型，底层自动在 jimeng → xyq → doubao 三个平台间轮询，积分/额度耗尽时自动降级到下一个平台。</p>
+
+    <h3>5.1 模型列表</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>模型 ID</th><th>说明</th></tr>
+        <tr><td><code>seedream-5.0</code></td><td>最新版，自动轮询三平台</td></tr>
+        <tr><td><code>seedream-4.5</code></td><td>推荐，自动轮询三平台</td></tr>
+        <tr><td><code>seedream-4.0</code></td><td>自动轮询三平台</td></tr>
+      </table>
     </div>
 
-    <div class="card">
-      <h2>5. Doubao (豆包) 生图</h2>
-      <pre>curl -X POST http://127.0.0.1:18080/v1/images/generations \
-  -H 'Content-Type: application/json' \
+    <h3>5.2 额外参数</h3>
+    <div class="param-group">
+      <div class="param">
+        <span class="param-name">style</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">风格参数，透传给底层 provider</span>
+      </div>
+    </div>
+    <p>其他参数与 <code>/v1/images/generations</code> 一致。</p>
+
+    <h3>5.3 请求示例</h3>
+    <pre><code>curl -X POST http://your-server:8006/v1/seedream/generations \
+  -H "Content-Type: application/json" \
   -d '{
-    "model": "doubao-seedream-4.5",
-    "prompt": "一只在星空下的白色猫咪，梦幻水彩风格",
-    "ratio": "1:1",
-    "resolution": "1k"
-  }'</pre>
+    "model": "seedream-5.0",
+    "prompt": "一只在月光下散步的白猫，梦幻水彩风格",
+    "ratio": "16:9",
+    "resolution": "2k"
+  }'</code></pre>
+    <div class="tip">
+      <strong>💡 推荐</strong>
+      不确定用哪个平台时，直接用 <code>seedream-5.0</code>，服务会自动选择最优可用平台。
+    </div>
+  </div>
+
+  <!-- ==================== 即梦视频 ==================== -->
+  <div class="card" id="s6">
+    <h2>6. 视频生成 — 即梦 / Seedance</h2>
+    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/videos/generations</code></pre>
+    <p>即梦平台视频生成，支持普通视频和 Seedance 2.0 多图智能视频。</p>
+
+    <h3>6.1 请求参数</h3>
+    <div class="param-group">
+      <div class="param">
+        <span class="param-name">model</span>
+        <span class="param-type">string</span>
+        <span class="param-required">必填</span>
+        <span class="param-desc">视频模型名称（见下方）</span>
+      </div>
+      <div class="param">
+        <span class="param-name">prompt</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">视频描述提示词</span>
+      </div>
+      <div class="param">
+        <span class="param-name">ratio</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">比例：<code>1:1</code> <code>4:3</code> <code>16:9</code> <code>9:16</code> <code>3:4</code>，默认 <code>1:1</code>（Seedance 默认 <code>4:3</code>）</span>
+      </div>
+      <div class="param">
+        <span class="param-name">resolution</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc"><code>720p</code>（默认）或 <code>1080p</code></span>
+      </div>
+      <div class="param">
+        <span class="param-name">duration</span>
+        <span class="param-type">number</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">时长（秒）。普通视频: 5/10；Seedance: 4-15，默认 4</span>
+      </div>
+      <div class="param">
+        <span class="param-name">file_paths</span>
+        <span class="param-type">string[]</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">输入素材 URL 数组（图生视频/参考图）</span>
+      </div>
+      <div class="param">
+        <span class="param-name">response_format</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc"><code>url</code>（默认）或 <code>b64_json</code></span>
+      </div>
     </div>
 
-    <div class="card">
-      <h2>5.1 Doubao (豆包) 视频生成</h2>
-      <pre>curl -X POST http://127.0.0.1:18080/v1/doubao/videos/generations \
-  -H 'Content-Type: application/json' \
+    <h3>6.2 支持的视频模型</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>模型 ID</th><th>说明</th><th>时长</th></tr>
+        <tr><td><code>jimeng-video-3.5-pro</code></td><td>即梦 3.5 专业版</td><td>5/10s</td></tr>
+        <tr><td><code>jimeng-video-3.0-pro</code></td><td>即梦 3.0 专业版</td><td>5/10s</td></tr>
+        <tr><td><code>jimeng-video-3.0</code></td><td>即梦 3.0</td><td>5/10s</td></tr>
+        <tr><td><code>seedance-2.0</code></td><td>Seedance 2.0 多图智能视频</td><td>4-15s</td></tr>
+        <tr><td><code>seedance-2.0-fast</code></td><td>Seedance 2.0 Fast 快速版</td><td>4-15s</td></tr>
+        <tr><td><code>seedance-2.0-fast-vip</code></td><td>Seedance 2.0 Fast VIP（支持文生视频+图生视频）</td><td>4-15s</td></tr>
+        <tr><td><code>seedance-2.0-vip</code></td><td>Seedance 2.0 VIP Pro（主模态能力）</td><td>4-15s</td></tr>
+      </table>
+    </div>
+
+    <h3>6.3 文生视频示例</h3>
+    <pre><code>curl -X POST http://your-server:8006/v1/videos/generations \
+  -H "Content-Type: application/json" \
   -d '{
-    "model": "doubao-seedance-2.0-fast",
-    "prompt": "一只小猫在草地上欢快地奔跑",
+    "model": "seedance-2.0-fast",
+    "prompt": "一只小猫在花园里追逐蝴蝶，阳光明媚",
     "ratio": "16:9",
     "duration": 5
-  }'</pre>
-      <ul>
-        <li>模型：<code>doubao-seedance-2.0-fast</code>（Seedance 2.0 Fast，每日10次免费额度）</li>
-        <li>支持比例：<code>16:9</code> <code>9:16</code> <code>1:1</code> <code>4:3</code> <code>3:4</code></li>
-        <li>当前固定 5 秒，消耗 1 额度</li>
-        <li>返回格式与图片接口一致：<code>{"data": [{"url": "视频URL"}]}</code></li>
-        <li>额度用完时返回：<code>{"error": {"type": "quota_exhausted"}}</code></li>
-      </ul>
-    </div>
+  }'</code></pre>
 
-    <div class="card">
-      <h2>5.2 Wan 2.7 视频生成</h2>
-      <pre>curl -X POST http://127.0.0.1:18080/v1/qwen/videos/generations \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer your-qwen-cookie' \
-  -d '{
-    "model": "wan2.7-t2v",
-    "prompt": "赛博都市夜景中，一辆银色跑车从高架桥快速驶过，镜头横向跟拍，霓虹反光明显",
-    "ratio": "16:9",
-    "resolution": "1080P",
-    "duration": 5
-  }'</pre>
-      <ul>
-        <li>推荐模型：<code>wan2.7-t2v</code></li>
-        <li>支持比例：<code>16:9</code> <code>9:16</code> <code>1:1</code> <code>4:3</code> <code>3:4</code></li>
-        <li>支持时长：<code>2-15</code> 秒</li>
-        <li>支持分辨率：<code>720P</code> / <code>1080P</code></li>
-        <li>支持首帧参考图，使用 <code>images</code> 数组传 URL</li>
-      </ul>
-    </div>
-
-    <div class="card">
-      <h2>5.3 Wan 2.7 首帧参考图视频</h2>
-      <pre>curl -X POST http://127.0.0.1:18080/v1/qwen/videos/generations \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer your-qwen-cookie' \
-  -d '{
-    "model": "wan2.7-t2v",
-    "prompt": "保持参考图主体一致，让人物抬头看向远处，风吹动头发，镜头缓慢推进",
-    "ratio": "9:16",
-    "resolution": "1080P",
-    "duration": 5,
-    "images": [
-      "https://example.com/first-frame.jpg"
-    ]
-  }'</pre>
-    </div>
-
-    <div class="card">
-      <h2>5.4 统一视频接口</h2>
-      <pre>curl -X POST http://127.0.0.1:18080/v1/videos/generations \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer your-jimeng-sessionid' \
+    <h3>6.4 图生视频示例（Seedance 素材输入）</h3>
+    <pre><code>curl -X POST http://your-server:8006/v1/videos/generations \
+  -H "Content-Type: application/json" \
   -d '{
     "model": "seedance-2.0-fast",
     "prompt": "@1 中的人物抬头看向镜头，然后微笑",
@@ -159,34 +687,795 @@
     "file_paths": [
       "https://example.com/input-1.jpg"
     ]
-  }'</pre>
-      <ul>
-        <li>适合即梦 / Seedance 统一接入</li>
-        <li>Seedance 推荐模型：<code>seedance-2.0-fast</code></li>
-        <li>新项目如果只关心免费视频和高质量文生视频，优先接 <code>/v1/doubao/videos/generations</code> 与 <code>/v1/qwen/videos/generations</code></li>
-      </ul>
+  }'</code></pre>
+
+    <h3>6.5 响应格式</h3>
+    <span class="resp-label ok">成功</span>
+    <pre><code>{
+  "created": 1717000000,
+  "data": [
+    {
+      "url": "https://cdn.example.com/generated-video.mp4",
+      "revised_prompt": "一只小猫在花园里追逐蝴蝶"
+    }
+  ]
+}</code></pre>
+  </div>
+
+  <!-- ==================== 豆包视频 ==================== -->
+  <div class="card" id="s7">
+    <h2>7. 豆包视频生成</h2>
+    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/doubao/videos/generations</code></pre>
+    <p>豆包 Seedance 2.0 Fast 视频生成，<span class="tag tag-free">每日 10 次免费额度</span>。</p>
+
+    <h3>7.1 请求参数</h3>
+    <div class="param-group">
+      <div class="param">
+        <span class="param-name">model</span>
+        <span class="param-type">string</span>
+        <span class="param-required">必填</span>
+        <span class="param-desc"><code>doubao-seedance-2.0-fast</code></span>
+      </div>
+      <div class="param">
+        <span class="param-name">prompt</span>
+        <span class="param-type">string</span>
+        <span class="param-required">必填</span>
+        <span class="param-desc">视频描述</span>
+      </div>
+      <div class="param">
+        <span class="param-name">ratio</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc"><code>16:9</code> <code>9:16</code> <code>1:1</code> <code>4:3</code> <code>3:4</code>，默认 <code>16:9</code>。图生视频时自动推断，不要传</span>
+      </div>
+      <div class="param">
+        <span class="param-name">duration</span>
+        <span class="param-type">number</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">固定 5 秒（消耗 1 额度）</span>
+      </div>
+      <div class="param">
+        <span class="param-name">images</span>
+        <span class="param-type">string[]</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">参考图 URL 数组（图生视频模式）</span>
+      </div>
+      <div class="param">
+        <span class="param-name">resolution</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">分辨率（按上游能力）</span>
+      </div>
+      <div class="param">
+        <span class="param-name">timeout_ms</span>
+        <span class="param-type">number</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">超时时间（毫秒），默认 300000</span>
+      </div>
+      <div class="param">
+        <span class="param-name">response_format</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc"><code>url</code>（默认）或 <code>b64_json</code></span>
+      </div>
     </div>
 
-    <div class="card">
-      <h2>6. 带 API Key</h2>
-      <pre>curl -X POST http://127.0.0.1:18080/v1/images/generations \
-  -H 'Content-Type: application/json' \
-  -H 'x-api-key: your-api-key' \
-  -d '{"model":"jimeng-4.5","prompt":"hello"}'</pre>
+    <h3>7.2 文生视频示例</h3>
+    <pre><code>curl -X POST http://your-server:8006/v1/doubao/videos/generations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedance-2.0-fast",
+    "prompt": "一只小猫在草地上欢快地奔跑，阳光灿烂",
+    "ratio": "16:9"
+  }'</code></pre>
+
+    <h3>7.3 图生视频示例</h3>
+    <div class="tip warn">
+      <strong>⚠️ 重要规则：图生视频不传 ratio</strong>
+      当传了 <code>images</code> 时，不要传 <code>ratio</code>。服务会根据首张参考图尺寸自动推断比例。如需固定比例，请先裁剪参考图。
+    </div>
+    <pre><code>curl -X POST http://your-server:8006/v1/doubao/videos/generations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "doubao-seedance-2.0-fast",
+    "prompt": "保持画面风格一致，让角色缓慢转头微笑",
+    "images": ["https://example.com/first-frame.jpg"]
+  }'</code></pre>
+
+    <h3>7.4 SSE 流式接口</h3>
+    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/doubao/videos/generations/stream</code></pre>
+    <p>与上述参数一致，返回 <code>text/event-stream</code> 格式，实时推送生成进度。</p>
+
+    <h3>7.5 响应格式</h3>
+    <span class="resp-label ok">成功</span>
+    <pre><code>{
+  "created": 1717000000,
+  "data": [{ "url": "https://example.com/result.mp4" }],
+  "model": "doubao-seedance-2.0-fast",
+  "provider": "doubao"
+}</code></pre>
+    <span class="resp-label err">额度耗尽</span>
+    <pre><code>{
+  "error": {
+    "message": "今日免费额度已用完",
+    "type": "quota_exhausted"
+  }
+}</code></pre>
+  </div>
+
+  <!-- ==================== Qwen/Wan 视频 ==================== -->
+  <div class="card" id="s8">
+    <h2>8. 通义千问 Wan 视频生成</h2>
+    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/qwen/videos/generations</code></pre>
+    <p><span class="tag tag-free">免费</span> 通义千问 Wan 系列视频生成模型，推荐用于正式文生视频场景。</p>
+
+    <h3>8.1 请求参数</h3>
+    <div class="param-group">
+      <div class="param">
+        <span class="param-name">model</span>
+        <span class="param-type">string</span>
+        <span class="param-required">必填</span>
+        <span class="param-desc">见下方模型列表</span>
+      </div>
+      <div class="param">
+        <span class="param-name">prompt</span>
+        <span class="param-type">string</span>
+        <span class="param-required">必填</span>
+        <span class="param-desc">视频描述</span>
+      </div>
+      <div class="param">
+        <span class="param-name">ratio</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc"><code>16:9</code> <code>9:16</code> <code>1:1</code> <code>4:3</code> <code>3:4</code>，默认 <code>16:9</code></span>
+      </div>
+      <div class="param">
+        <span class="param-name">resolution</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc"><code>720P</code> 或 <code>1080P</code>，默认 <code>1080P</code></span>
+      </div>
+      <div class="param">
+        <span class="param-name">duration</span>
+        <span class="param-type">number</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">2-15 秒，默认 5</span>
+      </div>
+      <div class="param">
+        <span class="param-name">images</span>
+        <span class="param-type">string[]</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">首帧参考图 URL 数组（仅 wan2.7-t2v 支持）</span>
+      </div>
+      <div class="param">
+        <span class="param-name">timeout_ms</span>
+        <span class="param-type">number</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">超时时间（毫秒），默认 300000</span>
+      </div>
+      <div class="param">
+        <span class="param-name">response_format</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc"><code>url</code>（默认）或 <code>b64_json</code></span>
+      </div>
     </div>
 
-    <div class="card">
-      <h2>7. 说明</h2>
-      <ul>
-        <li>Jimeng 凭证可通过控制台保存为 <code>sessionid</code> 或 <code>Authorization</code>。</li>
-        <li>Kling 凭证可直接粘贴 <code>storageState JSON</code> 或 cookies 导出 JSON。</li>
-        <li>Doubao 凭证通过环境变量 <code>DOUBAO_AUTHORIZATION</code> 或 <code>DOUBAO_SESSIONID</code> 配置，也可在请求头中直接传入。</li>
-        <li>Qwen / Wan 视频通过 <code>QWEN_COOKIE</code> 配置，也可在请求头直接传完整 Cookie。</li>
-        <li>如果服务配置了 API Key，控制台和外部调用都要带上 <code>x-api-key</code>。</li>
-        <li>更完整的视频接入说明见仓库文档 <code>docs/video-external-api.md</code>。</li>
-        <li>给前端 / 后端同事直接复制的模板见 <code>docs/video-integration-templates.md</code>。</li>
-      </ul>
+    <h3>8.2 模型列表</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>模型 ID</th><th>说明</th><th>文生视频</th><th>图生视频</th><th>时长</th><th>分辨率</th></tr>
+        <tr><td><code>wan2.7-t2v</code> <span class="tag tag-new">推荐</span></td><td>Wan 2.7 最新版</td><td>✅</td><td>✅ 首帧参考图</td><td>2-15s</td><td>720P / 1080P</td></tr>
+        <tr><td><code>wan2.7-t2v-2026-04-25</code></td><td>Wan 2.7 快照版</td><td>✅</td><td>✅ 首帧参考图</td><td>2-15s</td><td>720P / 1080P</td></tr>
+        <tr><td><code>wan2.6-t2v</code></td><td>Wan 2.6</td><td>✅</td><td>❌</td><td>2-15s</td><td>720P / 1080P</td></tr>
+        <tr><td><code>qwen-happyhorse-1.0</code></td><td>HappyHorse 1.0</td><td>✅</td><td>❌</td><td>5/10s</td><td>720P</td></tr>
+      </table>
+    </div>
+
+    <h3>8.3 文生视频示例</h3>
+    <pre><code>curl -X POST http://your-server:8006/v1/qwen/videos/generations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "wan2.7-t2v",
+    "prompt": "赛博都市夜景中，一辆银色跑车从高架桥快速驶过，镜头横向跟拍",
+    "ratio": "16:9",
+    "resolution": "1080P",
+    "duration": 5
+  }'</code></pre>
+
+    <h3>8.4 首帧参考图视频示例</h3>
+    <pre><code>curl -X POST http://your-server:8006/v1/qwen/videos/generations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "wan2.7-t2v",
+    "prompt": "保持参考图主体一致，让人物抬头看向远处，风吹动头发",
+    "resolution": "1080P",
+    "duration": 5,
+    "images": [
+      "https://example.com/first-frame.jpg"
+    ]
+  }'</code></pre>
+    <div class="tip warn">
+      <strong>⚠️ 图生视频不传 ratio</strong>
+      传了 <code>images</code> 时，输出比例跟随首张参考图。如需 9:16 输出，请先把参考图处理成 9:16 再传。
     </div>
   </div>
+
+  <!-- ==================== 小云雀视频 ==================== -->
+  <div class="card" id="s9">
+    <h2>9. 小云雀视频生成</h2>
+    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/xyq/videos/generations</code></pre>
+    <p>小云雀平台 Seedance 视频生成。</p>
+
+    <h3>9.1 请求参数</h3>
+    <div class="param-group">
+      <div class="param">
+        <span class="param-name">model</span>
+        <span class="param-type">string</span>
+        <span class="param-required">必填</span>
+        <span class="param-desc"><code>xyq-seedance-2.0</code> 或 <code>xyq-seedance-2.0-fast</code></span>
+      </div>
+      <div class="param">
+        <span class="param-name">prompt</span>
+        <span class="param-type">string</span>
+        <span class="param-required">必填</span>
+        <span class="param-desc">视频描述</span>
+      </div>
+      <div class="param">
+        <span class="param-name">ratio</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc"><code>16:9</code>（默认）<code>9:16</code> <code>1:1</code> <code>4:3</code> <code>3:4</code></span>
+      </div>
+      <div class="param">
+        <span class="param-name">duration</span>
+        <span class="param-type">number</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">视频时长（秒），默认 5</span>
+      </div>
+      <div class="param">
+        <span class="param-name">images</span>
+        <span class="param-type">string[]</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">参考图 URL 数组</span>
+      </div>
+      <div class="param">
+        <span class="param-name">timeout_ms</span>
+        <span class="param-type">number</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">超时时间（毫秒）</span>
+      </div>
+      <div class="param">
+        <span class="param-name">response_format</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc"><code>url</code>（默认）或 <code>b64_json</code></span>
+      </div>
+    </div>
+
+    <h3>9.2 请求示例</h3>
+    <pre><code>curl -X POST http://your-server:8006/v1/xyq/videos/generations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "xyq-seedance-2.0-fast",
+    "prompt": "一匹白马在夕阳下的海滩奔跑",
+    "ratio": "16:9",
+    "duration": 5
+  }'</code></pre>
+
+    <h3>9.3 响应格式</h3>
+    <pre><code>{
+  "created": 1717000000,
+  "data": [{ "url": "https://example.com/result.mp4" }],
+  "model": "xyq-seedance-2.0-fast",
+  "provider": "xyq",
+  "videoUrl": "https://example.com/result.mp4",
+  "videoUrls": ["https://example.com/result.mp4"],
+  "result_url": "https://example.com/result.mp4"
+}</code></pre>
+  </div>
+
+  <!-- ==================== 异步视频 ==================== -->
+  <div class="card" id="s10">
+    <h2>10. 异步视频生成接口</h2>
+    <p>适合长时等待场景，先提交任务获取 taskId，再轮询结果。</p>
+
+    <h3>10.1 提交异步任务</h3>
+    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/videos/generations/async</code></pre>
+    <p>参数与 <code>/v1/videos/generations</code> 一致，返回 taskId。</p>
+    <pre><code>curl -X POST http://your-server:8006/v1/videos/generations/async \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "jimeng-video-3.5-pro",
+    "prompt": "日落时分，海浪轻拍沙滩",
+    "ratio": "16:9",
+    "duration": 10
+  }'</code></pre>
+    <span class="resp-label ok">响应</span>
+    <pre><code>{
+  "task_id": "abc123-def456",
+  "status": "submitted",
+  "model": "jimeng-video-3.5-pro"
+}</code></pre>
+
+    <h3>10.2 查询任务结果</h3>
+    <pre><code class="lang-bash"><span class="tag tag-get">GET</span> /v1/videos/generations/async/:taskId</code></pre>
+    <pre><code>curl http://your-server:8006/v1/videos/generations/async/abc123-def456</code></pre>
+    <span class="resp-label ok">已完成</span>
+    <pre><code>{
+  "status": "completed",
+  "data": [{ "url": "https://example.com/result.mp4" }]
+}</code></pre>
+    <span class="resp-label err">处理中</span>
+    <pre><code>{
+  "status": "processing",
+  "progress": "60%"
+}</code></pre>
+
+    <h3>10.3 国际版异步接口</h3>
+    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/videos/international/generations</code></pre>
+    <p>适用于国际版 Seedance 模型（hk-/jp-/sg- token），支持模型：</p>
+    <ul>
+      <li><code>seedance-2.0-fast</code> / <code>seedance-2.0-pro</code></li>
+      <li><code>seedance-2.0-fast-vip</code> / <code>seedance-2.0-vip</code></li>
+      <li><code>jimeng-video-3.5-pro</code> / <code>jimeng-video-3.0</code> / <code>jimeng-video-3.0-pro</code></li>
+    </ul>
+  </div>
+
+  <!-- ==================== Token 管理 ==================== -->
+  <div class="card" id="s11">
+    <h2>11. Token 管理接口</h2>
+
+    <h3>11.1 Token 有效性检查</h3>
+    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /token/check</code></pre>
+    <div class="param-group">
+      <div class="param">
+        <span class="param-name">token</span>
+        <span class="param-type">string</span>
+        <span class="param-required">必填</span>
+        <span class="param-desc">要检查的 sessionid</span>
+      </div>
+    </div>
+    <pre><code>curl -X POST http://your-server:8006/token/check \
+  -H "Content-Type: application/json" \
+  -d '{"token": "your-sessionid"}'</code></pre>
+    <span class="resp-label ok">响应</span>
+    <pre><code>{ "live": true }</code></pre>
+
+    <h3>11.2 账户积分/额度查询</h3>
+    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /token/points</code></pre>
+    <p>查询即梦和小云雀的积分/额度情况。凭证通过 <code>Authorization</code> header 传入。</p>
+    <pre><code>curl -X POST http://your-server:8006/token/points \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-sessionid"</code></pre>
+    <span class="resp-label ok">响应</span>
+    <pre><code>[
+  { "token": "***", "provider": "jimeng", "points": 1500 },
+  { "token": "***", "provider": "xyq", "quota": { "remaining": 50, "total": 100 } }
+]</code></pre>
+  </div>
+
+  <!-- ==================== Chat ==================== -->
+  <div class="card" id="s12">
+    <h2>12. OpenAI 兼容对话接口</h2>
+    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/chat/completions</code></pre>
+    <p>兼容 OpenAI Chat Completions 格式的对话接口。</p>
+
+    <h3>12.1 请求参数</h3>
+    <div class="param-group">
+      <div class="param">
+        <span class="param-name">model</span>
+        <span class="param-type">string</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">模型名称</span>
+      </div>
+      <div class="param">
+        <span class="param-name">messages</span>
+        <span class="param-type">array</span>
+        <span class="param-required">必填</span>
+        <span class="param-desc">消息数组，格式同 OpenAI</span>
+      </div>
+      <div class="param">
+        <span class="param-name">stream</span>
+        <span class="param-type">boolean</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">是否流式返回（SSE）</span>
+      </div>
+    </div>
+
+    <h3>12.2 请求示例</h3>
+    <pre><code>curl -X POST http://your-server:8006/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your-token" \
+  -d '{
+    "messages": [
+      {"role": "user", "content": "你好，请介绍一下自己"}
+    ],
+    "stream": false
+  }'</code></pre>
+  </div>
+
+  <!-- ==================== 模型清单 ==================== -->
+  <div class="card" id="s13">
+    <h2>13. 完整模型清单一览</h2>
+
+    <h3>13.1 图片生成模型</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>模型 ID</th><th>平台</th><th>免费</th><th>推荐场景</th></tr>
+        <tr><td><code>jimeng-5.0</code></td><td>即梦</td><td>需登录</td><td>最新即梦模型</td></tr>
+        <tr><td><code>jimeng-4.6</code></td><td>即梦</td><td>需登录</td><td>即梦高品质</td></tr>
+        <tr><td><code>jimeng-4.5</code></td><td>即梦</td><td>需登录</td><td>通用即梦生图</td></tr>
+        <tr><td><code>jimeng-4.1</code> / <code>4.0</code></td><td>即梦</td><td>需登录</td><td>旧版兼容</td></tr>
+        <tr><td><code>kling-v2-1</code></td><td>可灵</td><td>网页免费</td><td>可灵官方 API</td></tr>
+        <tr><td><code>kling-v3-omni</code></td><td>可灵</td><td>网页免费</td><td>可灵 v3</td></tr>
+        <tr><td><code>kling-image-o1</code></td><td>可灵</td><td>网页免费</td><td>可灵智能比例</td></tr>
+        <tr><td><code>doubao-seedream-4.5</code></td><td>豆包</td><td>需登录</td><td>豆包推荐</td></tr>
+        <tr><td><code>doubao-seedream-4.0</code> / <code>3.0</code></td><td>豆包</td><td>需登录</td><td>豆包兼容</td></tr>
+        <tr><td><code>xyq-seedream-5.0</code></td><td>小云雀</td><td>需登录</td><td>小云雀最新</td></tr>
+        <tr><td><code>xyq-seedream-4.5</code> / <code>4.0</code></td><td>小云雀</td><td>需登录</td><td>小云雀兼容</td></tr>
+        <tr><td><code>qwen-image-2.0</code></td><td>千问</td><td><span class="tag tag-free">免费</span></td><td>免费高品质</td></tr>
+        <tr><td><code>qwen-image-1.0-pro</code> / <code>1.0</code></td><td>千问</td><td><span class="tag tag-free">免费</span></td><td>免费生图</td></tr>
+        <tr><td><code>seedream-5.0</code> / <code>4.5</code> / <code>4.0</code></td><td>统一</td><td>自动轮询</td><td><strong>推荐</strong>：自动选择最优平台</td></tr>
+      </table>
+    </div>
+
+    <h3>13.2 视频生成模型</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>模型 ID</th><th>接口</th><th>免费</th><th>文生视频</th><th>图生视频</th><th>时长</th></tr>
+        <tr><td><code>doubao-seedance-2.0-fast</code></td><td>/v1/doubao/videos/generations</td><td><span class="tag tag-free">每日10次</span></td><td>✅</td><td>✅参考图</td><td>5s</td></tr>
+        <tr><td><code>wan2.7-t2v</code></td><td>/v1/qwen/videos/generations</td><td><span class="tag tag-free">免费</span></td><td>✅</td><td>✅首帧</td><td>2-15s</td></tr>
+        <tr><td><code>wan2.6-t2v</code></td><td>/v1/qwen/videos/generations</td><td><span class="tag tag-free">免费</span></td><td>✅</td><td>❌</td><td>2-15s</td></tr>
+        <tr><td><code>qwen-happyhorse-1.0</code></td><td>/v1/qwen/videos/generations</td><td><span class="tag tag-free">免费</span></td><td>✅</td><td>❌</td><td>5/10s</td></tr>
+        <tr><td><code>seedance-2.0</code></td><td>/v1/videos/generations</td><td>需登录</td><td>✅</td><td>✅素材</td><td>4-15s</td></tr>
+        <tr><td><code>seedance-2.0-fast</code></td><td>/v1/videos/generations</td><td>需登录</td><td>✅</td><td>✅素材</td><td>4-15s</td></tr>
+        <tr><td><code>seedance-2.0-fast-vip</code></td><td>/v1/videos/generations</td><td>需会员</td><td>✅</td><td>✅素材</td><td>4-15s</td></tr>
+        <tr><td><code>seedance-2.0-vip</code></td><td>/v1/videos/generations</td><td>需会员</td><td>✅</td><td>✅素材</td><td>4-15s</td></tr>
+        <tr><td><code>jimeng-video-3.5-pro</code></td><td>/v1/videos/generations</td><td>需登录</td><td>✅</td><td>✅首尾帧</td><td>5/10s</td></tr>
+        <tr><td><code>jimeng-video-3.0-pro</code> / <code>3.0</code></td><td>/v1/videos/generations</td><td>需登录</td><td>✅</td><td>✅首尾帧</td><td>5/10s</td></tr>
+        <tr><td><code>xyq-seedance-2.0</code></td><td>/v1/xyq/videos/generations</td><td>需登录</td><td>✅</td><td>✅</td><td>5s</td></tr>
+        <tr><td><code>xyq-seedance-2.0-fast</code></td><td>/v1/xyq/videos/generations</td><td>需登录</td><td>✅</td><td>✅</td><td>5s</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== 通用参数 ==================== -->
+  <div class="card" id="s14">
+    <h2>14. 通用参数说明</h2>
+
+    <h3>14.1 比例 (ratio) 可选值</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>值</th><th>说明</th><th>适用场景</th></tr>
+        <tr><td><code>1:1</code></td><td>正方形</td><td>头像、社交媒体</td></tr>
+        <tr><td><code>16:9</code></td><td>横屏宽幅</td><td>视频封面、桌面壁纸</td></tr>
+        <tr><td><code>9:16</code></td><td>竖屏</td><td>手机壁纸、短视频</td></tr>
+        <tr><td><code>4:3</code></td><td>传统横屏</td><td>PPT、传统媒体</td></tr>
+        <tr><td><code>3:4</code></td><td>传统竖屏</td><td>海报、印刷</td></tr>
+      </table>
+    </div>
+
+    <h3>14.2 响应格式 (response_format)</h3>
+    <ul>
+      <li><code>url</code>（默认）— 返回图片/视频的可访问 URL</li>
+      <li><code>b64_json</code> — 返回 Base64 编码的内容</li>
+    </ul>
+
+    <h3>14.3 统一结果字段</h3>
+    <p>所有接口成功时至少返回：</p>
+    <pre><code>{
+  "created": 1717000000,       // Unix 时间戳
+  "data": [
+    { "url": "https://..." }  // 或 b64_json
+  ]
+}</code></pre>
+    <p>视频接口可能额外返回：</p>
+    <ul>
+      <li><code>videoUrl</code> — 主视频 URL</li>
+      <li><code>videoUrls</code> — 所有视频 URL 数组</li>
+      <li><code>result_url</code> — 备用 URL 字段</li>
+      <li><code>model</code> — 实际使用的模型</li>
+      <li><code>provider</code> — 实际使用的平台</li>
+    </ul>
+    <div class="tip">
+      <strong>💡 兼容建议</strong>
+      业务侧请优先读取 <code>data[0].url</code>，并兼容 <code>videoUrl</code>、<code>result_url</code>、<code>videoUrls[0]</code>。
+    </div>
+  </div>
+
+  <!-- ==================== 错误处理 ==================== -->
+  <div class="card" id="s15">
+    <h2>15. 错误处理</h2>
+
+    <h3>15.1 错误响应格式</h3>
+    <pre><code>{
+  "error": {
+    "message": "错误描述信息",
+    "type": "错误类型"
+  }
+}</code></pre>
+
+    <h3>15.2 常见错误类型</h3>
+    <div class="table-wrap">
+      <table>
+        <tr><th>type</th><th>说明</th><th>处理方式</th></tr>
+        <tr><td><code>invalid_request_error</code></td><td>请求参数错误</td><td>检查 model、prompt 等必填参数</td></tr>
+        <tr><td><code>authentication_error</code></td><td>认证失败</td><td>检查 x-api-key 或 Authorization</td></tr>
+        <tr><td><code>quota_exhausted</code></td><td>额度用完</td><td>换账号或等次日重置</td></tr>
+        <tr><td><code>generation_failed</code></td><td>生成失败</td><td>重试或更换模型</td></tr>
+        <tr><td><code>timeout</code></td><td>生成超时</td><td>增加 timeout_ms 或重试</td></tr>
+      </table>
+    </div>
+
+    <h3>15.3 HTTP 状态码</h3>
+    <ul>
+      <li><code>200</code> — 成功</li>
+      <li><code>400</code> — 请求参数错误</li>
+      <li><code>401</code> — 认证失败（API Key 无效）</li>
+      <li><code>403</code> — 无权限</li>
+      <li><code>500</code> — 服务端内部错误</li>
+    </ul>
+  </div>
+
+  <!-- ==================== 接入建议 ==================== -->
+  <div class="card" id="s16">
+    <h2>16. 接入建议</h2>
+
+    <h3>16.1 推荐架构</h3>
+    <pre><code>Browser → 你的后端服务 → images-api → 上游平台</code></pre>
+    <div class="tip error">
+      <strong>🔒 安全提醒</strong>
+      不要将凭证（sessionid、API Key）暴露给普通浏览器用户。推荐通过你的后端服务中转调用 images-api。
+    </div>
+
+    <h3>16.2 图片生成推荐</h3>
+    <ul>
+      <li><strong>不关心具体平台</strong>：用 <code>seedream-5.0</code>（/v1/seedream/generations），自动轮询三平台</li>
+      <li><strong>免费生图</strong>：用 <code>qwen-image-2.0</code>，千问免费额度</li>
+      <li><strong>指定平台</strong>：用对应模型如 <code>jimeng-4.5</code>、<code>doubao-seedream-4.5</code></li>
+    </ul>
+
+    <h3>16.3 视频生成推荐</h3>
+    <ul>
+      <li><strong>免费体验</strong>：<code>doubao-seedance-2.0-fast</code>（每日 10 次）</li>
+      <li><strong>正式文生视频</strong>：<code>wan2.7-t2v</code>（免费、高质量、支持 1080P）</li>
+      <li><strong>首帧参考图视频</strong>：<code>wan2.7-t2v</code> 或 <code>doubao-seedance-2.0-fast</code></li>
+      <li><strong>长时任务/异步</strong>：使用 <code>/v1/videos/generations/async</code></li>
+    </ul>
+
+    <h3>16.4 图生视频重要规则</h3>
+    <div class="tip warn">
+      <strong>⚠️ 图生视频不传 ratio</strong>
+      当请求里传了 <code>images</code>（参考图），<strong>不要传 <code>ratio</code></strong>。服务会读取首张参考图尺寸并自动推断最接近的视频比例。如需固定比例，请先将参考图裁剪到目标比例再传。
+    </div>
+
+    <h3>16.5 完整接入流程</h3>
+    <ol>
+      <li>调用 <code>GET /v1/models</code> 确认服务可用、获取模型列表</li>
+      <li>选择合适的模型和接口</li>
+      <li>调用生成接口，获取结果 URL</li>
+      <li>（视频接口）如需异步，先调用 <code>/v1/videos/generations/async</code> 提交，再轮询 <code>GET /v1/videos/generations/async/:taskId</code></li>
+      <li>业务侧优先读取 <code>data[0].url</code>，兼容其他 URL 字段</li>
+    </ol>
+
+    <h3>16.6 TypeScript / JavaScript 快速对接</h3>
+    <pre><code>const API_BASE = "http://your-server:8006";
+
+async function generateImage(prompt: string, model = "seedream-5.0") {
+  const res = await fetch(`${API_BASE}/v1/images/generations`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      // 如需 API Key: "x-api-key": "your-key",
+    },
+    body: JSON.stringify({ model, prompt, ratio: "16:9", resolution: "2k" }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.data[0].url; // 图片 URL
+}
+
+async function generateVideo(prompt: string, model = "wan2.7-t2v") {
+  const res = await fetch(`${API_BASE}/v1/qwen/videos/generations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model, prompt,
+      ratio: "16:9",
+      resolution: "1080P",
+      duration: 5,
+    }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.data[0].url; // 视频 URL
+}</code></pre>
+
+    <h3>16.7 Python 快速对接</h3>
+    <pre><code>import requests
+
+API_BASE = "http://your-server:8006"
+
+def generate_image(prompt, model="seedream-5.0"):
+    resp = requests.post(f"{API_BASE}/v1/images/generations", json={
+        "model": model,
+        "prompt": prompt,
+        "ratio": "16:9",
+        "resolution": "2k",
+    })
+    data = resp.json()
+    if "error" in data:
+        raise Exception(data["error"]["message"])
+    return data["data"][0]["url"]
+
+def generate_video(prompt, model="wan2.7-t2v"):
+    resp = requests.post(f"{API_BASE}/v1/qwen/videos/generations", json={
+        "model": model,
+        "prompt": prompt,
+        "ratio": "16:9",
+        "resolution": "1080P",
+        "duration": 5,
+    })
+    data = resp.json()
+    if "error" in data:
+        raise Exception(data["error"]["message"])
+    return data["data"][0]["url"]</code></pre>
+  </div>
+
+  <!-- 底部 -->
+  <div class="card" style="text-align:center; color: var(--text-dim); font-size: 13px;">
+    <p>Images-API — 多平台逆向 API 统一生图/视频服务</p>
+    <p>封装即梦 · 可灵 · 豆包 · 小云雀 · 通义千问 五大平台</p>
+  </div>
+
+</div>
+
+<script>
+  // 动态替换 Base URL
+  document.addEventListener('DOMContentLoaded', function() {
+    var base = location.origin;
+    document.querySelectorAll('pre code').forEach(function(el) {
+      el.textContent = el.textContent.replace(/http:\/\/your-server:\d+/g, base);
+    });
+  });
+
+  // 代码块复制按钮
+  document.querySelectorAll('pre').forEach(function(pre) {
+    var btn = document.createElement('button');
+    btn.className = 'copy-code-btn';
+    btn.textContent = '复制';
+    btn.onclick = function(e) {
+      e.stopPropagation();
+      var code = pre.querySelector('code');
+      var text = code ? code.textContent : pre.textContent;
+      navigator.clipboard.writeText(text).then(function() {
+        btn.textContent = '已复制';
+        btn.classList.add('copied');
+        setTimeout(function() {
+          btn.textContent = '复制';
+          btn.classList.remove('copied');
+        }, 1500);
+      });
+    };
+    pre.style.position = 'relative';
+    pre.appendChild(btn);
+  });
+
+  // 复制完整文档
+  function copyEntireDoc() {
+    var btn = document.getElementById('copyAllBtn');
+    var toast = document.getElementById('toast');
+
+    // 将页面内容转为纯文本 Markdown 格式
+    var md = extractMarkdown();
+
+    navigator.clipboard.writeText(md).then(function() {
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 已复制';
+      btn.classList.add('copied');
+      toast.classList.add('show');
+      setTimeout(function() {
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> 复制完整文档';
+        btn.classList.remove('copied');
+        toast.classList.remove('show');
+      }, 2500);
+    }).catch(function() {
+      // fallback: 创建临时 textarea
+      var ta = document.createElement('textarea');
+      ta.value = md;
+      ta.style.cssText = 'position:fixed;left:-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      btn.classList.add('copied');
+      toast.classList.add('show');
+      setTimeout(function() {
+        btn.classList.remove('copied');
+        toast.classList.remove('show');
+      }, 2500);
+    });
+  }
+
+  function extractMarkdown() {
+    // 从 DOM 提取结构化的 Markdown 文本
+    var lines = [];
+    var container = document.querySelector('.container');
+    var cards = container.querySelectorAll('.card');
+
+    cards.forEach(function(card) {
+      // 跳过目录卡片和底部卡片
+      if (card.querySelector('.toc-list')) return;
+
+      card.childNodes.forEach(function walk(node) {
+        if (node.nodeType === 3) {
+          var t = node.textContent.trim();
+          if (t) lines.push(t);
+          return;
+        }
+        if (node.nodeType !== 1) return;
+
+        var tag = node.tagName;
+        var cls = node.className || '';
+
+        // 跳过复制按钮
+        if (cls === 'copy-code-btn' || cls === 'copy-btn' || cls === 'top-bar' || cls === 'top-links') return;
+
+        if (tag === 'H1') lines.push('\n# ' + node.textContent.trim());
+        else if (tag === 'H2') lines.push('\n## ' + node.textContent.trim());
+        else if (tag === 'H3') lines.push('\n### ' + node.textContent.trim());
+        else if (tag === 'H4') lines.push('\n#### ' + node.textContent.trim());
+        else if (tag === 'PRE') {
+          var code = node.querySelector('code');
+          var txt = code ? code.textContent : node.textContent;
+          lines.push('\n```\n' + txt.trim() + '\n```');
+        }
+        else if (tag === 'TABLE') {
+          var rows = node.querySelectorAll('tr');
+          rows.forEach(function(tr, ri) {
+            var cells = tr.querySelectorAll('th, td');
+            var row = [];
+            cells.forEach(function(c) { row.push(c.textContent.trim()); });
+            lines.push('| ' + row.join(' | ') + ' |');
+            if (ri === 0) {
+              var sep = [];
+              cells.forEach(function() { sep.push('---'); });
+              lines.push('| ' + sep.join(' | ') + ' |');
+            }
+          });
+        }
+        else if (tag === 'UL' || tag === 'OL') {
+          var items = node.querySelectorAll(':scope > li');
+          items.forEach(function(li, i) {
+            var prefix = tag === 'OL' ? (i+1) + '. ' : '- ';
+            lines.push(prefix + li.textContent.trim());
+          });
+        }
+        else if (tag === 'P') {
+          lines.push(node.textContent.trim());
+        }
+        else if (tag === 'DIV' && (cls.includes('param-group') || cls.includes('tip') || cls.includes('table-wrap'))) {
+          // 递归处理子内容
+          node.childNodes.forEach(function(child) { walk(child); });
+        }
+        else if (tag === 'CODE' && node.parentElement.tagName !== 'PRE') {
+          // inline code - skip, handled by parent
+        }
+        else {
+          // 递归处理其他容器
+          if (['DIV','SPAN','A','STRONG','EM','BLOCKQUOTE'].indexOf(tag) >= 0) {
+            node.childNodes.forEach(function(child) { walk(child); });
+          }
+        }
+      });
+
+      lines.push('\n---\n');
+    });
+
+    // 清理多余空行
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+</script>
+
 </body>
 </html>

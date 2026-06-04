@@ -10,41 +10,36 @@ import {
   createVideoCompletionStream,
   DOUBAO_VIDEO_FIXED_DURATION,
   fetchDoubaoVideoBuffer,
-  fetchDoubaoVideoStream,
   isDoubaoVideoModelName,
   resolveDoubaoVideoModel,
   normalizeVideoRatio,
   DEFAULT_DOUBAO_VIDEO_MODEL,
 } from '@/providers/doubao/video-api.ts';
 import { tokenSplit } from '@/providers/doubao/api.ts';
+import { resolveServiceAuthorization, selectSingleToken } from '@/lib/service-authorization.js';
 
 /**
  * 解析豆包视频 Authorization
  */
 function resolveDoubaoVideoAuthorization(authorization?: string): string {
-  const incoming = String(authorization || '').trim();
-  if (incoming) return incoming;
-
-  const envAuth = String(process.env.DOUBAO_AUTHORIZATION || '').trim();
-  if (envAuth) return /^Bearer\s+/i.test(envAuth) ? envAuth : `Bearer ${envAuth}`;
-
-  const envSession = String(process.env.DOUBAO_SESSIONID || '').trim();
-  if (envSession) return /^Bearer\s+/i.test(envSession) ? envSession : `Bearer ${envSession}`;
-
-  throw new Error('豆包视频服务未配置可用凭证。请设置 DOUBAO_AUTHORIZATION 或 DOUBAO_SESSIONID。');
+  return resolveServiceAuthorization(authorization, 'doubao');
 }
 
 function pickDoubaoToken(authorization?: string): string {
-  const raw = resolveDoubaoVideoAuthorization(authorization);
-  const tokens = tokenSplit(raw);
-  const token = _.sample(tokens);
-  if (!token) throw new Error('Doubao Authorization 中没有可用 token');
-  return token;
+  // 请求头有显式 token 时直接使用（调用方指定了特定账号）
+  const incoming = String(authorization || '').trim();
+  if (incoming) {
+    const tokens = tokenSplit(incoming);
+    if (tokens.length > 0) return tokens[0];
+  }
+
+  // 使用账号管理器按优先级/轮询策略选择单个 token
+  return selectSingleToken(undefined, 'doubao');
 }
 
 const DOUBAO_VIDEO_REFERENCE_RATIOS = ['1:1', '4:3', '3:4', '16:9', '9:16'];
 const DOUBAO_VIDEO_PROXY_TTL_MS = 60 * 60 * 1000;
-const doubaoVideoProxyCache = new Map<string, { url: string; token: string; expiresAt: number }>();
+const doubaoVideoProxyCache = new Map<string, { url: string; token: string; expiresAt: number; buffer?: Buffer; contentType?: string }>();
 
 function normalizeOptionalMs(value: any): number | undefined {
   const numeric = Number(value);
@@ -57,8 +52,17 @@ async function resolveDoubaoVideoRatio(ratio: string, images: any[]): Promise<st
     ? images.find((item) => _.isString(item) && item.trim())
     : undefined;
 
+  // 如果没有参考图，或者用户传入了有效的 ratio，则使用用户的 ratio
   if (!firstImage) return fallback;
 
+  // 如果用户传入的 ratio 是有效的豆包视频比例，优先使用用户的选择
+  const normalizedRatio = normalizeVideoRatio(ratio);
+  if (DOUBAO_VIDEO_REFERENCE_RATIOS.includes(normalizedRatio)) {
+    logger.info(`[DoubaoVideo Route] 使用用户指定比例: ${normalizedRatio}`);
+    return normalizedRatio;
+  }
+
+  // 否则根据参考图推断最接近的比例
   try {
     return await inferClosestRatioFromImageSource(
       String(firstImage).trim(),
@@ -321,6 +325,8 @@ export default {
     /**
      * GET /v1/doubao/videos/proxy/:id
      * 代理豆包视频播放，避免浏览器跨域/防盗链导致控制台预览失败。
+     * 使用 buffer 模式：首次请求下载完整视频并缓存，后续请求（含 Range）从缓存响应，
+     * 确保浏览器能收到正确的 206 Partial Content 实现流式播放。
      */
     '/proxy/:id': async (request: Request) => {
       pruneDoubaoVideoProxyCache();
@@ -328,24 +334,49 @@ export default {
       const item = doubaoVideoProxyCache.get(id);
       if (!item) throw new Error('豆包视频代理链接已过期，请重新生成视频。');
 
-      const upstream = await fetchDoubaoVideoStream(
-        item.url,
-        item.token,
-        request.headers.range as string | undefined
-      );
-      const headers: Record<string, string> = {
-        'Accept-Ranges': 'bytes',
-        'Cache-Control': 'private, max-age=3600',
-      };
-      for (const key of ['content-length', 'content-range']) {
-        const value = upstream.headers[key];
-        if (value) headers[key] = String(value);
+      // 首次请求：下载完整视频并缓存
+      if (!item.buffer) {
+        const result = await fetchDoubaoVideoBuffer(item.url, item.token);
+        item.buffer = result.buffer;
+        item.contentType = result.contentType || 'video/mp4';
       }
 
-      return new Response(upstream.stream, {
-        statusCode: upstream.status === 206 ? 206 : 200,
-        type: upstream.contentType || 'video/mp4',
-        headers,
+      const buf = item.buffer!;
+      const contentType = item.contentType || 'video/mp4';
+      const rangeHeader = request.headers.range as string | undefined;
+
+      // 解析 Range 请求
+      if (rangeHeader) {
+        const match = rangeHeader.match(/bytes=(\d*)-(\d*)/);
+        if (match) {
+          const total = buf.length;
+          const start = match[1] ? parseInt(match[1], 10) : 0;
+          const end = match[2] ? parseInt(match[2], 10) : total - 1;
+          if (start < total && end < total && start <= end) {
+            const chunk = buf.subarray(start, end + 1);
+            return new Response(chunk, {
+              statusCode: 206,
+              type: contentType,
+              headers: {
+                'Accept-Ranges': 'bytes',
+                'Content-Range': `bytes ${start}-${end}/${total}`,
+                'Content-Length': String(chunk.length),
+                'Cache-Control': 'private, max-age=3600',
+              },
+            });
+          }
+        }
+      }
+
+      // 无 Range 或 Range 无效：返回完整视频
+      return new Response(buf, {
+        statusCode: 200,
+        type: contentType,
+        headers: {
+          'Accept-Ranges': 'bytes',
+          'Content-Length': String(buf.length),
+          'Cache-Control': 'private, max-age=3600',
+        },
       });
     },
   },

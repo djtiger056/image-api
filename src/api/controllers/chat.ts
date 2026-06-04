@@ -8,6 +8,7 @@ import util from "@/lib/util.ts";
 import { generateImages, DEFAULT_MODEL } from "./images.ts";
 import { generateVideo, generateSeedanceVideo, isSeedanceModel, DEFAULT_MODEL as DEFAULT_VIDEO_MODEL } from "./videos.ts";
 import { isDoubaoModelName, resolveDoubaoModel, normalizeRatio, normalizeStyle } from "@/providers/doubao/mapper.ts";
+import { resolveServiceAuthorization, selectSingleToken } from "@/lib/service-authorization.js";
 import { isXyqModelName, resolveXyqModel, normalizeRatio as xyqNormalizeRatio, normalizeStyle as xyqNormalizeStyle } from "@/providers/xyq/mapper.ts";
 import {
   createImageCompletion as doubaoCreateImageCompletion,
@@ -85,13 +86,7 @@ function resolveXyqAuth(authorization?: string): string {
  * 解析豆包 Authorization
  */
 function resolveDoubaoAuth(authorization?: string): string {
-  const incoming = String(authorization || "").trim();
-  if (incoming) return incoming;
-  const envAuth = String(process.env.DOUBAO_AUTHORIZATION || "").trim();
-  if (envAuth) return /^Bearer\s+/i.test(envAuth) ? envAuth : `Bearer ${envAuth}`;
-  const envSession = String(process.env.DOUBAO_SESSIONID || "").trim();
-  if (envSession) return /^Bearer\s+/i.test(envSession) ? envSession : `Bearer ${envSession}`;
-  throw new Error("豆包服务未配置可用凭证。请设置 DOUBAO_AUTHORIZATION 或 DOUBAO_SESSIONID。");
+  return resolveServiceAuthorization(authorization, 'doubao');
 }
 
 /**
@@ -205,8 +200,11 @@ export async function createCompletion(
       try {
         logger.info(`开始豆包生图，模型: ${_model}`);
         const modelMapping = resolveDoubaoModel(_model);
-        const tokens = doubaoTokenSplit(resolveDoubaoAuth(refreshToken));
-        const token = _.sample(tokens);
+        const doubaoAuthResolved = resolveDoubaoAuth(refreshToken);
+        const doubaoIncomingAuth = String(refreshToken || '').trim();
+        const token = doubaoIncomingAuth
+          ? doubaoTokenSplit(doubaoAuthResolved)[0]
+          : selectSingleToken(undefined, 'doubao');
         if (!token) throw new Error("豆包 Authorization 中没有可用 token");
 
         const result = await doubaoCreateImageCompletion(
@@ -267,8 +265,11 @@ export async function createCompletion(
       try {
         logger.info(`开始云雀生图，模型: ${_model}`);
         const modelMapping = resolveXyqModel(_model);
-        const tokens = xyqTokenSplit(resolveXyqAuth(refreshToken));
-        const token = _.sample(tokens);
+        const xyqAuthResolved = resolveXyqAuth(refreshToken);
+        const xyqIncomingAuth = String(refreshToken || '').trim();
+        const token = xyqIncomingAuth
+          ? xyqTokenSplit(xyqAuthResolved)[0]
+          : selectSingleToken(undefined, 'xyq');
         if (!token) throw new Error("云雀 Authorization 中没有可用 token");
 
         const result = await xyqCreateImageCompletion(
@@ -595,8 +596,11 @@ export async function createCompletionStream(
       logger.info(`开始豆包流式生图，模型: ${_model}`);
       try {
         const modelMapping = resolveDoubaoModel(_model);
-        const tokens = doubaoTokenSplit(resolveDoubaoAuth(refreshToken));
-        const token = _.sample(tokens);
+        const doubaoAuthResolved = resolveDoubaoAuth(refreshToken);
+        const doubaoIncomingAuth = String(refreshToken || '').trim();
+        const token = doubaoIncomingAuth
+          ? doubaoTokenSplit(doubaoAuthResolved)[0]
+          : selectSingleToken(undefined, 'doubao');
         if (!token) throw new Error("豆包 Authorization 中没有可用 token");
 
         const doubaoStream = await doubaoCreateImageCompletionStream(
@@ -650,8 +654,11 @@ export async function createCompletionStream(
       logger.info(`开始云雀流式生图，模型: ${_model}`);
       try {
         const modelMapping = resolveXyqModel(_model);
-        const tokens = xyqTokenSplit(resolveXyqAuth(refreshToken));
-        const token = _.sample(tokens);
+        const xyqAuthResolved = resolveXyqAuth(refreshToken);
+        const xyqIncomingAuth = String(refreshToken || '').trim();
+        const token = xyqIncomingAuth
+          ? xyqTokenSplit(xyqAuthResolved)[0]
+          : selectSingleToken(undefined, 'xyq');
         if (!token) throw new Error("云雀 Authorization 中没有可用 token");
 
         const xyqStream = await xyqCreateImageCompletionStream(

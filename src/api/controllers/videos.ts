@@ -15,89 +15,39 @@ import {
 } from "@/lib/image-ratio.ts";
 
 const DEFAULT_ASSISTANT_ID = 513695;
-export const DEFAULT_MODEL = "jimeng-video-3.0";
-const DEFAULT_DRAFT_VERSION = "3.2.8";
+export const DEFAULT_MODEL = "jimeng-video-seedance-2.0";
+const DEFAULT_DRAFT_VERSION = "3.3.9";
 
 const MODEL_DRAFT_VERSIONS: { [key: string]: string } = {
   "jimeng-video-3.5-pro": "3.3.4",
-  "jimeng-video-3.0-pro": "3.2.8",
-  "jimeng-video-3.0": "3.2.8",
-  // Seedance 模型（与上游 iptag/jimeng-api 保持一致）
   "jimeng-video-seedance-2.0": "3.3.9",
-  "seedance-2.0": "3.3.9",
-  "seedance-2.0-pro": "3.3.9",
-  // Seedance 2.0-fast 模型（v1.9.3 新增）
   "jimeng-video-seedance-2.0-fast": "3.3.9",
-  "seedance-2.0-fast": "3.3.9",
-  // Seedance 2.0 Fast VIP Vision 模型（文生视频，model_req_key=dreamina_seedance_40_vision）
-  "jimeng-video-seedance-2.0-fast-vip": "3.3.12",
-  "seedance-2.0-fast-vip": "3.3.12",
-  // Seedance 2.0 VIP Vision 模型（主模态能力，model_req_key=dreamina_seedance_40_pro_vision）
-  "jimeng-video-seedance-2.0-vip": "3.3.12",
-  "seedance-2.0-vip": "3.3.12",
 };
 
 const MODEL_MAP = {
   "jimeng-video-3.5-pro": "dreamina_ic_generate_video_model_vgfm_3.5_pro",
-  "jimeng-video-3.0-pro": "dreamina_ic_generate_video_model_vgfm_3.0_pro",
-  "jimeng-video-3.0": "dreamina_ic_generate_video_model_vgfm_3.0_fast",
-  // Seedance 多图智能视频生成模型（jimeng-video-seedance-2.0 为上游标准名称）
   "jimeng-video-seedance-2.0": "dreamina_seedance_40_pro",
-  "seedance-2.0": "dreamina_seedance_40_pro",
-  "seedance-2.0-pro": "dreamina_seedance_40_pro",
-  // Seedance 2.0-fast 快速生成模型（v1.9.3 新增，内部模型为 dreamina_seedance_40）
   "jimeng-video-seedance-2.0-fast": "dreamina_seedance_40",
-  "seedance-2.0-fast": "dreamina_seedance_40",
-  // Seedance 2.0 Fast VIP Vision 文生视频模型（内部模型为 dreamina_seedance_40_vision）
-  "jimeng-video-seedance-2.0-fast-vip": "dreamina_seedance_40_vision",
-  "seedance-2.0-fast-vip": "dreamina_seedance_40_vision",
-  // Seedance 2.0 VIP Vision 文生视频模型（内部模型为 dreamina_seedance_40_pro_vision）
-  "jimeng-video-seedance-2.0-vip": "dreamina_seedance_40_pro_vision",
-  "seedance-2.0-vip": "dreamina_seedance_40_pro_vision",
 };
 
 // Seedance 模型的 benefit_type 映射
 const SEEDANCE_BENEFIT_TYPE_MAP: { [key: string]: string } = {
   "jimeng-video-seedance-2.0": "dreamina_video_seedance_20_pro",
-  "seedance-2.0": "dreamina_video_seedance_20_pro",
-  "seedance-2.0-pro": "dreamina_video_seedance_20_pro",
-  // Seedance 2.0-fast（v1.9.3 新增，注意：无 "video_" 前缀）
   "jimeng-video-seedance-2.0-fast": "dreamina_seedance_20_fast",
-  "seedance-2.0-fast": "dreamina_seedance_20_fast",
-  // Seedance 2.0 Fast VIP Vision（benefit_type 与国际版一致：seedance_20_fast_720p_output）
-  "jimeng-video-seedance-2.0-fast-vip": "seedance_20_fast_720p_output",
-  "seedance-2.0-fast-vip": "seedance_20_fast_720p_output",
-  // Seedance 2.0 VIP Vision（主模态能力，benefit_type：seedance_20_pro_720p_output）
-  "jimeng-video-seedance-2.0-vip": "seedance_20_pro_720p_output",
-  "seedance-2.0-vip": "seedance_20_pro_720p_output",
 };
 
 const INTERNATIONAL_VIDEO_MODEL_MAP: Record<string, string> = {
   "jimeng-video-3.5-pro": "dreamina_ic_generate_video_model_vgfm_3.5_pro",
-  "jimeng-video-3.0-pro": "dreamina_ic_generate_video_model_vgfm_3.0_pro",
-  "jimeng-video-3.0": "dreamina_ic_generate_video_model_vgfm_3.0",
 };
 
 const INTERNATIONAL_SEEDANCE_MODEL_MAP: Record<string, string> = {
   "jimeng-video-seedance-2.0": "dreamina_seedance_40_pro",
-  "seedance-2.0-pro": "dreamina_seedance_40_pro",
   "jimeng-video-seedance-2.0-fast": "dreamina_seedance_40",
-  "seedance-2.0-fast": "dreamina_seedance_40",
-  "jimeng-video-seedance-2.0-fast-vip": "dreamina_seedance_40_vision",
-  "seedance-2.0-fast-vip": "dreamina_seedance_40_vision",
-  "jimeng-video-seedance-2.0-vip": "dreamina_seedance_40_pro_vision",
-  "seedance-2.0-vip": "dreamina_seedance_40_pro_vision",
 };
 
 const INTERNATIONAL_SEEDANCE_BENEFIT_TYPE_MAP: Record<string, string> = {
   "jimeng-video-seedance-2.0": "seedance_20_pro_720p_output",
-  "seedance-2.0-pro": "seedance_20_pro_720p_output",
   "jimeng-video-seedance-2.0-fast": "seedance_20_fast_720p_output",
-  "seedance-2.0-fast": "seedance_20_fast_720p_output",
-  "jimeng-video-seedance-2.0-fast-vip": "seedance_20_fast_720p_output",
-  "seedance-2.0-fast-vip": "seedance_20_fast_720p_output",
-  "jimeng-video-seedance-2.0-vip": "seedance_20_pro_720p_output",
-  "seedance-2.0-vip": "seedance_20_pro_720p_output",
 };
 
 function getVideoBenefitType(model: string): string {
@@ -2765,7 +2715,7 @@ export async function generateInternationalSeedanceVideo(
   const model = INTERNATIONAL_SEEDANCE_MODEL_MAP[_model];
   const assistantId = getAssistantId(regionInfo);
   const seed = Math.floor(Math.random() * 4294967296);
-  const isFastModel = _model === "seedance-2.0-fast" || _model === "jimeng-video-seedance-2.0-fast";
+  const isFastModel = _model === "jimeng-video-seedance-2.0-fast";
 
   const { totalCredit } = await getCredit(refreshToken);
   if (totalCredit <= 0 && !isFastModel) {
@@ -3059,7 +3009,7 @@ async function _generateInternationalSeedanceVideoWithHistoryId(
   const model = INTERNATIONAL_SEEDANCE_MODEL_MAP[_model];
   const assistantId = getAssistantId(regionInfo);
   const seed = Math.floor(Math.random() * 4294967296);
-  const isFastModel = _model === "seedance-2.0-fast" || _model === "jimeng-video-seedance-2.0-fast";
+  const isFastModel = _model === "jimeng-video-seedance-2.0-fast";
 
   const { totalCredit } = await getCredit(refreshToken);
   if (totalCredit <= 0 && !isFastModel) {

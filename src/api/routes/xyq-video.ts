@@ -14,6 +14,8 @@ import {
   normalizeRatio,
 } from "@/providers/xyq/mapper.ts";
 
+import { selectSingleToken } from '@/lib/service-authorization.js';
+
 const DEFAULT_XYQ_VIDEO_MODEL = "xyq-seedance-2.0-fast";
 const DEFAULT_XYQ_VIDEO_TIMEOUT_MS = 75 * 60 * 1000;
 const XYQ_VIDEO_DURATIONS = [5, 10];
@@ -34,11 +36,14 @@ function resolveXyqAuthorization(authorization?: string): string {
 }
 
 function pickXyqToken(authorization?: string): string {
-  const raw = resolveXyqAuthorization(authorization);
-  const tokens = tokenSplit(raw);
-  const token = _.sample(tokens);
-  if (!token) throw new Error("云雀 Authorization 中没有可用 token");
-  return token;
+  // 请求头有显式 token 时直接使用
+  const incoming = String(authorization || '').trim();
+  if (incoming) {
+    const tokens = tokenSplit(incoming);
+    if (tokens.length > 0) return tokens[0];
+  }
+  // 使用账号管理器按优先级选择
+  return selectSingleToken(undefined, 'xyq');
 }
 
 function normalizeDuration(value: any): number {

@@ -3,168 +3,319 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>账号管理器 - images-api</title>
+  <title>账号与凭证管理</title>
   <style>
+    :root {
+      color-scheme: dark;
+      --primary: #60a5fa;
+      --primary-hover: #3b82f6;
+      --secondary: #a78bfa;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --bg: #0a0f1c;
+      --bg-elevated: #111827;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --border: rgba(96, 165, 250, 0.1);
+      --border-hover: rgba(96, 165, 250, 0.2);
+      --text: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f1117; color: #e0e0e0; min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
     }
-    .header {
-      background: linear-gradient(135deg, #1a1c2e 0%, #2d1f3d 100%);
-      padding: 20px 30px; border-bottom: 1px solid #2a2d3e;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .header h1 { font-size: 20px; color: #fff; }
-    .header .subtitle { font-size: 13px; color: #888; margin-top: 4px; }
-    .header .nav { display: flex; gap: 12px; }
-    .header .nav a {
-      color: #9c9cff; text-decoration: none; font-size: 13px;
-      padding: 6px 12px; border-radius: 6px; background: rgba(156,156,255,0.1);
-    }
-    .header .nav a:hover { background: rgba(156,156,255,0.2); }
-    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
 
-    /* 统计卡片 */
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, rgba(17,24,39,0.95) 0%, rgba(30,27,75,0.9) 100%);
+      padding: 20px 30px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .header h1 { font-size: 20px; font-weight: 700; color: var(--text); }
+    .header .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .header .nav { display: flex; gap: 10px; }
+    .header .nav a {
+      color: var(--text-secondary); text-decoration: none; font-size: 13px;
+      padding: 8px 14px; border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+    .header .nav a:hover {
+      background: rgba(96, 165, 250, 0.1);
+      color: var(--primary);
+      border-color: var(--border-hover);
+    }
+    .header .nav a.primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+      color: #fff;
+      border-color: transparent;
+    }
+    .header .nav a.primary:hover {
+      box-shadow: 0 4px 16px rgba(96, 165, 250, 0.3);
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+    /* Stats grid */
     .stats-grid {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px; margin-bottom: 24px;
+      gap: 14px; margin-bottom: 28px;
     }
     .stat-card {
-      background: #1a1c2e; border-radius: 10px; padding: 16px;
-      border: 1px solid #2a2d3e;
+      background: var(--bg-card);
+      border-radius: 16px; padding: 20px;
+      border: 1px solid var(--border);
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
     }
-    .stat-card .label { font-size: 12px; color: #888; text-transform: uppercase; }
-    .stat-card .value { font-size: 28px; font-weight: 700; color: #fff; margin-top: 4px; }
-    .stat-card .sub { font-size: 12px; color: #666; margin-top: 4px; }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      opacity: 0.5;
+    }
+    .stat-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+    .stat-card .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card .value { font-size: 32px; font-weight: 800; color: var(--text); margin-top: 6px; }
+    .stat-card .sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
 
-    /* 标签页 */
+    /* Tabs */
     .tabs {
-      display: flex; gap: 0; border-bottom: 1px solid #2a2d3e; margin-bottom: 20px;
+      display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px;
     }
     .tab {
-      padding: 10px 20px; cursor: pointer; font-size: 14px;
-      color: #888; border-bottom: 2px solid transparent;
-      transition: all 0.2s;
+      padding: 12px 24px; cursor: pointer; font-size: 14px;
+      color: var(--text-muted); border-bottom: 2px solid transparent;
+      transition: all 0.2s; font-weight: 500; position: relative;
     }
-    .tab:hover { color: #ccc; }
-    .tab.active { color: #9c9cff; border-bottom-color: #9c9cff; }
+    .tab:hover { color: var(--text-secondary); }
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    .tab .badge-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 20px; height: 20px; padding: 0 6px;
+      border-radius: 999px; background: rgba(96, 165, 250, 0.15);
+      color: var(--primary); font-size: 11px; font-weight: 700;
+      margin-left: 6px;
+    }
 
     .tab-content { display: none; }
-    .tab-content.active { display: block; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* 表格 */
+    /* Table */
     .table-wrap {
-      background: #1a1c2e; border-radius: 10px; border: 1px solid #2a2d3e;
+      background: var(--bg-card);
+      border-radius: 16px; border: 1px solid var(--border);
       overflow: hidden; margin-bottom: 20px;
+      backdrop-filter: blur(8px);
     }
     table { width: 100%; border-collapse: collapse; }
     th {
-      text-align: left; padding: 12px 16px; font-size: 12px;
-      color: #888; background: #14152a; text-transform: uppercase;
-      letter-spacing: 0.5px;
+      text-align: left; padding: 14px 18px; font-size: 11px;
+      color: var(--text-muted); background: rgba(10, 15, 28, 0.6);
+      text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600;
     }
-    td { padding: 12px 16px; font-size: 13px; border-top: 1px solid #1f2037; }
-    tr:hover td { background: rgba(156,156,255,0.03); }
+    td { padding: 14px 18px; font-size: 13px; border-top: 1px solid rgba(96, 165, 250, 0.06); }
+    tr { transition: background 0.15s; }
+    tr:hover td { background: rgba(96, 165, 250, 0.03); }
 
-    /* 状态标签 */
+    /* Status badges */
     .badge {
-      display: inline-block; padding: 2px 8px; border-radius: 10px;
-      font-size: 11px; font-weight: 600;
+      display: inline-block; padding: 3px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 700;
     }
-    .badge.active { background: #0f3d0f; color: #4caf50; }
-    .badge.expired { background: #3d0f0f; color: #f44336; }
-    .badge.cooldown { background: #3d3d0f; color: #ff9800; }
-    .badge.inactive { background: #2a2a2a; color: #888; }
-    .badge.error { background: #3d0f0f; color: #ff5252; }
+    .badge.active { background: rgba(52, 211, 153, 0.12); color: var(--success); }
+    .badge.expired { background: rgba(248, 113, 113, 0.12); color: var(--danger); }
+    .badge.cooldown { background: rgba(251, 191, 36, 0.12); color: var(--warning); }
+    .badge.inactive { background: rgba(100, 116, 139, 0.12); color: var(--text-muted); }
+    .badge.error { background: rgba(248, 113, 113, 0.12); color: var(--danger); }
 
-    /* 按钮 */
+    /* Buttons */
     .btn {
-      padding: 8px 16px; border: none; border-radius: 6px;
-      cursor: pointer; font-size: 13px; transition: all 0.2s;
+      padding: 9px 18px; border: none; border-radius: 10px;
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
     }
-    .btn-primary { background: #6366f1; color: #fff; }
-    .btn-primary:hover { background: #5558e6; }
-    .btn-danger { background: #dc2626; color: #fff; }
-    .btn-danger:hover { background: #c02020; }
-    .btn-sm { padding: 4px 10px; font-size: 12px; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(96, 165, 250, 0.25);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(96, 165, 250, 0.35); }
+    .btn-danger { background: rgba(248, 113, 113, 0.15); color: var(--danger); border: 1px solid rgba(248, 113, 113, 0.2); }
+    .btn-danger:hover { background: rgba(248, 113, 113, 0.25); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
     .btn-ghost {
-      background: transparent; color: #9c9cff;
-      border: 1px solid #3a3d5e;
+      background: rgba(255,255,255,0.04); color: var(--text-secondary);
+      border: 1px solid var(--border);
     }
-    .btn-ghost:hover { background: rgba(156,156,255,0.1); }
+    .btn-ghost:hover { background: rgba(96, 165, 250, 0.08); color: var(--primary); border-color: var(--border-hover); }
 
     .action-bar {
       display: flex; justify-content: space-between;
-      align-items: center; margin-bottom: 16px;
+      align-items: center; margin-bottom: 18px;
     }
-    .action-bar .left { display: flex; gap: 8px; align-items: center; }
+    .action-bar .left { display: flex; gap: 10px; align-items: center; }
     .filter-select {
-      background: #1a1c2e; color: #e0e0e0; border: 1px solid #2a2d3e;
-      padding: 6px 12px; border-radius: 6px; font-size: 13px;
+      background: var(--bg-elevated); color: var(--text);
+      border: 1px solid var(--border); padding: 8px 14px;
+      border-radius: 10px; font-size: 13px; font-family: inherit;
+      cursor: pointer;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 32px;
+    }
+    .filter-select:focus { outline: none; border-color: var(--primary); }
+    select option {
+      background: var(--bg-elevated);
+      color: var(--text);
+      padding: 8px 12px;
+    }
+    select option:hover, select option:checked {
+      background: var(--primary);
+      color: #fff;
     }
 
-    /* 模态框 */
+    /* Modal */
     .modal-overlay {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.7); z-index: 1000;
       justify-content: center; align-items: center;
+      backdrop-filter: blur(4px);
     }
-    .modal-overlay.show { display: flex; }
+    .modal-overlay.show { display: flex; animation: fadeIn 0.2s ease; }
     .modal {
-      background: #1a1c2e; border-radius: 12px; border: 1px solid #2a2d3e;
-      padding: 24px; width: 500px; max-width: 90vw; max-height: 80vh;
+      background: var(--bg-elevated); border-radius: 20px;
+      border: 1px solid var(--border); padding: 28px;
+      width: 520px; max-width: 92vw; max-height: 86vh;
       overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
     }
-    .modal h3 { font-size: 16px; margin-bottom: 16px; color: #fff; }
-    .form-group { margin-bottom: 14px; }
+    .modal h3 { font-size: 18px; margin-bottom: 20px; color: var(--text); font-weight: 700; }
+    .form-group { margin-bottom: 16px; }
     .form-group label {
-      display: block; font-size: 12px; color: #888;
-      margin-bottom: 4px; text-transform: uppercase;
+      display: block; font-size: 12px; color: var(--text-secondary);
+      margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
     }
     .form-group input, .form-group select, .form-group textarea {
-      width: 100%; padding: 8px 12px; background: #0f1117;
-      border: 1px solid #2a2d3e; border-radius: 6px;
-      color: #e0e0e0; font-size: 13px;
+      width: 100%; padding: 10px 14px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font-size: 13px; font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .form-group textarea { resize: vertical; min-height: 60px; }
-    .form-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+    .form-group select {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 32px;
+      cursor: pointer;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+    }
+    .form-group textarea { resize: vertical; min-height: 72px; }
+    .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
 
     /* Toast */
     .toast {
-      position: fixed; top: 20px; right: 20px; padding: 12px 20px;
-      border-radius: 8px; font-size: 13px; z-index: 2000;
+      position: fixed; top: 20px; right: 20px; padding: 14px 22px;
+      border-radius: 12px; font-size: 13px; z-index: 2000;
       animation: slideIn 0.3s ease;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      border: 1px solid;
     }
-    .toast.success { background: #0f3d0f; color: #4caf50; border: 1px solid #2d5a2d; }
-    .toast.error { background: #3d0f0f; color: #f44336; border: 1px solid #5a2d2d; }
+    .toast.success { background: rgba(52, 211, 153, 0.1); color: var(--success); border-color: rgba(52, 211, 153, 0.2); }
+    .toast.error { background: rgba(248, 113, 113, 0.1); color: var(--danger); border-color: rgba(248, 113, 113, 0.2); }
     @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
     .empty-state {
-      text-align: center; padding: 40px; color: #666;
+      text-align: center; padding: 48px; color: var(--text-muted);
     }
-    .empty-state p { margin-top: 8px; font-size: 13px; }
+    .empty-state p { margin-top: 10px; font-size: 14px; }
 
     .points-display { font-size: 12px; }
-    .points-display .total { color: #4caf50; font-weight: 600; }
-    .points-display .detail { color: #666; }
+    .points-display .total { color: var(--success); font-weight: 700; }
+    .points-display .detail { color: var(--text-muted); }
+
+    /* Sync status indicator */
+    .sync-status {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 8px;
+      font-size: 12px; font-weight: 500;
+    }
+    .sync-status.synced { background: rgba(52, 211, 153, 0.1); color: var(--success); }
+    .sync-status.syncing { background: rgba(96, 165, 250, 0.1); color: var(--primary); }
+    .sync-status.error { background: rgba(248, 113, 113, 0.1); color: var(--danger); }
+    .sync-status .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .sync-status.synced .dot { background: var(--success); }
+    .sync-status.syncing .dot { background: var(--primary); animation: pulse 1.5s infinite; }
+    .sync-status.error .dot { background: var(--danger); }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header { flex-direction: column; gap: 12px; padding: 16px; }
+      .header .nav { flex-wrap: wrap; justify-content: center; }
+      .action-bar { flex-direction: column; gap: 12px; align-items: stretch; }
+      .action-bar .left { flex-wrap: wrap; }
+      table { font-size: 12px; }
+      th, td { padding: 10px 12px; }
+    }
   </style>
 </head>
 <body>
   <div class="header">
     <div>
-      <h1>🔧 账号管理器</h1>
-      <div class="subtitle">images-api 多平台多账号统一管理</div>
+      <h1>账号与凭证管理</h1>
+      <div class="subtitle">统一管理各平台账号、API Key 及系统调度策略</div>
     </div>
     <div class="nav">
-      <a href="/console">控制台</a>
+      <a href="/">首页</a>
+      <a href="/console">生成控制台</a>
       <a href="/docs/api-guide">API 文档</a>
-      <a href="/ping">健康检查</a>
     </div>
   </div>
 
   <div class="container">
-    <!-- 统计卡片 -->
+    <!-- Sync status bar -->
+    <div class="action-bar" style="margin-bottom: 20px; padding: 12px 16px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border);">
+      <div class="left" style="align-items: center;">
+        <span id="syncStatus" class="sync-status synced">
+          <span class="dot"></span>
+          <span id="syncText">数据已同步</span>
+        </span>
+        <span style="color: var(--text-muted); font-size: 12px;">账号管理系统的凭证将自动同步到生成控制台</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="syncToConsole()">立即同步到控制台</button>
+    </div>
+
+    <!-- Stats -->
     <div class="stats-grid" id="statsGrid">
       <div class="stat-card">
         <div class="label">总账号数</div>
@@ -172,7 +323,7 @@
       </div>
       <div class="stat-card">
         <div class="label">活跃账号</div>
-        <div class="value" id="statActive" style="color:#4caf50">-</div>
+        <div class="value" id="statActive" style="color:var(--success)">-</div>
       </div>
       <div class="stat-card">
         <div class="label">今日调用</div>
@@ -180,7 +331,7 @@
       </div>
       <div class="stat-card">
         <div class="label">总积分</div>
-        <div class="value" id="statPoints" style="color:#ff9800">-</div>
+        <div class="value" id="statPoints" style="color:var(--warning)">-</div>
       </div>
       <div class="stat-card">
         <div class="label">API Keys</div>
@@ -188,14 +339,20 @@
       </div>
     </div>
 
-    <!-- 标签页 -->
+    <!-- Tabs -->
     <div class="tabs">
-      <div class="tab active" data-tab="accounts">账号管理</div>
-      <div class="tab" data-tab="apikeys">API Keys</div>
+      <div class="tab active" data-tab="accounts">
+        账号管理
+        <span class="badge-count" id="tabAccountCount">0</span>
+      </div>
+      <div class="tab" data-tab="apikeys">
+        API Keys
+        <span class="badge-count" id="tabKeyCount">0</span>
+      </div>
       <div class="tab" data-tab="settings">系统设置</div>
     </div>
 
-    <!-- 账号管理 -->
+    <!-- Account Management -->
     <div class="tab-content active" id="tab-accounts">
       <div class="action-bar">
         <div class="left">
@@ -207,9 +364,9 @@
             <option value="xyq">小云雀</option>
             <option value="qwen">通义千问</option>
           </select>
-          <button class="btn btn-ghost btn-sm" onclick="loadAccounts()">🔄 刷新</button>
-          <button class="btn btn-ghost btn-sm" onclick="runHealthCheck()">💊 健康检查</button>
-          <button class="btn btn-ghost btn-sm" onclick="resetDaily()">📅 重置日计数</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadAccounts()">刷新列表</button>
+          <button class="btn btn-ghost btn-sm" onclick="runHealthCheck()">账号健康检查</button>
+          <button class="btn btn-ghost btn-sm" onclick="resetDaily()">重置日调用计数</button>
         </div>
         <button class="btn btn-primary" onclick="showAddModal()">+ 添加账号</button>
       </div>
@@ -236,7 +393,7 @@
     <!-- API Keys -->
     <div class="tab-content" id="tab-apikeys">
       <div class="action-bar">
-        <div class="left"><span style="color:#888;font-size:13px">管理外部 API 调用密钥</span></div>
+        <div class="left"><span style="color:var(--text-muted);font-size:13px">管理外部调用方访问密钥，可限制允许调用的平台与速率</span></div>
         <button class="btn btn-primary" onclick="showAddKeyModal()">+ 创建 API Key</button>
       </div>
       <div class="table-wrap">
@@ -257,33 +414,33 @@
       </div>
     </div>
 
-    <!-- 系统设置 -->
+    <!-- Settings -->
     <div class="tab-content" id="tab-settings">
-      <div class="table-wrap" style="padding:20px">
+      <div class="table-wrap" style="padding:24px">
         <div class="form-group">
-          <label>轮询策略</label>
-          <select id="setRotation">
-            <option value="weighted-random">加权随机 (推荐)</option>
-            <option value="random">纯随机</option>
-            <option value="round-robin">轮询</option>
-            <option value="least-used">最少使用</option>
-            <option value="priority">优先级</option>
+          <label>账号调度策略</label>
+          <select id="setRotation" class="filter-select" style="width: 100%;">
+            <option value="weighted-random">加权随机 — 按优先级权重分配（推荐）</option>
+            <option value="random">纯随机 — 完全随机选择</option>
+            <option value="round-robin">轮询 — 依次循环使用</option>
+            <option value="least-used">最少使用 — 优先选调用次数最少的</option>
+            <option value="priority">优先级 — 始终选优先级最高的</option>
           </select>
         </div>
         <div class="form-group">
           <label>故障切换策略</label>
-          <select id="setFailover">
-            <option value="priority">按优先级</option>
-            <option value="round-robin">轮询</option>
-            <option value="random">随机</option>
+          <select id="setFailover" class="filter-select" style="width: 100%;">
+            <option value="priority">按优先级 — 故障时切换到次高优先级账号</option>
+            <option value="round-robin">轮询 — 故障时循环尝试其他账号</option>
+            <option value="random">随机 — 故障时随机选择备用账号</option>
           </select>
         </div>
         <div class="form-group">
-          <label>健康检查间隔 (ms)</label>
+          <label>健康检查间隔（毫秒）</label>
           <input type="number" id="setHealthInterval" value="300000">
         </div>
         <div class="form-group">
-          <label>最大重试次数</label>
+          <label>单请求最大重试次数</label>
           <input type="number" id="setMaxRetry" value="2">
         </div>
         <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
@@ -291,78 +448,84 @@
     </div>
   </div>
 
-  <!-- 添加账号模态框 -->
+  <!-- Add/Edit Account Modal -->
   <div class="modal-overlay" id="addModal">
     <div class="modal">
-      <h3>添加账号</h3>
+      <h3 id="modalTitle">添加新账号</h3>
+      <input type="hidden" id="editAccountId" value="">
       <div class="form-group">
-        <label>平台</label>
+        <label>所属平台</label>
         <select id="addPlatform">
-          <option value="jimeng">即梦 (Jimeng)</option>
-          <option value="doubao">豆包 (Doubao)</option>
-          <option value="kling">可灵 (Kling)</option>
-          <option value="xyq">小云雀 (XYQ)</option>
-          <option value="qwen">通义千问 (Qwen)</option>
+          <option value="jimeng">即梦 Jimeng</option>
+          <option value="doubao">豆包 Doubao</option>
+          <option value="kling">可灵 Kling</option>
+          <option value="xyq">小云雀 XYQ</option>
+          <option value="qwen">通义千问 Qwen</option>
         </select>
       </div>
       <div class="form-group">
         <label>账号名称</label>
-        <input type="text" id="addName" placeholder="例: 即梦主力号">
+        <input type="text" id="addName" placeholder="例如：即梦主力账号">
       </div>
       <div class="form-group">
         <label>Session ID</label>
-        <input type="text" id="addSessionId" placeholder="从浏览器 Cookie 获取">
+        <input type="text" id="addSessionId" placeholder="从浏览器开发者工具 Cookie 中复制 sessionid">
       </div>
       <div class="form-group">
-        <label>Authorization (可选, 优先级高于 SessionID)</label>
-        <input type="text" id="addAuthorization" placeholder="Bearer xxx">
+        <label>Authorization Token（可选，优先级高于 Session ID）</label>
+        <input type="text" id="addAuthorization" placeholder="Bearer xxx 或完整 Authorization 头">
       </div>
       <div class="form-group" id="addKeyGroup" style="display:none">
         <label>Access Key</label>
-        <input type="text" id="addAccessKey" placeholder="Kling API Access Key">
+        <input type="text" id="addAccessKey" placeholder="可灵 API Access Key">
       </div>
       <div class="form-group" id="addSecretGroup" style="display:none">
         <label>Secret Key</label>
-        <input type="text" id="addSecretKey" placeholder="Kling API Secret Key">
+        <input type="text" id="addSecretKey" placeholder="可灵 API Secret Key">
+      </div>
+      <div class="form-group" id="addCookieGroup" style="display:none">
+        <label>浏览器 Cookie</label>
+        <textarea id="addCookie" placeholder="在 klingai.com 登录后，F12 → Console → document.cookie 复制粘贴到这里" style="min-height:100px;font-family:monospace;font-size:12px"></textarea>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">获取方式：登录 klingai.com → F12 → Console → 输入 <code>document.cookie</code> → 复制结果</div>
       </div>
       <div class="form-group">
-        <label>优先级 (1-10, 越大越优先)</label>
+        <label>调度优先级（1-10，数值越大越优先被选中）</label>
         <input type="number" id="addPriority" value="5" min="1" max="10">
       </div>
       <div class="form-group">
-        <label>每日限额</label>
+        <label>每日最大调用次数</label>
         <input type="number" id="addMaxDaily" value="100">
       </div>
       <div class="form-group">
-        <label>备注</label>
-        <textarea id="addNotes" placeholder="可选备注信息"></textarea>
+        <label>备注说明</label>
+        <textarea id="addNotes" placeholder="可选：记录该账号的用途、有效期或其他备忘信息"></textarea>
       </div>
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="closeModal('addModal')">取消</button>
-        <button class="btn btn-primary" onclick="addAccount()">添加</button>
+        <button class="btn btn-primary" id="modalSubmitBtn" onclick="submitAccount()">确认添加</button>
       </div>
     </div>
   </div>
 
-  <!-- 添加 API Key 模态框 -->
+  <!-- Add API Key Modal -->
   <div class="modal-overlay" id="addKeyModal">
     <div class="modal">
       <h3>创建 API Key</h3>
       <div class="form-group">
-        <label>名称</label>
-        <input type="text" id="keyName" placeholder="例: 外部服务A">
+        <label>密钥名称</label>
+        <input type="text" id="keyName" placeholder="例如：外部服务 A">
       </div>
       <div class="form-group">
         <label>速率限制</label>
-        <input type="text" id="keyRateLimit" value="100/hour" placeholder="100/hour">
+        <input type="text" id="keyRateLimit" value="100/hour" placeholder="格式：次数/时间单位，如 100/hour、1000/day">
       </div>
       <div class="form-group">
-        <label>允许平台 (逗号分隔, * 表示全部)</label>
-        <input type="text" id="keyPlatforms" value="*" placeholder="jimeng,doubao">
+        <label>允许调用的平台（逗号分隔，* 表示全部平台）</label>
+        <input type="text" id="keyPlatforms" value="*" placeholder="jimeng,doubao,kling 或 *">
       </div>
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="closeModal('addKeyModal')">取消</button>
-        <button class="btn btn-primary" onclick="addApiKey()">创建</button>
+        <button class="btn btn-primary" onclick="addApiKey()">确认创建</button>
       </div>
     </div>
   </div>
@@ -370,7 +533,6 @@
   <script>
     const API_BASE = '';
 
-    // ── 通用请求 ──
     async function api(method, path, body) {
       const opts = { method, headers: { 'Content-Type': 'application/json' } };
       if (body) opts.body = JSON.stringify(body);
@@ -388,7 +550,14 @@
       setTimeout(() => el.remove(), 3000);
     }
 
-    // ── 标签页切换 ──
+    function setSyncStatus(status, text) {
+      const el = document.getElementById('syncStatus');
+      const txt = document.getElementById('syncText');
+      el.className = `sync-status ${status}`;
+      txt.textContent = text;
+    }
+
+    // Tabs
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -398,7 +567,7 @@
       });
     });
 
-    // ── 统计 ──
+    // Stats
     async function loadStats() {
       try {
         const s = await api('GET', '/admin/stats');
@@ -407,10 +576,12 @@
         document.getElementById('statUsage').textContent = s.totalUsage || 0;
         document.getElementById('statPoints').textContent = s.totalPoints || 0;
         document.getElementById('statKeys').textContent = s.apiKeys || 0;
+        document.getElementById('tabAccountCount').textContent = s.total || 0;
+        document.getElementById('tabKeyCount').textContent = s.apiKeys || 0;
       } catch (e) { console.error('加载统计失败', e); }
     }
 
-    // ── 账号列表 ──
+    // Accounts
     async function loadAccounts() {
       try {
         const platform = document.getElementById('platformFilter').value;
@@ -420,14 +591,14 @@
         const tbody = document.getElementById('accountsTable');
 
         if (accounts.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><p>暂无账号，请点击右上角"添加账号"</p></div></td></tr>';
+          tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><p>暂无账号，请使用右上角「添加账号」按钮创建</p></div></td></tr>';
           return;
         }
 
         const platformNames = { jimeng:'即梦', doubao:'豆包', kling:'可灵', xyq:'小云雀', qwen:'通义千问' };
         tbody.innerHTML = accounts.map(a => `
           <tr>
-            <td><strong>${esc(a.name)}</strong><br><span style="font-size:11px;color:#666">${a.id}</span></td>
+            <td><strong>${esc(a.name)}</strong><br><span style="font-size:11px;color:var(--text-muted)">${a.id}</span></td>
             <td>${platformNames[a.platform] || a.platform}</td>
             <td><span class="badge ${a.status}">${a.status}</span></td>
             <td>${a.priority}</td>
@@ -436,10 +607,11 @@
               <span class="total">${a.points.total}</span>
               ${a.points.vip ? '<span class="badge active" style="margin-left:4px">VIP</span>' : ''}
             </td>
-            <td style="font-size:11px;color:#666">${a.has_sessionid ? 'SID ✓' : ''} ${a.has_authorization ? 'Auth ✓' : ''} ${a.has_access_key ? 'AK ✓' : ''}</td>
-            <td style="font-size:11px;color:#666">${a.last_used_at ? new Date(a.last_used_at).toLocaleString('zh-CN') : '-'}</td>
+            <td style="font-size:11px;color:var(--text-muted)">${a.has_sessionid ? 'SID ✓' : ''} ${a.has_authorization ? 'Auth ✓' : ''} ${a.has_access_key ? 'AK ✓' : ''} ${a.has_cookie ? '🍪 ✓' : ''}</td>
+            <td style="font-size:11px;color:var(--text-muted)">${a.last_used_at ? new Date(a.last_used_at).toLocaleString('zh-CN') : '-'}</td>
             <td>
-              <button class="btn btn-ghost btn-sm" onclick="deleteAccount('${a.id}')">删除</button>
+              <button class="btn btn-ghost btn-sm" onclick="showEditModal('${a.id}')">编辑</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteAccount('${a.id}')">删除</button>
             </td>
           </tr>
         `).join('');
@@ -450,8 +622,26 @@
 
     document.getElementById('platformFilter').addEventListener('change', loadAccounts);
 
-    // ── 添加账号 ──
+    // Add account
     function showAddModal() {
+      document.getElementById('editAccountId').value = '';
+      document.getElementById('modalTitle').textContent = '添加新账号';
+      document.getElementById('modalSubmitBtn').textContent = '确认添加';
+      document.getElementById('addPlatform').value = 'jimeng';
+      document.getElementById('addName').value = '';
+      document.getElementById('addSessionId').value = '';
+      document.getElementById('addAuthorization').value = '';
+      document.getElementById('addAccessKey').value = '';
+      document.getElementById('addSecretKey').value = '';
+      document.getElementById('addCookie').value = '';
+      document.getElementById('addPriority').value = '5';
+      document.getElementById('addMaxDaily').value = '100';
+      document.getElementById('addNotes').value = '';
+      document.getElementById('addKeyGroup').style.display = 'none';
+      document.getElementById('addSecretGroup').style.display = 'none';
+      document.getElementById('addCookieGroup').style.display = 'none';
+      document.getElementById('addSessionId').closest('.form-group').style.display = 'block';
+      document.getElementById('addAuthorization').closest('.form-group').style.display = 'block';
       document.getElementById('addModal').classList.add('show');
     }
     function closeModal(id) {
@@ -462,10 +652,41 @@
       const isKling = e.target.value === 'kling';
       document.getElementById('addKeyGroup').style.display = isKling ? 'block' : 'none';
       document.getElementById('addSecretGroup').style.display = isKling ? 'block' : 'none';
+      document.getElementById('addCookieGroup').style.display = isKling ? 'block' : 'none';
+      // Kling 网页模式不需要 sessionid/authorization
+      document.getElementById('addSessionId').closest('.form-group').style.display = isKling ? 'none' : 'block';
+      document.getElementById('addAuthorization').closest('.form-group').style.display = isKling ? 'none' : 'block';
     });
 
-    async function addAccount() {
+    async function showEditModal(id) {
       try {
+        const a = await api('GET', `/admin/accounts/${id}`);
+        document.getElementById('editAccountId').value = a.id;
+        document.getElementById('modalTitle').textContent = '编辑账号';
+        document.getElementById('modalSubmitBtn').textContent = '保存修改';
+        document.getElementById('addPlatform').value = a.platform;
+        document.getElementById('addName').value = a.name || '';
+        document.getElementById('addSessionId').value = '';
+        document.getElementById('addAuthorization').value = '';
+        document.getElementById('addAccessKey').value = '';
+        document.getElementById('addSecretKey').value = '';
+        document.getElementById('addCookie').value = '';
+        document.getElementById('addPriority').value = a.priority ?? 5;
+        document.getElementById('addMaxDaily').value = a.max_daily_usage ?? 100;
+        document.getElementById('addNotes').value = a.notes || '';
+        const isKling = a.platform === 'kling';
+        document.getElementById('addKeyGroup').style.display = isKling ? 'block' : 'none';
+        document.getElementById('addSecretGroup').style.display = isKling ? 'block' : 'none';
+        document.getElementById('addCookieGroup').style.display = isKling ? 'block' : 'none';
+        document.getElementById('addSessionId').closest('.form-group').style.display = isKling ? 'none' : 'block';
+        document.getElementById('addAuthorization').closest('.form-group').style.display = isKling ? 'none' : 'block';
+        document.getElementById('addModal').classList.add('show');
+      } catch (e) { toast('加载账号信息失败: ' + e.message, 'error'); }
+    }
+
+    async function submitAccount() {
+      try {
+        const editId = document.getElementById('editAccountId').value;
         const platform = document.getElementById('addPlatform').value;
         const body = {
           platform,
@@ -479,12 +700,21 @@
         if (platform === 'kling') {
           body.access_key = document.getElementById('addAccessKey').value;
           body.secret_key = document.getElementById('addSecretKey').value;
+          body.cookie = document.getElementById('addCookie').value;
         }
-        await api('POST', '/admin/accounts', body);
-        toast('账号添加成功');
+        if (editId) {
+          const { platform: _, ...updateBody } = body;
+          await api('PUT', `/admin/accounts/${editId}`, updateBody);
+          toast('账号已更新');
+        } else {
+          await api('POST', '/admin/accounts', body);
+          toast('账号添加成功');
+        }
         closeModal('addModal');
         loadAccounts();
         loadStats();
+        // Auto sync to console
+        await syncToConsole();
       } catch (e) { toast('添加失败: ' + e.message, 'error'); }
     }
 
@@ -495,6 +725,7 @@
         toast('已删除');
         loadAccounts();
         loadStats();
+        await syncToConsole();
       } catch (e) { toast('删除失败: ' + e.message, 'error'); }
     }
 
@@ -515,20 +746,67 @@
       } catch (e) { toast('重置失败: ' + e.message, 'error'); }
     }
 
-    // ── API Keys ──
+    // Sync accounts to console credentials
+    async function syncToConsole() {
+      setSyncStatus('syncing', '正在同步...');
+      try {
+        const data = await api('GET', '/admin/accounts');
+        const accounts = data.accounts || [];
+
+        // Build credentials for each platform
+        const creds = {};
+        const platforms = ['jimeng', 'doubao', 'xyq', 'qwen'];
+
+        for (const platform of platforms) {
+          const platformAccounts = accounts.filter(a => a.platform === platform);
+          if (platformAccounts.length > 0) {
+            // Use the highest priority active account
+            const active = platformAccounts
+              .filter(a => a.status === 'active')
+              .sort((a, b) => b.priority - a.priority);
+
+            if (active.length > 0) {
+              const account = active[0];
+              if (account.authorization) {
+                creds[`${platform}_authorization`] = account.authorization;
+              } else if (account.sessionid) {
+                creds[`${platform}_sessionid`] = account.sessionid;
+              }
+            }
+          }
+        }
+
+        // Also sync kling if present
+        const klingAccounts = accounts.filter(a => a.platform === 'kling');
+        // Kling uses storage state, skip for now
+
+        if (Object.keys(creds).length > 0) {
+          await api('POST', '/console/credentials', { ...creds, persist: true });
+          setSyncStatus('synced', `已同步 ${Object.keys(creds).length} 个平台凭证`);
+          toast('账号凭证已同步到控制台');
+        } else {
+          setSyncStatus('synced', '暂无活跃账号可同步');
+        }
+      } catch (e) {
+        setSyncStatus('error', '同步失败: ' + e.message);
+        toast('同步失败: ' + e.message, 'error');
+      }
+    }
+
+    // API Keys
     async function loadKeys() {
       try {
         const data = await api('GET', '/admin/api-keys');
         const keys = data.keys || [];
         const tbody = document.getElementById('keysTable');
         if (keys.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><p>暂无 API Key</p></div></td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><p>暂无 API Key，请使用「创建 API Key」按钮添加</p></div></td></tr>';
           return;
         }
         tbody.innerHTML = keys.map(k => `
           <tr>
             <td>${esc(k.name)}</td>
-            <td style="font-family:monospace;font-size:12px">${k.key}</td>
+            <td style="font-family:monospace;font-size:12px;color:var(--text-muted)">${k.key}</td>
             <td>${k.rate_limit}</td>
             <td>${k.allowed_platforms.join(', ')}</td>
             <td>${k.total_calls}</td>
@@ -578,7 +856,7 @@
       } catch (e) { toast('删除失败: ' + e.message, 'error'); }
     }
 
-    // ── 设置 ──
+    // Settings
     async function loadSettings() {
       try {
         const s = await api('GET', '/admin/settings');
@@ -601,11 +879,14 @@
       } catch (e) { toast('保存失败: ' + e.message, 'error'); }
     }
 
-    // ── 初始化 ──
+    // Init
     loadStats();
     loadAccounts();
     loadKeys();
     loadSettings();
+
+    // Auto sync on load
+    setTimeout(() => syncToConsole(), 1000);
   </script>
 </body>
 </html>

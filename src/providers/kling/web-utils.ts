@@ -111,12 +111,55 @@ function parseCookiesValue(value: any): PlaywrightStorageState {
   throw new Error("请求里的 cookies 格式不合法，应为数组或 JSON 字符串");
 }
 
+/**
+ * 将浏览器 cookie 字符串（"key1=val1; key2=val2; ..."）转为 Playwright storageState 格式
+ */
+export function parseBrowserCookieString(cookieStr: string, originUrl = DEFAULT_KLING_WEB_TARGET_URL): PlaywrightStorageState {
+  const origin = new URL(originUrl);
+  const cookies = cookieStr
+    .split(";")
+    .map((pair) => pair.trim())
+    .filter(Boolean)
+    .map((pair) => {
+      const eqIdx = pair.indexOf("=");
+      if (eqIdx === -1) return null;
+      return {
+        name: pair.slice(0, eqIdx).trim(),
+        value: pair.slice(eqIdx + 1).trim(),
+        domain: `.${origin.hostname}`,
+        path: "/",
+        expires: -1,
+        httpOnly: false,
+        secure: origin.protocol === "https:",
+        sameSite: "None" as SameSite,
+      };
+    })
+    .filter(Boolean) as PlaywrightCookie[];
+
+  return { cookies, origins: [] };
+}
+
 async function tryLoadDefaultLocalKlingState(): Promise<PlaywrightStorageState | null> {
   if (!(await fs.pathExists(DEFAULT_KLING_WEB_LOCAL_STATE_PATH))) {
     return null;
   }
   const raw = await fs.readFile(DEFAULT_KLING_WEB_LOCAL_STATE_PATH, "utf8");
   return parseInlineStorageState(raw);
+}
+
+/**
+ * 从 account-manager 获取 Kling 账号的 cookies
+ */
+async function tryLoadFromAccountManager(): Promise<PlaywrightStorageState | null> {
+  try {
+    const { default: accountManager } = await import("@/lib/account-manager.ts");
+    const klingAccounts = accountManager.getAccounts("kling");
+    const active = klingAccounts.find((a) => a.status === "active" && a.cookie);
+    if (!active?.cookie) return null;
+    return parseBrowserCookieString(active.cookie);
+  } catch {
+    return null;
+  }
 }
 
 export async function resolveKlingWebStorageState(
@@ -169,8 +212,14 @@ export async function resolveKlingWebStorageState(
     return defaultLocalState;
   }
 
+  // 最后尝试从 account-manager 获取
+  const accountManagerState = await tryLoadFromAccountManager();
+  if (accountManagerState) {
+    return accountManagerState;
+  }
+
   throw new Error(
-    "Kling 网页模式缺少登录态。请在请求的 provider_options 里传 storage_state/cookies，或设置 KLING_WEB_STORAGE_STATE_JSON、KLING_WEB_STORAGE_STATE_PATH、KLING_WEB_COOKIES_JSON_PATH，或在项目根目录提供 kling.json。"
+    "Kling 网页模式缺少登录态。请通过账号管理添加 Kling cookie，或在请求的 provider_options 里传 storage_state/cookies，或设置环境变量，或在项目根目录提供 kling.json。"
   );
 }
 

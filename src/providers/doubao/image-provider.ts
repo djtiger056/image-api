@@ -31,6 +31,7 @@ import {
   createImageCompletionStream,
   tokenSplit,
 } from "@/providers/doubao/api.ts";
+import { resolveServiceAuthorization, selectSingleToken } from "@/lib/service-authorization.js";
 
 /**
  * 解析豆包 Authorization
@@ -41,31 +42,19 @@ import {
  * 3. 环境变量 DOUBAO_SESSIONID
  */
 function resolveDoubaoAuthorization(authorization?: string): string {
-  const incoming = String(authorization || "").trim();
-  if (incoming) return incoming;
-
-  const envAuth = String(process.env.DOUBAO_AUTHORIZATION || "").trim();
-  if (envAuth) return /^Bearer\s+/i.test(envAuth) ? envAuth : `Bearer ${envAuth}`;
-
-  const envSession = String(process.env.DOUBAO_SESSIONID || "").trim();
-  if (envSession) return /^Bearer\s+/i.test(envSession) ? envSession : `Bearer ${envSession}`;
-
-  throw new Error(
-    "豆包服务未配置可用凭证。请设置 DOUBAO_AUTHORIZATION 或 DOUBAO_SESSIONID，或在请求里提供 Authorization。"
-  );
+  return resolveServiceAuthorization(authorization, 'doubao');
 }
 
 /**
  * 从 Authorization 中选取一个豆包 sessionid
  */
 function pickDoubaoToken(authorization?: string): string {
-  const raw = resolveDoubaoAuthorization(authorization);
-  const tokens = tokenSplit(raw);
-  const token = _.sample(tokens);
-  if (!token) {
-    throw new Error("Doubao Authorization 中没有可用 token");
+  const incoming = String(authorization || '').trim();
+  if (incoming) {
+    const tokens = tokenSplit(incoming);
+    if (tokens.length > 0) return tokens[0];
   }
-  return token;
+  return selectSingleToken(undefined, 'doubao');
 }
 
 export default class DoubaoImageProvider implements ImageProvider {

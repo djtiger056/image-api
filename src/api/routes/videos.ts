@@ -3,9 +3,21 @@ import _ from 'lodash';
 import Request from '@/lib/request/Request.ts';
 import Response from '@/lib/response/Response.ts';
 import { tokenSplit } from '@/api/controllers/core.ts';
-import { resolveServiceAuthorization } from '@/lib/service-authorization.js';
+import { resolveServiceAuthorization, selectSingleToken } from '@/lib/service-authorization.js';
 import { generateVideo, generateSeedanceVideo, generateInternationalVideo, generateInternationalSeedanceVideo, isSeedanceModel, isInternationalSeedanceModel, isInternationalVideoModel, DEFAULT_MODEL, submitAsyncVideoTask, queryAsyncVideoTask, submitInternationalAsyncVideoTask } from '@/api/controllers/videos.ts';
 import util from '@/lib/util.ts';
+
+/**
+ * 按优先级选择单个 jimeng token (请求头优先，否则走账号管理器)
+ */
+function pickJimengToken(authorization?: string): string {
+    const incoming = String(authorization || '').trim();
+    if (incoming) {
+        const tokens = tokenSplit(incoming);
+        if (tokens.length > 0) return tokens[0];
+    }
+    return selectSingleToken(undefined, 'jimeng');
+}
 
 export default {
 
@@ -48,11 +60,7 @@ export default {
                 .validate('body.response_format', v => _.isUndefined(v) || _.isString(v))
 
 
-            // refresh_token切分
-            const authorization = resolveServiceAuthorization(request.headers.authorization as string | undefined);
-            const tokens = tokenSplit(authorization);
-            // 随机挑选一个refresh_token
-            const token = _.sample(tokens);
+            const token = pickJimengToken(request.headers.authorization as string | undefined);
 
             const {
                 model = DEFAULT_MODEL,
@@ -137,8 +145,8 @@ export default {
             const contentType = request.headers['content-type'] || '';
             const isMultiPart = contentType.startsWith('multipart/form-data');
             const allowedModels = [
-                'seedance-2.0-fast', 'seedance-2.0-pro', 'jimeng-video-seedance-2.0-fast', 'jimeng-video-seedance-2.0', 'jimeng-video-seedance-2.0-fast-vip', 'seedance-2.0-fast-vip', 'jimeng-video-seedance-2.0-vip', 'seedance-2.0-vip',
-                'jimeng-video-3.5-pro', 'jimeng-video-3.0', 'jimeng-video-3.0-pro'
+                'jimeng-video-seedance-2.0-fast', 'jimeng-video-seedance-2.0',
+                'jimeng-video-3.5-pro'
             ];
             const hasKeyedUrlFields = Object.keys(request.body || {}).some(key => (
                 key === 'image_file' || key === 'video_file' || key.startsWith('image_file_') || key.startsWith('video_file_')
@@ -157,18 +165,16 @@ export default {
                 .validate('body.response_format', v => _.isUndefined(v) || _.isString(v))
 
 
-            const authorization = resolveServiceAuthorization(request.headers.authorization as string | undefined);
-            const tokens = tokenSplit(authorization);
-            const token = _.sample(tokens);
-            const {
-                model,
-                prompt = '',
-                ratio,
-                resolution = '720p',
-                duration,
-                file_paths = [],
-                filePaths = [],
-                response_format = 'url'
+            const token = pickJimengToken(request.headers.authorization as string | undefined);
+           const {
+               model,
+               prompt = '',
+               ratio,
+               resolution = '720p',
+               duration,
+               file_paths = [],
+               filePaths = [],
+               response_format = 'url'
             } = request.body;
 
             const isSeedance = isInternationalSeedanceModel(model);
@@ -247,8 +253,8 @@ export default {
             const contentType = request.headers['content-type'] || '';
             const isMultiPart = contentType.startsWith('multipart/form-data');
             const allowedModels = [
-                'seedance-2.0-fast', 'seedance-2.0-pro', 'jimeng-video-seedance-2.0-fast', 'jimeng-video-seedance-2.0', 'jimeng-video-seedance-2.0-fast-vip', 'seedance-2.0-fast-vip', 'jimeng-video-seedance-2.0-vip', 'seedance-2.0-vip',
-                'jimeng-video-3.5-pro', 'jimeng-video-3.0', 'jimeng-video-3.0-pro'
+                'jimeng-video-seedance-2.0-fast', 'jimeng-video-seedance-2.0',
+                'jimeng-video-3.5-pro'
             ];
             const hasKeyedUrlFields = Object.keys(request.body || {}).some(key => (
                 key === 'image_file' || key === 'video_file' || key.startsWith('image_file_') || key.startsWith('video_file_')
@@ -266,18 +272,16 @@ export default {
                 .validate('body.filePaths', v => _.isUndefined(v) || _.isArray(v))
 
 
-            const authorization = resolveServiceAuthorization(request.headers.authorization as string | undefined);
-            const tokens = tokenSplit(authorization);
-            const token = _.sample(tokens);
-            const {
-                model,
-                prompt = '',
-                ratio,
-                resolution = '720p',
-                duration,
-                file_paths = [],
-                filePaths = [],
-            } = request.body;
+            const token = pickJimengToken(request.headers.authorization as string | undefined);
+           const {
+               model,
+               prompt = '',
+               ratio,
+               resolution = '720p',
+               duration,
+               file_paths = [],
+               filePaths = [],
+           } = request.body;
 
             const isSeedance = isInternationalSeedanceModel(model);
             const finalDuration = _.isUndefined(duration)
@@ -350,10 +354,7 @@ export default {
                 .validate('body.filePaths', v => _.isUndefined(v) || _.isArray(v))
 
 
-            // refresh_token切分
-            const authorization = resolveServiceAuthorization(request.headers.authorization as string | undefined);
-            const tokens = tokenSplit(authorization);
-            const token = _.sample(tokens);
+            const token = pickJimengToken(request.headers.authorization as string | undefined);
 
             const {
                 model = DEFAULT_MODEL,

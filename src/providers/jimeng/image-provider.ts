@@ -2,7 +2,7 @@ import _ from "lodash";
 
 import { generateImages, generateImageComposition } from "@/api/controllers/images.ts";
 import { tokenSplit } from "@/api/controllers/core.ts";
-import { resolveServiceAuthorization } from "@/lib/service-authorization.js";
+import { resolveServiceAuthorization, selectSingleToken } from "@/lib/service-authorization.js";
 import util from "@/lib/util.ts";
 import ImageProvider, {
   ImageProviderContext,
@@ -11,12 +11,12 @@ import ImageProvider, {
 } from "@/providers/types.ts";
 
 function pickJimengToken(authorization?: string): string {
-  const tokens = tokenSplit(resolveServiceAuthorization(authorization));
-  const token = _.sample(tokens);
-  if (!token) {
-    throw new Error("Jimeng Authorization 中没有可用 token");
+  const incoming = String(authorization || '').trim();
+  if (incoming) {
+    const tokens = tokenSplit(incoming);
+    if (tokens.length > 0) return tokens[0];
   }
-  return token;
+  return selectSingleToken(undefined, 'jimeng');
 }
 
 export default class JimengImageProvider implements ImageProvider {

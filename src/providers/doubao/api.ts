@@ -284,7 +284,8 @@ export async function receiveStream(stream: any): Promise<StreamResult> {
             payload.creations.forEach((c: any) => {
               const img = c?.image || {};
               const key = img?.key as string | undefined;
-              const ori = img?.image_ori?.url;
+              // 优先用 image_ori_raw（无水印原图），fallback 到 image_ori（带水印）
+              const ori = img?.image_ori_raw?.url || img?.image_ori?.url;
               if (key && ori && !emittedImageKeys.has(key)) {
                 emittedImageKeys.add(key);
                 imageUrls.push(ori);
@@ -431,10 +432,9 @@ export function createTransStream(
         for (const c of creations) {
           const img = c?.image || {};
           const key = img?.key as string | undefined;
-          const url =
-            img?.image_preview?.url || img?.image_thumb?.url || img?.image_ori?.url;
-          const ori = img?.image_ori?.url || url;
-          if (key && url && !emittedImageKeys.has(key)) {
+          // 优先用 image_ori_raw（无水印原图），fallback 到带水印版本
+          const ori = img?.image_ori_raw?.url || img?.image_ori?.url || img?.image_preview?.url || img?.image_thumb?.url;
+          if (key && ori && !emittedImageKeys.has(key)) {
             emittedImageKeys.add(key);
             transStream.write(
               `data: ${JSON.stringify({

@@ -55,18 +55,6 @@ const QWEN_VIDEO_MODEL_MAP: Record<string, QwenVideoModelMapping> = {
     defaultResolution: "1080P",
     supportsImageInput: true,
   },
-  "wan2.7-t2v-2026-04-25": {
-    model: "wan27",
-    description: "通义万相 Wan 2.7 视频模型（2026-04-25 快照，千问创作网页端）",
-    backend: "qianwen-web",
-    scene: "wan27_t2v",
-    sceneWithImage: "wan27_first_frame_i2v",
-    resolutions: ["720P", "1080P"],
-    durations: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-    defaultDuration: 5,
-    defaultResolution: "1080P",
-    supportsImageInput: true,
-  },
 };
 
 export const DEFAULT_QWEN_VIDEO_MODEL = "qwen-happyhorse-1.0";
@@ -84,6 +72,13 @@ export interface QwenImageModelMapping {
 }
 
 const QWEN_IMAGE_MODEL_MAP: Record<string, QwenImageModelMapping> = {
+  "wan2.7-image": {
+    modelKey: "wan27_image",
+    rootModel: "wan27_image",
+    sceneT2I: "wan27_image_txt_to_image",
+    sceneI2I: "wan27_image_txt_to_image",
+    description: "通义万相 Wan 2.7-Image 生图模型（最新，支持多图参考）",
+  },
   "qwen-image-2.0": {
     modelKey: "qwen_image",
     rootModel: "qwen2",
@@ -107,7 +102,7 @@ const QWEN_IMAGE_MODEL_MAP: Record<string, QwenImageModelMapping> = {
   },
 };
 
-export const DEFAULT_QWEN_IMAGE_MODEL = "qwen-image-2.0";
+export const DEFAULT_QWEN_IMAGE_MODEL = "wan2.7-image";
 
 export const QWEN_IMAGE_RATIOS = [
   "1:1",
@@ -126,6 +121,8 @@ export const QWEN_IMAGE_RATIOS = [
 export function isQwenVideoModelName(model?: string): boolean {
   if (!model) return false;
   const lower = model.toLowerCase();
+  // wan2.7-image 是图片模型，排除
+  if (lower.startsWith("wan2.") && lower.includes("image")) return false;
   return (
     lower.startsWith("qwen-happyhorse") ||
     lower.startsWith("wan2.") ||
@@ -141,6 +138,7 @@ export function isQwenImageModelName(model?: string): boolean {
   const lower = model.toLowerCase();
   return (
     lower.startsWith("qwen-image") ||
+    lower.startsWith("wan2.7-image") ||
     lower === "qwen" ||
     lower === "qwen-full"
   );

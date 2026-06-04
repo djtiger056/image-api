@@ -21,7 +21,7 @@ import ImageProvider, {
 // jimeng
 import { generateImages, generateImageComposition } from "@/api/controllers/images.ts";
 import { getCredit as getJimengCredit, tokenSplit as jimengTokenSplit } from "@/api/controllers/core.ts";
-import { resolveServiceAuthorization } from "@/lib/service-authorization.js";
+import { resolveServiceAuthorization, selectSingleToken } from "@/lib/service-authorization.js";
 
 // xyq
 import {
@@ -88,8 +88,12 @@ export function getSeedreamModels() {
 
 function pickJimengToken(authorization?: string): string | null {
   try {
-    const tokens = jimengTokenSplit(resolveServiceAuthorization(authorization));
-    return _.sample(tokens) || null;
+    const incoming = String(authorization || '').trim();
+    if (incoming) {
+      const tokens = jimengTokenSplit(incoming);
+      return tokens[0] || null;
+    }
+    return selectSingleToken(undefined, 'jimeng');
   } catch {
     return null;
   }
@@ -97,10 +101,7 @@ function pickJimengToken(authorization?: string): string | null {
 
 function pickXyqToken(): string | null {
   try {
-    const raw = String(process.env.XYQ_AUTHORIZATION || process.env.XYQ_SESSIONID || "").trim();
-    if (!raw) return null;
-    const tokens = xyqTokenSplit(raw);
-    return _.sample(tokens) || null;
+    return selectSingleToken(undefined, 'xyq');
   } catch {
     return null;
   }
@@ -108,10 +109,7 @@ function pickXyqToken(): string | null {
 
 function pickDoubaoToken(): string | null {
   try {
-    const raw = String(process.env.DOUBAO_AUTHORIZATION || process.env.DOUBAO_SESSIONID || "").trim();
-    if (!raw) return null;
-    const tokens = doubaoTokenSplit(raw);
-    return _.sample(tokens) || null;
+    return selectSingleToken(undefined, 'doubao');
   } catch {
     return null;
   }

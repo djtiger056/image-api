@@ -239,6 +239,30 @@ class AccountManager {
           updated_at: nowISO(),
         });
       }
+
+      // Kling 浏览器 Cookie 迁移
+      const klingCookie = String(process.env.KLING_COOKIE || process.env.KLING_WEB_COOKIES || '').trim();
+      if (klingCookie && !ak) {
+        this.config.accounts.kling.push({
+          id: 'kling-cookie-migrated-1',
+          name: 'Kling 网页迁移账号',
+          platform: 'kling',
+          cookie: klingCookie,
+          status: 'active',
+          priority: 10,
+          daily_usage: 0,
+          max_daily_usage: 50,
+          total_usage: 0,
+          last_used_at: null,
+          last_check_at: null,
+          last_error: null,
+          points: { total: 0, gift: 0, purchase: 0, vip: false },
+          tags: ['migrated', 'web'],
+          notes: '从环境变量 KLING_COOKIE 自动迁移',
+          created_at: nowISO(),
+          updated_at: nowISO(),
+        });
+      }
     }
 
     this.saveConfig();
@@ -486,6 +510,26 @@ class AccountManager {
           }
         }
 
+        // Kling 积分检查 (通过网页自动化获取账户信息)
+        if (account.platform === 'kling' && account.cookie) {
+          try {
+            const { default: klingApi } = await import('@/providers/kling/api-automation.ts');
+            const info = await klingApi.getAccountInfo({ prompt: 'health-check' });
+            account.last_check_at = nowISO();
+            if (info.points !== null) {
+              account.points = { total: info.points, gift: 0, purchase: 0, vip: !!info.vipStatus };
+            }
+            if (info.userName) account.name = info.userName;
+            if (account.status === 'expired') account.status = 'active';
+            account.last_error = null;
+          } catch (e: any) {
+            account.last_error = e.message;
+            if (e.message?.includes('登录') || e.message?.includes('cookie') || e.message?.includes('expired')) {
+              account.status = 'expired';
+            }
+          }
+        }
+
         // 小云雀积分检查
         if (account.platform === 'xyq' && (account.sessionid || account.authorization)) {
           try {
@@ -637,6 +681,7 @@ class AccountManager {
       has_sessionid: Boolean(a.sessionid),
       has_authorization: Boolean(a.authorization),
       has_access_key: Boolean(a.access_key),
+      has_cookie: Boolean(a.cookie),
     }));
   }
 

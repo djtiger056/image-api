@@ -1,17 +1,175 @@
 {
   "accounts": {
-    "jimeng": [],
-    "doubao": [],
+    "jimeng": [
+      {
+        "id": "jimeng-9adddcee",
+        "name": "jimeng-me",
+        "platform": "jimeng",
+        "sessionid": "64d23531015b89fe13f79cf4f456b159",
+        "authorization": "",
+        "access_key": "",
+        "secret_key": "",
+        "cookie": "",
+        "status": "active",
+        "priority": 10,
+        "daily_usage": 0,
+        "max_daily_usage": 100,
+        "total_usage": 0,
+        "last_used_at": null,
+        "last_check_at": "2026-06-04T06:55:53.051Z",
+        "last_error": null,
+        "points": {
+          "total": 0,
+          "gift": 0,
+          "purchase": 0,
+          "vip": false
+        },
+        "tags": [],
+        "notes": "",
+        "created_at": "2026-06-03T13:13:32.497Z",
+        "updated_at": "2026-06-03T13:13:32.497Z"
+      }
+    ],
+    "doubao": [
+      {
+        "id": "doubao-e2012bae",
+        "name": "db1",
+        "platform": "doubao",
+        "sessionid": "bd6488c1d245431d645cfeb28fa1763d",
+        "authorization": "",
+        "access_key": "",
+        "secret_key": "",
+        "cookie": "",
+        "status": "active",
+        "priority": 3,
+        "daily_usage": 0,
+        "max_daily_usage": 100,
+        "total_usage": 0,
+        "last_used_at": null,
+        "last_check_at": null,
+        "last_error": null,
+        "points": {
+          "total": 0,
+          "gift": 0,
+          "purchase": 0,
+          "vip": false
+        },
+        "tags": [],
+        "notes": "",
+        "created_at": "2026-05-28T07:46:01.611Z",
+        "updated_at": "2026-05-28T07:46:01.611Z"
+      },
+      {
+        "id": "doubao-83e785d9",
+        "name": "doubao-jiahao",
+        "platform": "doubao",
+        "sessionid": "22baceb61cc6c31eaeeb3add5d6b1367",
+        "authorization": "",
+        "access_key": "",
+        "secret_key": "",
+        "cookie": "",
+        "status": "inactive",
+        "priority": 10,
+        "daily_usage": 0,
+        "max_daily_usage": 100,
+        "total_usage": 0,
+        "last_used_at": null,
+        "last_check_at": null,
+        "last_error": "可能已失效，local.env中无对应sessionid，暂标记inactive",
+        "points": {
+          "total": 0,
+          "gift": 0,
+          "purchase": 0,
+          "vip": false
+        },
+        "tags": [],
+        "notes": "",
+        "created_at": "2026-06-02T10:51:38.115Z",
+        "updated_at": "2026-06-02T11:19:53.342Z"
+      }
+    ],
     "kling": [],
-    "xyq": [],
-    "qwen": []
+    "xyq": [
+      {
+        "id": "xyq-9372f61a",
+        "name": "xyq-me",
+        "platform": "xyq",
+        "sessionid": "64d23531015b89fe13f79cf4f456b159",
+        "authorization": "",
+        "access_key": "",
+        "secret_key": "",
+        "cookie": "",
+        "status": "inactive",
+        "priority": 5,
+        "daily_usage": 0,
+        "max_daily_usage": 100,
+        "total_usage": 0,
+        "last_used_at": null,
+        "last_check_at": "2026-06-04T05:58:50.490Z",
+        "last_error": "sessionid错误: 使用了jimeng的sessionid，需要更新为正确的xyq sessionid",
+        "points": {
+          "total": 30,
+          "gift": 0,
+          "purchase": 0,
+          "vip": false
+        },
+        "tags": [],
+        "notes": "",
+        "created_at": "2026-06-02T13:06:59.228Z",
+        "updated_at": "2026-06-02T13:06:59.228Z"
+      }
+    ],
+    "qwen": [
+      {
+        "id": "qwen-71e1de0e",
+        "name": "qwen-me",
+        "platform": "qwen",
+        "sessionid": "",
+        "authorization": "[     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1781001950.716293,         \"hostOnly\": false,         \"httpOnly\": true,         \"name\": \"_UP_28A_52_\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"629\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1780649448,         \"hostOnly\": false,         \"httpOnly\": false,         \"name\": \"xlly_s\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"1\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1811933150,         \"hostOnly\": false,         \"httpOnly\": false,         \"name\": \"_qk_bx_ck_v1\",         \"path\": \"/\",         \"sameSite\": null,         \"secure\": false,         \"session\": false,         \"storeId\": null,         \"value\": \"eyJkZXZpY2VJZCI6ImVDeSNBQU9YcWducGh2QVRpbG5PREh6NVAreXI3b1VMU3FqN3RFcFpDSXhLRnNFaHp6K0ttMVp4cENkeTY4Y3lOdFN0eFBRPSIsImRldmljZUZpbmdlcnByaW50IjoiZWM5YzY3ZGQ5ZTdiZGNjMzFkOTVhMzIxZGY3MDI4OTEifQ==\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1795949147,         \"hostOnly\": false,         \"httpOnly\": false,         \"name\": \"tfstk\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"ghDIIP219wbIzUKpyw-NcAwLq5ySPhJVRgZ-m0BF2JeLP73qPTlE2WJ7FVimT7oJ-4M7WJFoTzzUP8iolh823Konx8VJuEJ2_SWgK84JU8daBqsgtOT23Kop9k2rXElPVohaVue8v7BRWhZ8V6e89TB9fuEPJ_BKycK_SuXRy8FLWlEzm_e8e4n9fu4Ty8FKycK_qPU-_AJ_b3zIA3DDm9aAyloL5TB-pLVQlm1PeTH_AWMmvPir4AZQOrFzuRfIpVo-LvVMZ_yobjgSwVp1d4iKM4UEBEB7zjqS2owAmOmsDuNYe5sRecwLWqraHKQ_jfnEwv0CVTEnLxP7o5tRE7yt3ShxRgxmXJE-rSDyo94K2mDmg-95BJNR4864lkDlNGNcFla2fh1lZr9LhHKG95Bb9lqNuht1RRFLjla2fh1lZWEgbZ-6fwwO.\"     },     {         \"domain\": \"create.qianwen.com\",         \"expirationDate\": 1781751021.899401,         \"hostOnly\": true,         \"httpOnly\": false,         \"name\": \"sn\",         \"path\": \"/\",         \"sameSite\": null,         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"5d312e5c-2ccb-47fe-8d3a-df2627f56989\"     },     {         \"domain\": \"create.qianwen.com\",         \"hostOnly\": true,         \"httpOnly\": false,         \"name\": \"ctoken\",         \"path\": \"/\",         \"sameSite\": null,         \"secure\": true,         \"session\": true,         \"storeId\": null,         \"value\": \"fNPQ1Xl5tUFOrfEAA-6eueza\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1814950291.965644,         \"hostOnly\": false,         \"httpOnly\": true,         \"name\": \"tongyi_sso_ticket\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"EEO*OaMHg2Q6FQhreoU*tntMAHELF6sFvJ_vgxhqHulXw6UaAmrqcy9px2jBsljW0\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1814950291.965796,         \"hostOnly\": false,         \"httpOnly\": false,         \"name\": \"tongyi_sso_ticket_hash\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"tytk_hash:ef0c4584d2444a48e95c9625fb29862b\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1811933150.716797,         \"hostOnly\": false,         \"httpOnly\": false,         \"name\": \"_UP_HASH_UID\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"uhash:c22043b368668951eaab6f9583159a27\"     },     {         \"domain\": \"create.qianwen.com\",         \"expirationDate\": 1810694998,         \"hostOnly\": true,         \"httpOnly\": false,         \"name\": \"b-user-id\",         \"path\": \"/\",         \"sameSite\": null,         \"secure\": false,         \"session\": false,         \"storeId\": null,         \"value\": \"a6970c4f-2a46-44b8-4961-caa9f007f030\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1781001950.716686,         \"hostOnly\": false,         \"httpOnly\": true,         \"name\": \"_UP_D_\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"mobile\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1811928579.121759,         \"hostOnly\": false,         \"httpOnly\": false,         \"name\": \"theme-mode\",         \"path\": \"/\",         \"sameSite\": \"lax\",         \"secure\": false,         \"session\": false,         \"storeId\": null,         \"value\": \"light\"     },     {         \"domain\": \"create.qianwen.com\",         \"expirationDate\": 1795949143.92,         \"hostOnly\": true,         \"httpOnly\": false,         \"name\": \"__itrace_wid\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"b7edc0f6-d68d-47c0-8fa4-9b59b398268f\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1795949150.362662,         \"hostOnly\": false,         \"httpOnly\": true,         \"name\": \"_ON_EXT_DVIDN\",         \"path\": \"/\",         \"sameSite\": null,         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"eCy#AAOXqgnphvATilnODHz5P+yr7oULSqj7tEpZCIxKFsEhzz+Km1ZxpCdy68cyNtStxPQ=\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1780416949,         \"hostOnly\": false,         \"httpOnly\": false,         \"name\": \"_qk_bx_um_v1\",         \"path\": \"/\",         \"sameSite\": null,         \"secure\": false,         \"session\": false,         \"storeId\": null,         \"value\": \"eyJ1ZCI6IlQyZ0EweWN5OWRMZjJobG8zOUZQbnV2SVZuVDJSX3JkTVk5YTRFeXNtU1NNaEZiODNhNkV3Qy1feWJVZXlmbllZZDQ9IiwiZXAiOjE3ODA0MTY5NDk3ODN9\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1781001946,         \"hostOnly\": false,         \"httpOnly\": false,         \"name\": \"_qw_bx_timeout_v1\",         \"path\": \"/\",         \"sameSite\": null,         \"secure\": false,         \"session\": false,         \"storeId\": null,         \"value\": \"1000\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1811933150.716627,         \"hostOnly\": false,         \"httpOnly\": true,         \"name\": \"_UP_A4A_11_\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"wba2e1da08414ee184a250ea19511e4d\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1781001950.716444,         \"hostOnly\": false,         \"httpOnly\": true,         \"name\": \"_UP_BT_\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"html5\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1811933150.71674,         \"hostOnly\": false,         \"httpOnly\": true,         \"name\": \"_UP_KP\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"1:629:719b21b860495fa6ddb4f7cfb1d79fef:TiSxI4WeSsrZiWrXxgOb/WaBRS9eEf5DPwEHV/WJC63CIvPW92om29pq9FAE3T9NQfbfTVqsx5tboAO1HSoj+JeI0k6Uo+NZzZoR0L7sObXUJQ==\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1811933150.716854,         \"hostOnly\": false,         \"httpOnly\": false,         \"name\": \"_UP_WG_UID\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"TiTgjHo6AgPB99Mb9V8HEIMd\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1804836224.757602,         \"hostOnly\": false,         \"httpOnly\": false,         \"name\": \"cna\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"gDMLInz23FACAXWxX0NYfVP+\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1795944563,         \"hostOnly\": false,         \"httpOnly\": false,         \"name\": \"isg\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"BE9PyCTneViB6X6-FA2mvr8b3uNZdKOWAH-fFGFJDbxgMHwybUeJ58FjNmCOT3sO\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1786001024,         \"hostOnly\": false,         \"httpOnly\": false,         \"name\": \"UM_distinctid\",         \"path\": \"/\",         \"sameSite\": null,         \"secure\": false,         \"session\": false,         \"storeId\": null,         \"value\": \"19c2caf7d5113fd-0432aa1dcf92c5-4c657b58-190140-19c2caf7d52b32\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1780397750.716515,         \"hostOnly\": false,         \"httpOnly\": true,         \"name\": \"_UP_F7E_8D_\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"2YMB1H4zmCjqifxZ8t5p3Usem8D+GJzLUdRO7YsGUI/UQe+eecL3Nq/5Fqe1t+DWrmaBupKP1BjLB+L83Dn0lIDh36hnRcflW/QJYV4NNTs4VOYw7Rf+RKBmwc6sybdg4dnjse+2+rbAu1yFnsYfYpkeu7XFGZeSrx2JvDRToh7dldBvB7trVMH3IhYSoUw2AYTF7eNiF+U9DgASvb4Vfvosp+EFl7vny0TNscSZMOl8DcfixlwkYTpwSCY4564fHGA9cyxKste3pBRULSTR8JqKtWur+91uG+ofGCzsMul3NGY6wl6lBISYJ2cSDS100Hjqhb3FcWuLwSSSdvGDxA==\"     },     {         \"domain\": \".qianwen.com\",         \"expirationDate\": 1780483550.716559,         \"hostOnly\": false,         \"httpOnly\": true,         \"name\": \"_UP_6D1_64_\",         \"path\": \"/\",         \"sameSite\": \"no_restriction\",         \"secure\": true,         \"session\": false,         \"storeId\": null,         \"value\": \"069\"     } ]",
+        "access_key": "",
+        "secret_key": "",
+        "cookie": "",
+        "status": "active",
+        "priority": 5,
+        "daily_usage": 0,
+        "max_daily_usage": 100,
+        "total_usage": 0,
+        "last_used_at": null,
+        "last_check_at": null,
+        "last_error": null,
+        "points": {
+          "total": 0,
+          "gift": 0,
+          "purchase": 0,
+          "vip": false
+        },
+        "tags": [],
+        "notes": "",
+        "created_at": "2026-06-02T10:46:57.538Z",
+        "updated_at": "2026-06-02T10:46:57.538Z"
+      }
+    ]
   },
-  "api_keys": [],
+  "api_keys": [
+    {
+      "id": "key-0580244e",
+      "key": "sk-640bbef0ea4344e9abbbf597264868b3",
+      "name": "未命名",
+      "rate_limit": "100/hour",
+      "allowed_platforms": [
+        "*"
+      ],
+      "total_calls": 0,
+      "last_used_at": null,
+      "created_at": "2026-05-28T05:43:01.755Z",
+      "enabled": true
+    }
+  ],
   "settings": {
     "health_check_interval_ms": 300000,
     "auto_receive_daily_credits": true,
     "failover_strategy": "priority",
-    "rotation_strategy": "weighted-random",
+    "rotation_strategy": "priority",
     "max_retry_count": 2
   }
 }

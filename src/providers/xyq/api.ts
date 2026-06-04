@@ -10,12 +10,14 @@
 
 import _ from "lodash";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
+import { createHash } from "crypto";
 
 import util from "@/lib/util.ts";
 import logger from "@/lib/logger.ts";
 import APIException from "@/lib/exceptions/APIException.ts";
 import EX from "@/api/consts/exceptions.ts";
 import { uploadImageToXyq, XyqUploadResult } from "@/providers/xyq/upload.ts";
+import { browserSigner } from "@/lib/browser-signer.ts";
 
 const MODEL_NAME = "xyq";
 const MAX_RETRY_COUNT = 3;
@@ -24,6 +26,11 @@ const POLL_INTERVAL = 8000;
 const POLL_TIMEOUT = 300000;
 const VIDEO_POLL_TIMEOUT = 75 * 60 * 1000;
 const XYQ_BASE = "https://xyq.jianying.com";
+const SIGN_PF = "7";
+const SIGN_APPVR = "5.8.0";
+const SIGN_VER = 1;
+const SIGN_SALT_PREFIX = "9e2c|";
+const SIGN_SALT_SUFFIX = "|11ac";
 
 const FAKE_HEADERS: Record<string, string> = {
   Accept: "*/*",
@@ -60,11 +67,31 @@ function buildCookie(sessionId: string): string {
   return value ? `sessionid=${value}; sessionid_ss=${value}; sessionid_ss_pippitcn_web=${value}` : "";
 }
 
-function buildAuthHeaders(sessionId: string): Record<string, string> {
+/**
+ * 生成 xyq API 签名 headers
+ * 算法: md5("9e2c|" + url_path.slice(-7) + "|7|5.8.0|" + timestamp + "||11ac").toLowerCase()
+ */
+function generateSignHeaders(urlPath: string): Record<string, string> {
+  const timestamp = Math.floor(Date.now() / 1000);
+  const pathSuffix = urlPath.slice(-7);
+  const signInput = `${SIGN_SALT_PREFIX}${pathSuffix}|${SIGN_PF}|${SIGN_APPVR}|${timestamp}||${SIGN_SALT_SUFFIX}`;
+  const sign = createHash("md5").update(signInput).digest("hex").toLowerCase();
+  return {
+    sign,
+    "device-time": String(timestamp),
+    "sign-ver": String(SIGN_VER),
+    pf: SIGN_PF,
+  };
+}
+
+
+function buildAuthHeaders(sessionId: string, urlPath?: string): Record<string, string> {
   const cookie = buildCookie(sessionId);
+  const signHeaders = urlPath ? generateSignHeaders(urlPath) : {};
   return {
     ...FAKE_HEADERS,
     ...(cookie ? { Cookie: cookie } : {}),
+    ...signHeaders,
   };
 }
 
@@ -81,11 +108,29 @@ async function xyqRequest(
   sessionId: string,
   options: AxiosRequestConfig = {}
 ): Promise<any> {
+  const urlPath = new URL(uri, XYQ_BASE).pathname;
+
+  // 通过浏览器签名获取 anti-bot 参数（需要包含请求体以生成正确的 a_bogus）
+  let fullUrl = `${XYQ_BASE}${uri}`;
+  try {
+    const targetUrl = `${XYQ_BASE}${uri}`;
+    const bodyStr = options.data ? JSON.stringify(options.data) : undefined;
+    fullUrl = await browserSigner.getSignedUrl(targetUrl, bodyStr);
+    // 提取 anti-bot 参数用于日志
+    const urlObj = new URL(fullUrl);
+    const fp = urlObj.searchParams.get("fp")?.substring(0, 20);
+    const aBogus = urlObj.searchParams.get("a_bogus")?.substring(0, 20);
+    const msToken = urlObj.searchParams.get("msToken")?.substring(0, 20);
+    logger.info(`[XYQ] 签名成功: ${urlPath} (fp=${fp}..., a_bogus=${aBogus}..., msToken=${msToken}...)`);
+  } catch (signErr: any) {
+    logger.warn(`[XYQ] 浏览器签名失败，使用无签名请求: ${signErr.message}`);
+  }
+
   const response = await axios.request({
     method,
-    url: `${XYQ_BASE}${uri}`,
+    url: fullUrl,
     headers: {
-      ...buildAuthHeaders(sessionId),
+      ...buildAuthHeaders(sessionId, urlPath),
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
@@ -697,3 +742,4 @@ export async function createImageCompletionStream(
 
   return stream;
 }
+// trigger

@@ -31,9 +31,10 @@ import {
   createImageCompletion,
   createImageCompletionStream,
   tokenSplit,
-} from "@/providers/xyq/api.ts";
+  } from "@/providers/xyq/api.ts";
+  import { selectSingleToken } from "@/lib/service-authorization.js";
 
-/**
+  /**
  * 解析云雀 Authorization
  *
  * 优先级：
@@ -60,13 +61,12 @@ function resolveXyqAuthorization(authorization?: string): string {
  * 从 Authorization 中选取一个云雀 sessionid
  */
 function pickXyqToken(authorization?: string): string {
-  const raw = resolveXyqAuthorization(authorization);
-  const tokens = tokenSplit(raw);
-  const token = _.sample(tokens);
-  if (!token) {
-    throw new Error("云雀 Authorization 中没有可用 token");
+  const incoming = String(authorization || '').trim();
+  if (incoming) {
+    const tokens = tokenSplit(incoming);
+    if (tokens.length > 0) return tokens[0];
   }
-  return token;
+  return selectSingleToken(undefined, 'xyq');
 }
 
 export default class XyqImageProvider implements ImageProvider {

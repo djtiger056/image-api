@@ -3,31 +3,305 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Jimeng + Kling API</title>
+  <title>多平台 AI 图像与视频 API 服务</title>
   <style>
-    :root { color-scheme: dark; }
-    body { margin: 0; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background: #0b1020; color: #e5eefc; }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 48px 20px; }
-    .card { background: #121a33; border: 1px solid #273255; border-radius: 18px; padding: 28px; box-shadow: 0 12px 48px rgba(0,0,0,.24); }
-    h1 { margin: 0 0 12px; font-size: 34px; }
-    p { line-height: 1.7; color: #b9c7e8; }
-    .links { display: flex; flex-wrap: wrap; gap: 12px; margin: 22px 0 8px; }
-    a.btn { display: inline-block; padding: 12px 16px; border-radius: 12px; text-decoration: none; color: #07101f; background: #7dd3fc; font-weight: 700; }
-    a.btn.secondary { background: #c4b5fd; }
-    .hint { margin-top: 18px; font-size: 14px; color: #90a4d4; }
-    code { background: rgba(255,255,255,.08); padding: 2px 6px; border-radius: 6px; }
+    :root {
+      color-scheme: dark;
+      --primary: #60a5fa;
+      --primary-hover: #3b82f6;
+      --secondary: #a78bfa;
+      --secondary-hover: #8b5cf6;
+      --success: #34d399;
+      --bg: #0a0f1c;
+      --bg-elevated: #111827;
+      --bg-card: rgba(17, 24, 39, 0.85);
+      --border: rgba(96, 165, 250, 0.12);
+      --border-hover: rgba(96, 165, 250, 0.25);
+      --text: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+      overflow-x: hidden;
+    }
+    /* Animated background mesh */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 40%, rgba(96, 165, 250, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 40% at 80% 60%, rgba(167, 139, 250, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 30% at 50% 100%, rgba(52, 211, 153, 0.04) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .wrap { max-width: 780px; width: 100%; position: relative; z-index: 1; }
+
+    /* Hero */
+    .hero { text-align: center; margin-bottom: 36px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px; border-radius: 999px;
+      background: rgba(96, 165, 250, 0.1);
+      border: 1px solid var(--border);
+      color: var(--primary); font-size: 13px; font-weight: 500;
+      margin-bottom: 20px;
+      animation: fadeInDown 0.6s ease both;
+    }
+    .hero-badge .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--success); box-shadow: 0 0 8px var(--success);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    h1 {
+      margin: 0 0 16px;
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #34d399 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: fadeInDown 0.6s 0.1s ease both;
+    }
+    .subtitle {
+      font-size: 17px;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      line-height: 1.7;
+      animation: fadeInDown 0.6s 0.2s ease both;
+    }
+
+    /* Platform tags */
+    .platforms {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      justify-content: center; margin-bottom: 32px;
+      animation: fadeInDown 0.6s 0.3s ease both;
+    }
+    .platform-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 16px; border-radius: 999px;
+      background: rgba(96, 165, 250, 0.08);
+      border: 1px solid var(--border);
+      color: var(--primary);
+      font-size: 13px; font-weight: 500;
+      transition: all 0.25s ease;
+      cursor: default;
+    }
+    .platform-tag:hover {
+      background: rgba(96, 165, 250, 0.15);
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
+    }
+    .platform-tag .icon {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--success);
+    }
+
+    /* Main card */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 40px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      animation: fadeInDown 0.6s 0.4s ease both;
+    }
+    .card:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 28px 72px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .card p {
+      line-height: 1.8;
+      color: var(--text-secondary);
+      margin: 0 0 20px;
+      font-size: 15px;
+    }
+
+    /* Buttons */
+    .links {
+      display: flex; flex-wrap: wrap; gap: 12px;
+      justify-content: center; margin: 32px 0 12px;
+    }
+    a.btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 28px; border-radius: 14px; text-decoration: none;
+      font-weight: 700; font-size: 15px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative; overflow: hidden;
+    }
+    a.btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+      opacity: 0; transition: opacity 0.25s;
+    }
+    a.btn:hover::before { opacity: 1; }
+    a.btn:hover { transform: translateY(-2px); }
+    a.btn:active { transform: translateY(0); }
+    a.btn.primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(96, 165, 250, 0.3), 0 0 0 1px rgba(96, 165, 250, 0.2);
+    }
+    a.btn.primary:hover {
+      box-shadow: 0 8px 28px rgba(96, 165, 250, 0.4), 0 0 0 1px rgba(96, 165, 250, 0.3);
+    }
+    a.btn.secondary {
+      background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-hover) 100%);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(167, 139, 250, 0.25), 0 0 0 1px rgba(167, 139, 250, 0.2);
+    }
+    a.btn.secondary:hover {
+      box-shadow: 0 8px 28px rgba(167, 139, 250, 0.35), 0 0 0 1px rgba(167, 139, 250, 0.3);
+    }
+    a.btn.ghost {
+      background: rgba(255,255,255,0.04);
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+    a.btn.ghost:hover {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      border-color: var(--border-hover);
+    }
+
+    /* Features grid */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 32px;
+    }
+    .feature {
+      background: rgba(10, 15, 28, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 20px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .feature:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+    }
+    .feature-icon {
+      width: 48px; height: 48px; margin: 0 auto 14px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .feature:nth-child(1) .feature-icon { background: rgba(96, 165, 250, 0.12); }
+    .feature:nth-child(2) .feature-icon { background: rgba(167, 139, 250, 0.12); }
+    .feature:nth-child(3) .feature-icon { background: rgba(52, 211, 153, 0.12); }
+    .feature:nth-child(4) .feature-icon { background: rgba(251, 146, 60, 0.12); }
+    .feature-title {
+      font-size: 14px; font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .feature-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Hint */
+    .hint {
+      margin-top: 28px;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.7;
+    }
+    code {
+      background: rgba(96, 165, 250, 0.1);
+      padding: 3px 8px; border-radius: 6px;
+      font-size: 12px; color: var(--primary);
+      font-family: "SF Mono", Monaco, monospace;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      h1 { font-size: 28px; }
+      .subtitle { font-size: 15px; }
+      .card { padding: 28px 20px; }
+      .links { flex-direction: column; }
+      a.btn { width: 100%; justify-content: center; }
+      .features { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="card">
-      <h1>Jimeng + Kling 兼容 API</h1>
-      <p>这是一个把 <code>Jimeng session</code> 和 <code>Kling 登录 cookie</code> 统一收口到同一套页面与 API 的服务。</p>
-      <div class="links">
-        <a class="btn" href="/console">打开可视化控制台</a>
-        <a class="btn secondary" href="/docs/api-guide">查看外部调用说明</a>
+    <div class="hero">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        服务运行中
       </div>
-      <p class="hint">控制台里可以保存凭证、检测服务可用性、选择模型并直接生图。</p>
+      <h1>多平台 AI 图像与视频 API</h1>
+      <div class="subtitle">统一接入即梦、可灵、豆包、小云雀、通义千问等多个 AI 生图/生视频平台</div>
+      <div class="platforms">
+        <span class="platform-tag"><span class="icon"></span>即梦 Jimeng</span>
+        <span class="platform-tag"><span class="icon"></span>可灵 Kling</span>
+        <span class="platform-tag"><span class="icon"></span>豆包 Doubao</span>
+        <span class="platform-tag"><span class="icon"></span>小云雀 XYQ</span>
+        <span class="platform-tag"><span class="icon"></span>通义千问 Qwen</span>
+      </div>
+    </div>
+    <div class="card">
+      <p>本服务将多个 AI 平台的 <code>session</code> 和 <code>cookie</code> 凭证统一收口，提供标准化的 API 接口。支持文生图、图生图、文生视频、图生视频等多种创作模式。</p>
+      <div class="links">
+        <a class="btn primary" href="/console">打开生成控制台</a>
+        <a class="btn secondary" href="/accounts">账号与凭证管理</a>
+        <a class="btn ghost" href="/docs/api-guide">API 文档</a>
+      </div>
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">&#127912;</div>
+          <div class="feature-title">文生图 / 图生图</div>
+          <div class="feature-desc">支持多种比例、分辨率、风格参数精细调节</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#127916;</div>
+          <div class="feature-title">文生视频 / 图生视频</div>
+          <div class="feature-desc">多平台视频生成，自动轮询结果并回调</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#128273;</div>
+          <div class="feature-title">统一 API 接口</div>
+          <div class="feature-desc">兼容 OpenAI 格式，前端后端均可快速集成</div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">&#9881;</div>
+          <div class="feature-title">账号智能调度</div>
+          <div class="feature-desc">加权随机、优先级、轮询等多种调度策略</div>
+        </div>
+      </div>
+      <p class="hint">在控制台中可以保存凭证、检测服务可用性、选择模型并直接生成内容。<br>支持 API Key 认证，保障接口安全。</p>
     </div>
   </div>
 </body>

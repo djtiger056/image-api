@@ -7,6 +7,7 @@ import server from "@/lib/server.ts";
 import routes from "@/api/routes/index.ts";
 import logger from "@/lib/logger.ts";
 import accountManager from "@/lib/account-manager.ts";
+import { browserSigner } from "@/lib/browser-signer.ts";
 
 const startupTime = performance.now();
 
@@ -27,6 +28,11 @@ const startupTime = performance.now();
 
   config.service.bindAddress &&
     logger.success("Service bind address:", config.service.bindAddress);
+
+  // 异步启动浏览器签名服务（不阻塞服务器启动）
+  browserSigner.start().catch((err) => {
+    logger.error(`[BrowserSigner] 启动失败（不影响基础功能）: ${err.message}`);
+  });
 })()
   .then(() =>
     logger.success(
@@ -34,3 +40,4 @@ const startupTime = performance.now();
     )
   )
   .catch((err) => console.error(err));
+// trigger rebuild

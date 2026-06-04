@@ -3,7 +3,7 @@ import _ from 'lodash';
 import Request from '@/lib/request/Request.ts';
 import Response from '@/lib/response/Response.ts';
 import { tokenSplit } from '@/api/controllers/core.ts';
-import { resolveServiceAuthorization } from '@/lib/service-authorization.js';
+import { resolveServiceAuthorization, selectSingleToken } from '@/lib/service-authorization.js';
 import { createCompletion, createCompletionStream } from '@/api/controllers/chat.ts';
 
 export default {
@@ -16,10 +16,15 @@ export default {
             request
                 .validate('body.model', v => _.isUndefined(v) || _.isString(v))
                 .validate('body.messages', _.isArray)
-            const authorization = resolveServiceAuthorization(request.headers.authorization as string | undefined);
-            const tokens = tokenSplit(authorization);
-            // 随机挑选一个refresh_token
-            const token = _.sample(tokens);
+            // 按优先级选择单个 token (请求头优先，否则走账号管理器)
+            const incomingAuth = String(request.headers.authorization || '').trim();
+            let token: string;
+            if (incomingAuth) {
+                const tokens = tokenSplit(resolveServiceAuthorization(incomingAuth));
+                token = tokens[0];
+            } else {
+                token = selectSingleToken(undefined, 'jimeng');
+            }
             const { model, messages, stream } = request.body;
             if (stream) {
                 const stream = await createCompletionStream(messages, token, model);

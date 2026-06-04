@@ -15,22 +15,22 @@ export interface DoubaoModelMapping {
 
 // 用户模型名 → 豆包内部模型映射
 const DOUBAO_MODEL_MAP: Record<string, DoubaoModelMapping> = {
+  "doubao-seedream-5.0-lite": {
+    genModel: "Seedream 5.0 lite",
+    description: "豆包 Seedream 5.0 Lite 生图模型（最新，支持联网检索）",
+  },
   "doubao-seedream-4.5": {
     genModel: "Seedream 4.5",
-    description: "豆包 Seedream 4.5 生图模型（最新，默认推荐）",
+    description: "豆包 Seedream 4.5 生图模型",
   },
   "doubao-seedream-4.0": {
     genModel: "Seedream 4.0",
     description: "豆包 Seedream 4.0 生图模型",
   },
-  "doubao-seedream-3.0": {
-    genModel: "Seedream 3.0",
-    description: "豆包 Seedream 3.0 生图模型",
-  },
 };
 
-export const DEFAULT_DOUBAO_MODEL = "doubao-seedream-4.5";
-export const DEFAULT_GEN_MODEL = "Seedream 4.5";
+export const DEFAULT_DOUBAO_MODEL = "doubao-seedream-5.0-lite";
+export const DEFAULT_GEN_MODEL = "Seedream 5.0 lite";
 
 // 支持的宽高比
 export const DOUBAO_RATIOS = [
