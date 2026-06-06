@@ -705,7 +705,10 @@ class AccountManager {
       byPlatform[a.platform] = (byPlatform[a.platform] || 0) + 1;
       byStatus[a.status] = (byStatus[a.status] || 0) + 1;
       totalUsage += a.total_usage;
-      totalPoints += a.points.total;
+      // xyq 积分查询已移除，不计入总积分
+      if (a.platform !== 'xyq') {
+        totalPoints += a.points.total;
+      }
     }
 
     return {
@@ -734,7 +737,8 @@ class AccountManager {
       last_used_at: a.last_used_at,
       last_check_at: a.last_check_at,
       last_error: a.last_error,
-      points: a.points,
+      // xyq 积分查询已移除，不返回积分数据避免误导
+      points: a.platform === 'xyq' ? null : a.points,
       tags: a.tags,
       notes: a.notes,
       created_at: a.created_at,

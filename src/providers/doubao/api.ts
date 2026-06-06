@@ -127,6 +127,7 @@ export async function removeConversation(
   convId: string,
   sessionId: string
 ): Promise<void> {
+  if (!convId) return;
   try {
     const params = {
       msToken: generateFakeMsToken(),
@@ -140,10 +141,12 @@ export async function removeConversation(
       data: { conversation_id: convId },
       params,
       headers,
+      timeout: 10000,
     });
     logger.success(`[Doubao] 会话 ${convId} 删除成功`);
-  } catch (err) {
-    logger.error(`[Doubao] 删除会话 ${convId} 失败:`, err);
+  } catch (err: any) {
+    const msg = err?.code === "ECONNABORTED" ? "超时" : err?.message || err;
+    logger.warn(`[Doubao] 删除会话 ${convId} 失败 (可忽略): ${msg}`);
   }
 }
 
@@ -226,6 +229,18 @@ export async function receiveStream(stream: any): Promise<StreamResult> {
             EX.API_REQUEST_FAILED,
             `[豆包请求失败]: ${rawResult.code}-${rawResult.message}`
           );
+
+        // event_type 2005 = 错误事件（频率限制等）
+        if (rawResult.event_type === 2005) {
+          isEnd = true;
+          let errData: any;
+          try { errData = JSON.parse(rawResult.event_data); } catch { errData = {}; }
+          const errMsg = errData?.error_detail?.message || errData?.message || '未知错误';
+          const errCode = errData?.code || '';
+          logger.warn(`[Doubao SSE] 错误事件: code=${errCode}, message=${errMsg}`);
+          reject(new APIException(EX.API_REQUEST_FAILED, `[豆包请求失败]: ${errCode} - ${errMsg}`));
+          return;
+        }
 
         // event_type 2003 = 流结束
         if (rawResult.event_type === 2003) {
@@ -365,6 +380,16 @@ export function createTransStream(
           EX.API_REQUEST_FAILED,
           `[豆包请求失败]: ${rawResult.code}-${rawResult.message}`
         );
+
+      // event_type 2005 = 错误事件（频率限制等）
+      if (rawResult.event_type === 2005) {
+        let errData: any;
+        try { errData = JSON.parse(rawResult.event_data); } catch { errData = {}; }
+        const errMsg = errData?.error_detail?.message || errData?.message || '未知错误';
+        const errCode = errData?.code || '';
+        logger.warn(`[Doubao SSE] 错误事件: code=${errCode}, message=${errMsg}`);
+        throw new APIException(EX.API_REQUEST_FAILED, `[豆包请求失败]: ${errCode} - ${errMsg}`);
+      }
 
       // 流结束
       if (rawResult.event_type === 2003) {
@@ -621,10 +646,10 @@ export async function createImageCompletion(
       `[Doubao] 图片生成流传输完成 ${util.timestamp() - streamStartTime}ms`
     );
 
-    // 异步清理会话
-    removeConversation(answer.id, sessionId).catch((err) =>
-      console.error("[Doubao] 移除图片生成会话失败：", err)
-    );
+    // 异步清理会话（仅当有效 conv_id 时）
+    if (answer.id) {
+      removeConversation(answer.id, sessionId).catch(() => {});
+    }
 
     // 如果没有返回图片且还有重试次数，重试
     const imageUrls = answer.choices[0]?.message?.images || [];
@@ -773,9 +798,9 @@ export async function createImageCompletionStream(
       logger.success(
         `[Doubao] 流式图片生成传输完成 ${util.timestamp() - streamStartTime}ms`
       );
-      removeConversation(convId, sessionId).catch((err) =>
-        console.error(err)
-      );
+      if (convId) {
+        removeConversation(convId, sessionId).catch(() => {});
+      }
     });
   } catch (err: any) {
     if (retryCount < MAX_RETRY_COUNT) {

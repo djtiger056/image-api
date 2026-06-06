@@ -605,10 +605,15 @@
 
         const platformNames = { jimeng:'即梦', doubao:'豆包', kling:'可灵', xyq:'小云雀', qwen:'通义千问' };
         tbody.innerHTML = accounts.map(a => {
-          const pts = a.points || {};
-          const totalPts = pts.total || 0;
+          const pts = a.points;
+          const totalPts = pts?.total || 0;
           const ptsColor = totalPts > 0 ? 'var(--success)' : 'var(--text-muted)';
-          const ptsDetail = pts.gift ? `赠${pts.gift}` : '';
+          const ptsDetail = pts?.gift ? `赠${pts.gift}` : '';
+          const ptsCell = pts === null ? '<span style="color:var(--text-muted)">-</span>' : `
+              <span class="total" style="color:${ptsColor}">${totalPts}</span>
+              ${ptsDetail ? `<span class="detail"> ${ptsDetail}</span>` : ''}
+              ${pts?.vip ? '<span class="badge active" style="margin-left:4px;font-size:10px">VIP</span>' : ''}
+              ${a.last_check_at ? `<br><span class="detail" style="font-size:10px">${new Date(a.last_check_at).toLocaleTimeString('zh-CN')}</span>` : ''}`;
           return `
           <tr>
             <td><strong>${esc(a.name)}</strong><br><span style="font-size:11px;color:var(--text-muted)">${a.id}</span></td>
@@ -617,10 +622,7 @@
             <td>${a.priority}</td>
             <td>${a.daily_usage} / ${a.max_daily_usage}</td>
             <td class="points-display">
-              <span class="total" style="color:${ptsColor}">${totalPts}</span>
-              ${ptsDetail ? `<span class="detail"> ${ptsDetail}</span>` : ''}
-              ${pts.vip ? '<span class="badge active" style="margin-left:4px;font-size:10px">VIP</span>' : ''}
-              ${a.last_check_at ? `<br><span class="detail" style="font-size:10px">${new Date(a.last_check_at).toLocaleTimeString('zh-CN')}</span>` : ''}
+              ${ptsCell}
             </td>
             <td style="font-size:11px;color:var(--text-muted)">${a.has_sessionid ? 'SID ✓' : ''} ${a.has_authorization ? 'Auth ✓' : ''} ${a.has_access_key ? 'AK ✓' : ''} ${a.has_cookie ? '🍪 ✓' : ''}</td>
             <td style="font-size:11px;color:var(--text-muted)">${a.last_used_at ? new Date(a.last_used_at).toLocaleString('zh-CN') : '-'}</td>

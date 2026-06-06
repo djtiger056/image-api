@@ -20,3 +20,19 @@ test-*.cjs
 # OS
 .DS_Store
 Thumbs.db
+
+# Temporary check/debug scripts
+check_*.mjs
+check_*.js
+check_*.py
+check_*.sh
+
+# Backup files
+*.bak
+*.bak2
+
+# Debug artifacts
+server.err
+*.png
+*.jsonl
+__pycache__/
