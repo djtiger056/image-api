@@ -590,6 +590,10 @@ export async function createImageCompletion(
           local_conversation_id: `local_${util.generateRandomString({ length: 16, charset: "numeric" })}`,
           local_message_id: util.uuid(),
         },
+        params: {
+          msToken: generateFakeMsToken(),
+          a_bogus: generateFakeABogus(),
+        },
         headers: {
           Referer: "https://www.doubao.com/chat/",
           "agw-js-conv": "str, str",
@@ -726,6 +730,10 @@ export async function createImageCompletionStream(
           conversation_id: "0",
           local_conversation_id: `local_16${util.generateRandomString({ length: 14, charset: "numeric" })}`,
           local_message_id: util.uuid(),
+        },
+        params: {
+          msToken: generateFakeMsToken(),
+          a_bogus: generateFakeABogus(),
         },
         headers: {
           Referer: "https://www.doubao.com/chat/",

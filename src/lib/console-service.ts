@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 
 import { getCredit } from '@/api/controllers/core.ts';
-import { getCredit as getXyqCredit } from '@/providers/xyq/api.ts';
+import { checkQwenCredit } from '@/lib/browser-credit.ts';
 import { splitAuthorizationTokens, resolveServiceAuthorization } from '@/lib/service-authorization.js';
 import { resolveKlingWebStorageState } from '@/providers/kling/web-utils.ts';
 import { getQwenStatePath } from '@/providers/qwen/session.ts';
@@ -179,21 +179,20 @@ export async function getConsoleStatus({ deep = false }: { deep?: boolean } = {}
       }
     }
 
-    // Deep check
+    // Deep check（复用 jimeng 的 user_credit API）
     const xyqToken = response.credentials.xyq.token_count > 0
       ? (accountManager.getActiveTokens('xyq').split(',')[0] || String(process.env.XYQ_AUTHORIZATION || process.env.XYQ_SESSIONID || '').replace(/^Bearer\s+/i, '').split(',')[0])
       : '';
     if (deep && xyqToken) {
       try {
-        const quota = await getXyqCredit(xyqToken);
+        const { getCredit } = await import('@/api/controllers/core.ts');
+        const points = await getCredit(xyqToken);
         response.credentials.xyq.check = {
           ok: true,
-          quota: quota.map((item: any) => ({
-            scene: item.scene,
-            used: item.used,
-            total: item.total,
-            remaining: item.remaining,
-          })),
+          total_credit: points.totalCredit,
+          gift_credit: points.giftCredit,
+          purchase_credit: points.purchaseCredit,
+          vip_credit: points.vipCredit,
         };
       } catch (error) {
         response.credentials.xyq.check = {
@@ -230,6 +229,27 @@ export async function getConsoleStatus({ deep = false }: { deep?: boolean } = {}
           state_path: getQwenStatePath(),
           ...(qwenCookie ? { preview: maskSecret(qwenCookie.substring(0, 30)) } : {}),
         };
+      }
+    }
+
+    // Deep check（浏览器自动化）
+    if (deep) {
+      const qwenCookie = qwenAccounts.length > 0
+        ? (qwenAccounts[0].cookie || qwenAccounts[0].authorization || qwenAccounts[0].sessionid || '')
+        : String(process.env.QWEN_COOKIE || '').trim();
+      if (qwenCookie) {
+        try {
+          const result = await checkQwenCredit(qwenCookie);
+          response.credentials.qwen.check = {
+            ok: true,
+            total_amount: result.totalAmount,
+          };
+        } catch (error) {
+          response.credentials.qwen.check = {
+            ok: false,
+            error: (error as Error).message,
+          };
+        }
       }
     }
   } catch (error) {

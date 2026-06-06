@@ -520,7 +520,7 @@
           <div class="stat-item"><div class="sl">即梦 Jimeng</div><div class="sv" id="jimengStat">-</div></div>
           <div class="stat-item"><div class="sl">可灵 Kling</div><div class="sv" id="klingStat">-</div></div>
           <div class="stat-item"><div class="sl">豆包 Doubao</div><div class="sv" id="doubaoStat">-</div></div>
-          <div class="stat-item"><div class="sl">小云雀 XYQ</div><div class="sv" id="xyqStat">-</div></div>
+
           <div class="stat-item"><div class="sl">通义千问</div><div class="sv" id="qwenStat">-</div></div>
           <div class="stat-item"><div class="sl">模型数量</div><div class="sv" id="modelStat">-</div></div>
           <div class="stat-item"><div class="sl">控制台</div><div class="sv" style="color:var(--accent-green)">就绪</div></div>
@@ -826,7 +826,7 @@ const els = {
   jimengStat: $('jimengStat'),
   klingStat: $('klingStat'),
   doubaoStat: $('doubaoStat'),
-  xyqStat: $('xyqStat'),
+
   qwenStat: $('qwenStat'),
   modelStat: $('modelStat'),
   resultJson: $('resultJson'),
@@ -1506,12 +1506,11 @@ async function refreshStatus() {
     const jm = data?.credentials?.jimeng || {};
     const kl = data?.credentials?.kling || {};
     const db = data?.credentials?.doubao || {};
-    const xq = data?.credentials?.xyq || {};
     const qw = data?.credentials?.qwen || {};
     els.jimengStat.innerHTML = jm.configured ? `<span style="color:var(--accent-green)">✓</span> ${jm.token_count||0} token` : '<span style="color:var(--accent-red)">未配置</span>';
     els.klingStat.innerHTML = kl.configured ? `<span style="color:var(--accent-green)">✓</span> ${kl.cookies_count||0} cookies` : '<span style="color:var(--accent-red)">未配置</span>';
     els.doubaoStat.innerHTML = db.configured ? `<span style="color:var(--accent-green)">✓</span> ${db.token_count||0} token` : '<span style="color:var(--accent-red)">未配置</span>';
-    els.xyqStat.innerHTML = xq.configured ? `<span style="color:var(--accent-green)">✓</span> ${xq.token_count||0} token` : '<span style="color:var(--accent-red)">未配置</span>';
+
     els.qwenStat.innerHTML = qw.configured ? '<span style="color:var(--accent-green)">✓</span>' : '<span style="color:var(--accent-red)">未配置</span>';
     if (modelCatalog.length) els.modelStat.textContent = String(modelCatalog.length);
     setServiceBadge(true, '服务正常');

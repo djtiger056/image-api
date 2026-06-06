@@ -364,9 +364,9 @@
             <option value="xyq">小云雀</option>
             <option value="qwen">通义千问</option>
           </select>
-          <button class="btn btn-ghost btn-sm" onclick="loadAccounts()">刷新列表</button>
-          <button class="btn btn-ghost btn-sm" onclick="runHealthCheck()">账号健康检查</button>
-          <button class="btn btn-ghost btn-sm" onclick="resetDaily()">重置日调用计数</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadAccounts(false)">刷新列表</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadAccounts(true)">刷新积分</button>
+          <button class="btn btn-ghost btn-sm" onclick="runHealthCheck()">完整健康检查</button>
         </div>
         <button class="btn btn-primary" onclick="showAddModal()">+ 添加账号</button>
       </div>
@@ -582,13 +582,21 @@
     }
 
     // Accounts
-    async function loadAccounts() {
+    let creditsLoading = false;
+    async function loadAccounts(refreshCredits = false) {
       try {
         const platform = document.getElementById('platformFilter').value;
-        const url = platform ? `/admin/accounts?platform=${platform}` : '/admin/accounts';
+        let url = platform ? `/admin/accounts?platform=${platform}` : '/admin/accounts';
+        if (refreshCredits) url += (url.includes('?') ? '&' : '?') + 'refresh_credits=true';
+
+        const tbody = document.getElementById('accountsTable');
+        if (refreshCredits) {
+          creditsLoading = true;
+          tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><p>⏳ 正在刷新积分，请稍候（首次约需 10 秒）...</p></div></td></tr>';
+        }
+
         const data = await api('GET', url);
         const accounts = data.accounts || [];
-        const tbody = document.getElementById('accountsTable');
 
         if (accounts.length === 0) {
           tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><p>暂无账号，请使用右上角「添加账号」按钮创建</p></div></td></tr>';
@@ -596,7 +604,12 @@
         }
 
         const platformNames = { jimeng:'即梦', doubao:'豆包', kling:'可灵', xyq:'小云雀', qwen:'通义千问' };
-        tbody.innerHTML = accounts.map(a => `
+        tbody.innerHTML = accounts.map(a => {
+          const pts = a.points || {};
+          const totalPts = pts.total || 0;
+          const ptsColor = totalPts > 0 ? 'var(--success)' : 'var(--text-muted)';
+          const ptsDetail = pts.gift ? `赠${pts.gift}` : '';
+          return `
           <tr>
             <td><strong>${esc(a.name)}</strong><br><span style="font-size:11px;color:var(--text-muted)">${a.id}</span></td>
             <td>${platformNames[a.platform] || a.platform}</td>
@@ -604,8 +617,10 @@
             <td>${a.priority}</td>
             <td>${a.daily_usage} / ${a.max_daily_usage}</td>
             <td class="points-display">
-              <span class="total">${a.points.total}</span>
-              ${a.points.vip ? '<span class="badge active" style="margin-left:4px">VIP</span>' : ''}
+              <span class="total" style="color:${ptsColor}">${totalPts}</span>
+              ${ptsDetail ? `<span class="detail"> ${ptsDetail}</span>` : ''}
+              ${pts.vip ? '<span class="badge active" style="margin-left:4px;font-size:10px">VIP</span>' : ''}
+              ${a.last_check_at ? `<br><span class="detail" style="font-size:10px">${new Date(a.last_check_at).toLocaleTimeString('zh-CN')}</span>` : ''}
             </td>
             <td style="font-size:11px;color:var(--text-muted)">${a.has_sessionid ? 'SID ✓' : ''} ${a.has_authorization ? 'Auth ✓' : ''} ${a.has_access_key ? 'AK ✓' : ''} ${a.has_cookie ? '🍪 ✓' : ''}</td>
             <td style="font-size:11px;color:var(--text-muted)">${a.last_used_at ? new Date(a.last_used_at).toLocaleString('zh-CN') : '-'}</td>
@@ -613,14 +628,18 @@
               <button class="btn btn-ghost btn-sm" onclick="showEditModal('${a.id}')">编辑</button>
               <button class="btn btn-danger btn-sm" onclick="deleteAccount('${a.id}')">删除</button>
             </td>
-          </tr>
-        `).join('');
-      } catch (e) { toast('加载账号失败: ' + e.message, 'error'); }
+          </tr>`;
+        }).join('');
+        creditsLoading = false;
+      } catch (e) {
+        creditsLoading = false;
+        toast('加载账号失败: ' + e.message, 'error');
+      }
     }
 
     function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-    document.getElementById('platformFilter').addEventListener('change', loadAccounts);
+    document.getElementById('platformFilter').addEventListener('change', () => loadAccounts(false));
 
     // Add account
     function showAddModal() {
@@ -711,7 +730,7 @@
           toast('账号添加成功');
         }
         closeModal('addModal');
-        loadAccounts();
+        loadAccounts(false);
         loadStats();
         // Auto sync to console
         await syncToConsole();
@@ -723,7 +742,7 @@
       try {
         await api('DELETE', `/admin/accounts/${id}`);
         toast('已删除');
-        loadAccounts();
+        loadAccounts(false);
         loadStats();
         await syncToConsole();
       } catch (e) { toast('删除失败: ' + e.message, 'error'); }
@@ -734,7 +753,7 @@
         toast('正在检查...');
         await api('POST', '/admin/accounts/check', {});
         toast('健康检查完成');
-        loadAccounts();
+        loadAccounts(false);
       } catch (e) { toast('检查失败: ' + e.message, 'error'); }
     }
 
@@ -742,7 +761,7 @@
       try {
         await api('POST', '/admin/accounts/reset-daily', {});
         toast('日计数已重置');
-        loadAccounts();
+        loadAccounts(false);
       } catch (e) { toast('重置失败: ' + e.message, 'error'); }
     }
 
@@ -879,9 +898,13 @@
       } catch (e) { toast('保存失败: ' + e.message, 'error'); }
     }
 
-    // Init
+    // Init — 首次打开页面自动刷新积分（5分钟内不重复刷新）
     loadStats();
-    loadAccounts();
+    const lastCreditRefresh = parseInt(sessionStorage.getItem('lastCreditRefresh') || '0');
+    const now = Date.now();
+    const shouldRefresh = (now - lastCreditRefresh) > 5 * 60 * 1000;
+    loadAccounts(shouldRefresh);
+    if (shouldRefresh) sessionStorage.setItem('lastCreditRefresh', String(now));
     loadKeys();
     loadSettings();
 

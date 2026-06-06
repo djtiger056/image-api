@@ -16,11 +16,11 @@
         "max_daily_usage": 100,
         "total_usage": 0,
         "last_used_at": null,
-        "last_check_at": "2026-06-04T09:11:36.199Z",
+        "last_check_at": "2026-06-06T07:33:18.143Z",
         "last_error": null,
         "points": {
-          "total": 0,
-          "gift": 0,
+          "total": 88,
+          "gift": 88,
           "purchase": 0,
           "vip": false
         },
@@ -58,71 +58,15 @@
         "notes": "",
         "created_at": "2026-05-28T07:46:01.611Z",
         "updated_at": "2026-05-28T07:46:01.611Z"
-      },
-      {
-        "id": "doubao-83e785d9",
-        "name": "doubao-jiahao",
-        "platform": "doubao",
-        "sessionid": "22baceb61cc6c31eaeeb3add5d6b1367",
-        "authorization": "",
-        "access_key": "",
-        "secret_key": "",
-        "cookie": "",
-        "status": "inactive",
-        "priority": 10,
-        "daily_usage": 0,
-        "max_daily_usage": 100,
-        "total_usage": 0,
-        "last_used_at": null,
-        "last_check_at": null,
-        "last_error": "可能已失效，local.env中无对应sessionid，暂标记inactive",
-        "points": {
-          "total": 0,
-          "gift": 0,
-          "purchase": 0,
-          "vip": false
-        },
-        "tags": [],
-        "notes": "",
-        "created_at": "2026-06-02T10:51:38.115Z",
-        "updated_at": "2026-06-02T11:19:53.342Z"
       }
     ],
     "kling": [],
     "xyq": [
       {
-        "id": "xyq-9372f61a",
-        "name": "xyq-me",
-        "platform": "xyq",
-        "sessionid": "64d23531015b89fe13f79cf4f456b159",
-        "authorization": "",
-        "access_key": "",
-        "secret_key": "",
-        "cookie": "",
-        "status": "inactive",
-        "priority": 5,
-        "daily_usage": 0,
-        "max_daily_usage": 100,
-        "total_usage": 0,
-        "last_used_at": null,
-        "last_check_at": "2026-06-04T05:58:50.490Z",
-        "last_error": "sessionid错误: 使用了jimeng的sessionid，需要更新为正确的xyq sessionid",
-        "points": {
-          "total": 30,
-          "gift": 0,
-          "purchase": 0,
-          "vip": false
-        },
-        "tags": [],
-        "notes": "",
-        "created_at": "2026-06-02T13:06:59.228Z",
-        "updated_at": "2026-06-02T13:06:59.228Z"
-      },
-      {
         "id": "xyq-11fe55eb",
         "name": "xyq 账号",
         "platform": "xyq",
-        "sessionid": "64d23531015b89fe13f79cf4f456b159",
+        "sessionid": "a22d32ee8ebc4e72597fafe9237325aa",
         "authorization": "",
         "access_key": "",
         "secret_key": "",
@@ -133,7 +77,7 @@
         "max_daily_usage": 100,
         "total_usage": 0,
         "last_used_at": null,
-        "last_check_at": "2026-06-04T09:11:42.452Z",
+        "last_check_at": "2026-06-04T09:38:03.677Z",
         "last_error": null,
         "points": {
           "total": 30,
@@ -144,7 +88,7 @@
         "tags": [],
         "notes": "",
         "created_at": "2026-06-04T06:17:26.329Z",
-        "updated_at": "2026-06-04T06:17:26.329Z"
+        "updated_at": "2026-06-06T06:59:03.991Z"
       }
     ],
     "qwen": [
@@ -163,10 +107,10 @@
         "max_daily_usage": 100,
         "total_usage": 0,
         "last_used_at": null,
-        "last_check_at": "2026-06-04T09:11:50.426Z",
+        "last_check_at": "2026-06-06T07:33:25.925Z",
         "last_error": null,
         "points": {
-          "total": 85,
+          "total": 100,
           "gift": 0,
           "purchase": 0,
           "vip": false

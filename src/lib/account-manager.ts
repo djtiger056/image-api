@@ -530,18 +530,24 @@ class AccountManager {
           }
         }
 
-        // 小云雀积分检查
-        if (account.platform === 'xyq' && (account.sessionid || account.authorization)) {
+        // xyq 积分查询已移除 — 返回数据不准确，容易误导用户
+
+        // 千问积分检查（浏览器自动化，绕过 signKey 签名）
+        if (account.platform === 'qwen' && (account.authorization || account.sessionid)) {
           try {
-            const { getCredit } = await import('@/providers/xyq/api.ts');
-            const token = account.authorization || account.sessionid;
-            const quota = await getCredit(token!);
+            const { checkQwenCredit } = await import('@/lib/browser-credit.ts');
+            const cookie = account.authorization || account.sessionid;
+            const result = await checkQwenCredit(cookie!);
             account.last_check_at = nowISO();
-            if (Array.isArray(quota) && quota.length > 0) {
-              account.points.total = quota.reduce((sum: number, q: any) => sum + (q.remaining || 0), 0);
+            account.points.total = result.totalAmount;
+            if (account.status === 'expired') account.status = 'active';
+            account.last_error = null;
+          } catch (e: any) {
+            logger.debug(`[AccountManager] qwen 积分查询失败: ${e.message}`);
+            if (e.message?.includes('过期') || e.message?.includes('expired')) {
+              account.status = 'expired';
+              account.last_error = 'Cookie 已过期';
             }
-          } catch (e) {
-            // 静默处理
           }
         }
       } catch (err: any) {
@@ -549,6 +555,64 @@ class AccountManager {
         account.last_check_at = nowISO();
       }
     }
+
+    this.saveConfig();
+
+    // 关闭浏览器实例释放资源
+    try {
+      const { closeBrowser } = await import('@/lib/browser-credit.ts');
+      await closeBrowser();
+    } catch {}
+  }
+
+  /**
+   * 仅刷新积分（轻量级，不做 token 校验）
+   * 用于前端打开账号管理页面时触发
+   */
+  async refreshCredits(): Promise<void> {
+    const accounts = this.getAccounts().filter(a => a.status !== 'inactive');
+    if (accounts.length === 0) return;
+
+    logger.debug(`[AccountManager] 刷新积分 (${accounts.length} 个账号)`);
+
+    for (const account of accounts) {
+      try {
+        // jimeng: 直接 API 查积分
+        if (account.platform === 'jimeng' && (account.sessionid || account.authorization)) {
+          try {
+            const { getCredit } = await import('@/api/controllers/core.ts');
+            const token = account.authorization || account.sessionid;
+            const points = await getCredit(token!);
+            account.points = {
+              total: points.totalCredit || 0,
+              gift: points.giftCredit || 0,
+              purchase: points.purchaseCredit || 0,
+              vip: !!points.vipCredit,
+            };
+          } catch {}
+        }
+
+        // xyq 积分查询已移除 — 返回数据不准确，容易误导用户
+
+        // qwen: 浏览器自动化
+        if (account.platform === 'qwen' && (account.authorization || account.sessionid)) {
+          try {
+            const { checkQwenCredit } = await import('@/lib/browser-credit.ts');
+            const cookie = account.authorization || account.sessionid;
+            const result = await checkQwenCredit(cookie!);
+            account.points.total = result.totalAmount;
+          } catch (e: any) {
+            logger.debug(`[AccountManager] qwen 积分刷新失败: ${e.message}`);
+          }
+        }
+      } catch {}
+    }
+
+    // 关闭浏览器实例释放资源
+    try {
+      const { closeBrowser } = await import('@/lib/browser-credit.ts');
+      await closeBrowser();
+    } catch {}
 
     this.saveConfig();
   }

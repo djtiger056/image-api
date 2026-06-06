@@ -21,9 +21,17 @@ export default {
       return accountManager.getStats();
     },
 
-    // ── 账号列表 ──
+    // ── 账号列表（可选 refresh_credits=true 触发积分刷新）──
     '/accounts': async (request: Request) => {
       const platform = request.query.platform as Platform | undefined;
+      const refreshCredits = ['1', 'true', 'yes'].includes(String(request.query.refresh_credits || '').toLowerCase());
+      if (refreshCredits) {
+        try {
+          await accountManager.refreshCredits();
+        } catch (e: any) {
+          // 积分刷新失败不阻塞列表返回
+        }
+      }
       return {
         accounts: accountManager.getAccountsView(platform),
         total: accountManager.getAccounts(platform).length,
