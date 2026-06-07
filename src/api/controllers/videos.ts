@@ -300,12 +300,28 @@ const VIDEO_RESOLUTION_OPTIONS: {
   },
 };
 
+const VIDEO_RESOLUTION_ALIASES: Record<string, { sizeKey: string; upstreamResolution: string }> = {
+  "480p": { sizeKey: "480p", upstreamResolution: "1k" },
+  "720p": { sizeKey: "720p", upstreamResolution: "2k" },
+  "1080p": { sizeKey: "1080p", upstreamResolution: "4k" },
+  "1k": { sizeKey: "480p", upstreamResolution: "1k" },
+  "2k": { sizeKey: "720p", upstreamResolution: "2k" },
+  "4k": { sizeKey: "1080p", upstreamResolution: "4k" },
+};
+
 // 解析视频分辨率参数
 function resolveVideoResolution(
   resolution: string = "720p",
   ratio: string = "1:1"
-): { width: number; height: number } {
-  const resolutionGroup = VIDEO_RESOLUTION_OPTIONS[resolution];
+): { width: number; height: number; upstreamResolution: string; displayResolution: string } {
+  const normalizedResolution = String(resolution || "720p").trim().toLowerCase();
+  const resolutionAlias = VIDEO_RESOLUTION_ALIASES[normalizedResolution];
+  if (!resolutionAlias) {
+    const supportedResolutions = Object.keys(VIDEO_RESOLUTION_ALIASES).join(", ");
+    throw new Error(`不支持的视频分辨率 "${resolution}"。支持的分辨率: ${supportedResolutions}`);
+  }
+
+  const resolutionGroup = VIDEO_RESOLUTION_OPTIONS[resolutionAlias.sizeKey];
   if (!resolutionGroup) {
     const supportedResolutions = Object.keys(VIDEO_RESOLUTION_OPTIONS).join(", ");
     throw new Error(`不支持的视频分辨率 "${resolution}"。支持的分辨率: ${supportedResolutions}`);
@@ -314,12 +330,14 @@ function resolveVideoResolution(
   const ratioConfig = resolutionGroup[ratio];
   if (!ratioConfig) {
     const supportedRatios = Object.keys(resolutionGroup).join(", ");
-    throw new Error(`在 "${resolution}" 分辨率下，不支持的比例 "${ratio}"。支持的比例: ${supportedRatios}`);
+    throw new Error(`在 "${normalizedResolution}" 分辨率下，不支持的比例 "${ratio}"。支持的比例: ${supportedRatios}`);
   }
 
   return {
     width: ratioConfig.width,
     height: ratioConfig.height,
+    upstreamResolution: resolutionAlias.upstreamResolution,
+    displayResolution: normalizedResolution,
   };
 }
 
@@ -532,7 +550,8 @@ function calculateCRC32(buffer: ArrayBuffer): string {
 // 视频专用图片上传功能（基于 images.ts 的 uploadImageFromUrl）
 async function uploadImageForVideo(imageUrl: string, refreshToken: string, regionInfo?: import("./core.ts").RegionInfo): Promise<string> {
   try {
-    logger.info(`开始上传视频图片: ${imageUrl}`);
+    const isDataUrl = util.isBASE64Data(imageUrl);
+    logger.info(`开始上传视频图片: ${isDataUrl ? "data URL" : imageUrl}`);
 
     const ri = regionInfo || parseRegionFromToken(refreshToken);
     const rf = regionFetch(ri);
@@ -556,13 +575,19 @@ async function uploadImageForVideo(imageUrl: string, refreshToken: string, regio
     const actualServiceId = resolveServiceId(tokenResult, ri);
     logger.info(`获取上传令牌成功: service_id=${actualServiceId}`);
 
-    // 下载图片数据
-    const imageResponse = await fetch(imageUrl);
-    if (!imageResponse.ok) {
-      throw new Error(`下载图片失败: ${imageResponse.status}`);
+    let imageBuffer: ArrayBuffer;
+    if (isDataUrl) {
+      const base64Data = util.removeBASE64DataHeader(imageUrl);
+      const buffer = Buffer.from(base64Data, "base64");
+      imageBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    } else {
+      // 下载图片数据
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`下载图片失败: ${imageResponse.status}`);
+      }
+      imageBuffer = await imageResponse.arrayBuffer();
     }
-
-    const imageBuffer = await imageResponse.arrayBuffer();
     const fileSize = imageBuffer.byteLength;
     const crc32 = calculateCRC32(imageBuffer);
 
@@ -1340,9 +1365,9 @@ export async function generateVideo(
     filePaths,
     files,
   });
-  const { width, height } = resolveVideoResolution(resolution, videoRatio);
+  const { width, height, upstreamResolution, displayResolution } = resolveVideoResolution(resolution, videoRatio);
 
-  logger.info(`使用模型: ${_model} 映射模型: ${model} ${width}x${height} (${videoRatio}@${resolution}) 时长: ${duration}秒`);
+  logger.info(`使用模型: ${_model} 映射模型: ${model} ${width}x${height} (${videoRatio}@${displayResolution}->${upstreamResolution}) 时长: ${duration}秒`);
 
   // 检查积分
   const { totalCredit } = await getCredit(refreshToken);
@@ -1601,7 +1626,6 @@ export async function generateVideo(
                     id: util.uuid(),
                     min_version: "3.0.5",
                     prompt: prompt,
-                    resolution: resolution,
                     type: "",
                     video_mode: 2
                   }]
@@ -1938,10 +1962,10 @@ export async function generateSeedanceVideo(
   }
 
   if (uploadedMaterials.length === 0) {
-    throw new APIException(EX.API_REQUEST_FAILED, 'Seedance 2.0 需要至少一个文件（图片/视频/音频）');
+    logger.info('Seedance: 无素材文件，使用纯文本生成模式 (text-to-video)');
+  } else {
+    logger.info(`Seedance: 成功上传 ${uploadedMaterials.length} 个文件`);
   }
-
-  logger.info(`Seedance: 成功上传 ${uploadedMaterials.length} 个文件`);
 
   // 动态 benefit_type：包含视频素材时追加 _with_video 后缀
   const hasVideoMaterial = uploadedMaterials.some(m => m.type === "video");
@@ -2473,10 +2497,10 @@ async function generateInternationalVideoCore(
     filePaths,
     files,
   });
-  const { width, height } = resolveVideoResolution(resolution, videoRatio);
+  const { width, height, upstreamResolution, displayResolution } = resolveVideoResolution(resolution, videoRatio);
   const draftVersion = getInternationalVideoDraftVersion(_model);
 
-  logger.info(`国际普通视频生成: 模型=${_model} 映射=${model} ${width}x${height} (${videoRatio}@${resolution}) 时长=${duration}秒`);
+  logger.info(`国际普通视频生成: 模型=${_model} 映射=${model} ${width}x${height} (${videoRatio}@${displayResolution}->${upstreamResolution}) 时长=${duration}秒`);
 
   const { totalCredit } = await getCredit(refreshToken);
   if (totalCredit <= 0) await receiveCredit(refreshToken);
@@ -2548,13 +2572,12 @@ async function generateInternationalVideoCore(
     sceneOptions: JSON.stringify([{
       type: "video",
       scene: "BasicVideoGenerateButton",
-      resolution,
       modelReqKey: model,
       videoDuration: duration,
       reportParams: {
         enterSource: "generate",
         vipSource: "generate",
-        extraVipFunctionKey: `${model}-${resolution}`,
+        extraVipFunctionKey: model,
         useVipFunctionDetailsReporterHoc: true,
       },
       materialTypes: [],
@@ -2635,7 +2658,6 @@ async function generateInternationalVideoCore(
                   id: util.uuid(),
                   min_version: "3.0.5",
                   prompt,
-                  resolution,
                   type: "",
                   video_mode: 2,
                   idip_meta_list: [],
@@ -3757,9 +3779,9 @@ async function _generateVideoWithHistoryId(
     filePaths,
     files,
   });
-  const { width, height } = resolveVideoResolution(resolution, videoRatio);
+  const { width, height, upstreamResolution, displayResolution } = resolveVideoResolution(resolution, videoRatio);
 
-  logger.info(`异步任务-普通视频: 模型=${_model} 映射=${model} ${width}x${height} (${videoRatio}@${resolution}) 时长=${duration}秒`);
+  logger.info(`异步任务-普通视频: 模型=${_model} 映射=${model} ${width}x${height} (${videoRatio}@${displayResolution}->${upstreamResolution}) 时长=${duration}秒`);
 
   // 检查积分
   const { totalCredit } = await getCredit(refreshToken);
@@ -3849,7 +3871,7 @@ async function _generateVideoWithHistoryId(
                 "video_aspect_ratio": aspectRatio,
                 "video_gen_inputs": [{
                   duration_ms: duration * 1000, first_frame_image, end_frame_image,
-                  fps: 24, id: util.uuid(), min_version: "3.0.5", prompt, resolution, type: "", video_mode: 2
+                  fps: 24, id: util.uuid(), min_version: "3.0.5", prompt, type: "", video_mode: 2
                 }]
               },
               "video_task_extra": metricsExtra,

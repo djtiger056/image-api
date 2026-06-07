@@ -286,9 +286,9 @@
     <hr />
     <h3>Base URL</h3>
     <pre><code>http://&lt;your-server&gt;:&lt;port&gt;</code></pre>
-    <p>所有接口路径均相对于此 Base URL。部署后请替换为你的实际服务地址。端口默认 <code>8006</code>（可在 <code>local.env</code> 中通过 <code>PORT</code> 修改）。</p>
+    <p>所有接口路径均相对于此 Base URL。部署后请替换为你的实际服务地址。端口默认 <code>8006</code>（可在 <code>local.env</code> 中通过 <code>SERVER_PORT</code> 修改，也可启动时传 <code>--port</code>）。</p>
     <h3>Content-Type</h3>
-    <p>所有 POST 请求均需设置 <code>Content-Type: application/json</code>，图生图文件上传使用 <code>multipart/form-data</code>。</p>
+    <p>POST JSON 请求设置 <code>Content-Type: application/json</code>；本地文件上传使用 <code>multipart/form-data</code>。</p>
   </div>
 
   <!-- ==================== 认证 ==================== -->
@@ -296,18 +296,18 @@
     <h2>1. 认证方式</h2>
     <p>本服务有两层认证：</p>
     <h3>1.1 服务级 API Key（可选）</h3>
-    <p>如果服务端配置了 <code>SERVER_API_KEY</code> 或 <code>SERVER_API_KEYS</code>，所有请求需携带：</p>
+    <p>如果服务端配置了 <code>SERVER_API_KEY</code> 或 <code>SERVER_API_KEYS</code>，生成、Token、Chat 等业务接口需携带：</p>
     <pre><code>x-api-key: your-api-key</code></pre>
     <div class="tip">
       <strong>💡 说明</strong>
-      未配置 API Key 时此 header 可省略。控制台页面和外部调用规则一致。
+      未配置 API Key 时此 header 可省略。控制台、文档、健康检查等公开页面会放行；业务接口仍建议由你的后端统一中转调用。
     </div>
 
     <h3>1.2 上游平台凭证</h3>
     <p>用于授权上游平台（即梦、豆包等）执行生成任务。两种方式：</p>
     <ul>
       <li><strong>服务端配置（推荐）</strong>：在 <code>local.env</code> 或 <code>configs/accounts.json</code> 中预置凭证，调用时无需传 <code>Authorization</code></li>
-      <li><strong>请求时传入</strong>：通过 <code>Authorization: Bearer &lt;sessionid&gt;</code> 传入，多账号用逗号分隔</li>
+      <li><strong>请求时传入</strong>：通过 <code>Authorization: Bearer &lt;sessionid&gt;</code> 传入。即梦/豆包/小云雀多账号通常用逗号分隔；Qwen 多账号用 <code>|||</code> 分隔完整 Cookie</li>
     </ul>
     <pre><code># 服务端已配置凭证时，无需传 Authorization
 curl -X POST http://your-server:8006/v1/images/generations \
@@ -404,13 +404,13 @@ curl -X POST http://your-server:8006/v1/images/generations \
         <span class="param-name">ratio</span>
         <span class="param-type">string</span>
         <span class="param-required">可选</span>
-        <span class="param-desc">图片比例：<code>1:1</code> <code>16:9</code> <code>9:16</code> <code>4:3</code> <code>3:4</code> <code>3:2</code> <code>2:3</code> <code>21:9</code>（豆包/小云雀/即梦），<code>auto</code>（千问），默认 <code>1:1</code></span>
+        <span class="param-desc">图片比例：<code>1:1</code> <code>16:9</code> <code>9:16</code> <code>4:3</code> <code>3:4</code>。即梦/豆包/小云雀还支持 <code>3:2</code> <code>2:3</code> <code>21:9</code>；千问图片还支持 <code>auto</code>。默认 <code>1:1</code></span>
       </div>
       <div class="param">
         <span class="param-name">resolution</span>
         <span class="param-type">string</span>
         <span class="param-required">可选</span>
-        <span class="param-desc">分辨率：<code>1k</code> <code>2k</code>，默认 <code>1k</code>。仅 <code>wan2.7-image</code> 支持自定义分辨率；即梦/豆包/小云雀使用平台默认分辨率（约2K），其他千问模型不支持此参数</span>
+        <span class="param-desc">分辨率：即梦支持 <code>1k</code> <code>2k</code> <code>4k</code>，默认 <code>2k</code>；可灵按上游能力支持 <code>1k</code>/<code>2k</code>；豆包/小云雀/千问图片当前会忽略此参数或使用平台默认能力</span>
       </div>
       <div class="param">
         <span class="param-name">negative_prompt</span>
@@ -422,25 +422,25 @@ curl -X POST http://your-server:8006/v1/images/generations \
         <span class="param-name">images</span>
         <span class="param-type">string[]</span>
         <span class="param-required">可选</span>
-        <span class="param-desc">图生图：URL 数组或含 url 字段的对象数组，最多 10 张</span>
+        <span class="param-desc">图生图：URL / data URL 数组或含 <code>url</code> 字段的对象数组，最多 10 张；multipart 上传使用字段名 <code>images</code> 或 <code>files</code></span>
       </div>
       <div class="param">
         <span class="param-name">n</span>
         <span class="param-type">number</span>
         <span class="param-required">可选</span>
-        <span class="param-desc">生成图片数量，默认 1</span>
+        <span class="param-desc">生成图片数量，默认 1。统一路由会按 <code>n</code> 截取返回结果；实际生成数量仍受上游平台限制</span>
       </div>
       <div class="param">
         <span class="param-name">sample_strength</span>
         <span class="param-type">number</span>
         <span class="param-required">可选</span>
-        <span class="param-desc">采样强度，控制生成的随机性</span>
+        <span class="param-desc">参考图/生成强度，主要用于即梦图生图与即梦生图链路，默认 <code>0.5</code></span>
       </div>
       <div class="param">
         <span class="param-name">intelligent_ratio</span>
         <span class="param-type">boolean</span>
         <span class="param-required">可选</span>
-        <span class="param-desc">智能比例，让模型自动选择最佳比例</span>
+        <span class="param-desc">智能比例，主要用于即梦链路</span>
       </div>
       <div class="param">
         <span class="param-name">response_format</span>
@@ -463,7 +463,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
     </div>
     <div class="tip warn">
       <strong>⚠️ 注意</strong>
-      不支持 <code>size</code>、<code>width</code>、<code>height</code> 参数，请统一使用 <code>ratio</code> 控制比例。即梦/豆包/小云雀使用平台默认分辨率（约2K），仅千问 <code>wan2.7-image</code> 支持通过 <code>resolution</code> 参数自定义 <code>1k</code>/<code>2k</code>。
+      不支持 <code>size</code>、<code>width</code>、<code>height</code> 参数，请统一使用 <code>ratio</code> 控制比例；需要控制清晰度时再按具体模型传 <code>resolution</code>。不同 provider 对 <code>negative_prompt</code>、<code>sample_strength</code>、<code>intelligent_ratio</code> 的支持不一致，未支持时会被忽略。
     </div>
 
     <h3>4.2 支持的图片模型</h3>
@@ -484,7 +484,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
         <tr><td><code>xyq-seedream-4.0</code></td><td>小云雀</td><td>小云雀 Seedream 4.0</td></tr>
         <tr><td><code>xyq-seedream-4.5</code></td><td>小云雀</td><td>小云雀 Seedream 4.5</td></tr>
         <tr><td><code>xyq-seedream-5.0</code></td><td>小云雀</td><td>小云雀 Seedream 5.0（最新）</td></tr>
-        <tr><td><code>wan2.7-image</code> <span class="tag tag-free">免费</span></td><td>千问</td><td>Wan 2.7-Image（最新，支持多图参考，支持1K/2K）</td></tr>
+        <tr><td><code>wan2.7-image</code> <span class="tag tag-free">免费</span></td><td>千问</td><td>Wan 2.7-Image（最新，支持多图参考，分辨率使用平台默认能力）</td></tr>
         <tr><td><code>qwen-image-1.0</code> <span class="tag tag-free">免费</span></td><td>千问</td><td>Qwen-Image 1.0</td></tr>
         <tr><td><code>qwen-image-1.0-pro</code> <span class="tag tag-free">免费</span></td><td>千问</td><td>Qwen-Image 1.0 Pro</td></tr>
         <tr><td><code>qwen-image-2.0</code> <span class="tag tag-free">免费</span></td><td>千问</td><td>Qwen-Image 2.0（最新）</td></tr>
@@ -510,7 +510,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
   }'</code></pre>
 
     <h3>4.5 图生图示例</h3>
-    <pre><code>curl -X POST http://your-server:8006/v1/images/generations \
+    <pre><code>curl -X POST http://your-server:8006/v1/images/compositions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "jimeng-4.5",
@@ -519,10 +519,14 @@ curl -X POST http://your-server:8006/v1/images/generations \
     "ratio": "1:1"
   }'</code></pre>
     <p>也支持 <code>multipart/form-data</code> 文件上传：</p>
-    <pre><code>curl -X POST http://your-server:8006/v1/images/generations \
+    <pre><code>curl -X POST http://your-server:8006/v1/images/compositions \
   -F "model=jimeng-4.5" \
   -F "prompt=转换为油画风格" \
   -F "images=@/path/to/image.jpg"</code></pre>
+    <div class="tip">
+      <strong>💡 说明</strong>
+      <code>/v1/images/generations</code> 也会读取 <code>images</code> 参数并自动走图生图；外部项目接入建议显式使用 <code>/v1/images/compositions</code>，这样服务会强制校验至少有 1 张参考图。
+    </div>
 
     <h3>4.6 可灵网页模式生图</h3>
     <pre><code>curl -X POST http://your-server:8006/v1/images/generations \
@@ -655,12 +659,8 @@ curl -X POST http://your-server:8006/v1/images/generations \
       <table>
         <tr><th>模型 ID</th><th>说明</th><th>时长</th></tr>
         <tr><td><code>jimeng-video-3.5-pro</code></td><td>即梦 3.5 专业版</td><td>5/10s</td></tr>
-        <tr><td><code>jimeng-video-3.0-pro</code></td><td>即梦 3.0 专业版</td><td>5/10s</td></tr>
-        <tr><td><code>jimeng-video-3.0</code></td><td>即梦 3.0</td><td>5/10s</td></tr>
-        <tr><td><code>seedance-2.0</code></td><td>Seedance 2.0 多图智能视频</td><td>4-15s</td></tr>
-        <tr><td><code>seedance-2.0-fast</code></td><td>Seedance 2.0 Fast 快速版</td><td>4-15s</td></tr>
-        <tr><td><code>seedance-2.0-fast-vip</code></td><td>Seedance 2.0 Fast VIP（支持文生视频+图生视频）</td><td>4-15s</td></tr>
-        <tr><td><code>seedance-2.0-vip</code></td><td>Seedance 2.0 VIP Pro（主模态能力）</td><td>4-15s</td></tr>
+        <tr><td><code>jimeng-video-seedance-2.0</code></td><td>Seedance 2.0 多图智能视频</td><td>4-15s</td></tr>
+        <tr><td><code>jimeng-video-seedance-2.0-fast</code></td><td>Seedance 2.0 Fast 快速版</td><td>4-15s</td></tr>
       </table>
     </div>
 
@@ -668,7 +668,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
     <pre><code>curl -X POST http://your-server:8006/v1/videos/generations \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "seedance-2.0-fast",
+    "model": "jimeng-video-seedance-2.0-fast",
     "prompt": "一只小猫在花园里追逐蝴蝶，阳光明媚",
     "ratio": "16:9",
     "duration": 5
@@ -678,7 +678,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
     <pre><code>curl -X POST http://your-server:8006/v1/videos/generations \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "seedance-2.0-fast",
+    "model": "jimeng-video-seedance-2.0-fast",
     "prompt": "@1 中的人物抬头看向镜头，然后微笑",
     "ratio": "4:3",
     "duration": 4,
@@ -704,7 +704,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
   <div class="card" id="s7">
     <h2>7. 豆包视频生成</h2>
     <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/doubao/videos/generations</code></pre>
-    <p>豆包 Seedance 2.0 Fast 视频生成，<span class="tag tag-free">每日 10 次免费额度</span>。</p>
+    <p>豆包 Seedance 2.0 Fast 视频生成，<span class="tag tag-free">每日 10 次免费额度</span>。当前服务固定生成 10 秒视频。</p>
 
     <h3>7.1 请求参数</h3>
     <div class="param-group">
@@ -730,7 +730,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
         <span class="param-name">duration</span>
         <span class="param-type">number</span>
         <span class="param-required">可选</span>
-        <span class="param-desc">固定 5 秒（消耗 1 额度）</span>
+        <span class="param-desc">固定 10 秒（当前服务会忽略传入值并按 10 秒提交）</span>
       </div>
       <div class="param">
         <span class="param-name">images</span>
@@ -739,16 +739,16 @@ curl -X POST http://your-server:8006/v1/images/generations \
         <span class="param-desc">参考图 URL 数组（图生视频模式）</span>
       </div>
       <div class="param">
-        <span class="param-name">resolution</span>
-        <span class="param-type">string</span>
-        <span class="param-required">可选</span>
-        <span class="param-desc">分辨率（按上游能力）</span>
-      </div>
-      <div class="param">
-        <span class="param-name">timeout_ms</span>
+        <span class="param-name">poll_timeout_ms</span>
         <span class="param-type">number</span>
         <span class="param-required">可选</span>
-        <span class="param-desc">超时时间（毫秒），默认 300000</span>
+        <span class="param-desc">轮询超时时间（毫秒），默认约 600000</span>
+      </div>
+      <div class="param">
+        <span class="param-name">poll_interval_ms</span>
+        <span class="param-type">number</span>
+        <span class="param-required">可选</span>
+        <span class="param-desc">轮询间隔（毫秒）</span>
       </div>
       <div class="param">
         <span class="param-name">response_format</span>
@@ -782,7 +782,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
 
     <h3>7.4 SSE 流式接口</h3>
     <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/doubao/videos/generations/stream</code></pre>
-    <p>与上述参数一致，返回 <code>text/event-stream</code> 格式，实时推送生成进度。</p>
+    <p>与上述参数一致，返回 <code>text/event-stream</code> 格式，实时推送生成进度。流式接口不支持 <code>response_format</code>。</p>
 
     <h3>7.5 响应格式</h3>
     <span class="resp-label ok">成功</span>
@@ -837,7 +837,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
         <span class="param-name">duration</span>
         <span class="param-type">number</span>
         <span class="param-required">可选</span>
-        <span class="param-desc">2-15 秒，默认 5</span>
+        <span class="param-desc">按模型限制自动归一化：<code>wan2.7-t2v</code> / <code>wan2.6-t2v</code> 支持 2-15 秒，<code>qwen-happyhorse-1.0</code> 支持 5/10 秒</span>
       </div>
       <div class="param">
         <span class="param-name">images</span>
@@ -849,7 +849,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
         <span class="param-name">timeout_ms</span>
         <span class="param-type">number</span>
         <span class="param-required">可选</span>
-        <span class="param-desc">超时时间（毫秒），默认 300000</span>
+        <span class="param-desc">超时时间（毫秒），默认约 420000</span>
       </div>
       <div class="param">
         <span class="param-name">response_format</span>
@@ -864,7 +864,6 @@ curl -X POST http://your-server:8006/v1/images/generations \
       <table>
         <tr><th>模型 ID</th><th>说明</th><th>文生视频</th><th>图生视频</th><th>时长</th><th>分辨率</th></tr>
         <tr><td><code>wan2.7-t2v</code> <span class="tag tag-new">推荐</span></td><td>Wan 2.7 最新版</td><td>✅</td><td>✅ 首帧参考图</td><td>2-15s</td><td>720P / 1080P</td></tr>
-        <tr><td><code>wan2.7-t2v-2026-04-25</code></td><td>Wan 2.7 快照版</td><td>✅</td><td>✅ 首帧参考图</td><td>2-15s</td><td>720P / 1080P</td></tr>
         <tr><td><code>wan2.6-t2v</code></td><td>Wan 2.6</td><td>✅</td><td>❌</td><td>2-15s</td><td>720P / 1080P</td></tr>
         <tr><td><code>qwen-happyhorse-1.0</code></td><td>HappyHorse 1.0</td><td>✅</td><td>❌</td><td>5/10s</td><td>720P</td></tr>
       </table>
@@ -929,7 +928,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
         <span class="param-name">duration</span>
         <span class="param-type">number</span>
         <span class="param-required">可选</span>
-        <span class="param-desc">视频时长（秒），默认 5</span>
+        <span class="param-desc">视频时长（秒），支持 5 或 10，默认 5</span>
       </div>
       <div class="param">
         <span class="param-name">images</span>
@@ -980,7 +979,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
 
     <h3>10.1 提交异步任务</h3>
     <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/videos/generations/async</code></pre>
-    <p>参数与 <code>/v1/videos/generations</code> 一致，返回 taskId。</p>
+    <p>参数与 <code>/v1/videos/generations</code> 一致，立即返回 <code>task_id</code>，再通过查询接口轮询结果。</p>
     <pre><code>curl -X POST http://your-server:8006/v1/videos/generations/async \
   -H "Content-Type: application/json" \
   -d '{
@@ -991,9 +990,10 @@ curl -X POST http://your-server:8006/v1/images/generations \
   }'</code></pre>
     <span class="resp-label ok">响应</span>
     <pre><code>{
+  "created": 1717000000,
   "task_id": "abc123-def456",
-  "status": "submitted",
-  "model": "jimeng-video-3.5-pro"
+  "status": "processing",
+  "message": "任务已提交，请使用 GET /v1/videos/generations/async/{task_id} 查询结果"
 }</code></pre>
 
     <h3>10.2 查询任务结果</h3>
@@ -1001,22 +1001,34 @@ curl -X POST http://your-server:8006/v1/images/generations \
     <pre><code>curl http://your-server:8006/v1/videos/generations/async/abc123-def456</code></pre>
     <span class="resp-label ok">已完成</span>
     <pre><code>{
-  "status": "completed",
-  "data": [{ "url": "https://example.com/result.mp4" }]
+  "created": 1717000000,
+  "task_id": "abc123-def456",
+  "status": "succeeded",
+  "data": [
+    {
+      "url": "https://example.com/result.mp4",
+      "revised_prompt": "日落时分，海浪轻拍沙滩"
+    }
+  ]
 }</code></pre>
     <span class="resp-label err">处理中</span>
     <pre><code>{
+  "created": 1717000000,
+  "task_id": "abc123-def456",
   "status": "processing",
-  "progress": "60%"
+  "message": "任务处理中"
 }</code></pre>
 
     <h3>10.3 国际版异步接口</h3>
-    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/videos/international/generations</code></pre>
-    <p>适用于国际版 Seedance 模型（hk-/jp-/sg- token），支持模型：</p>
+    <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /v1/videos/international/generations
+<span class="tag tag-post">POST</span> /v1/videos/international/generations/async
+<span class="tag tag-get">GET</span> /v1/videos/international/generations/async/:taskId</code></pre>
+    <p>适用于国际版 token（如 hk-/jp-/sg- token）。同步接口返回视频 URL；异步接口提交与查询的响应结构同 10.1/10.2。</p>
+    <p>支持模型：</p>
     <ul>
-      <li><code>seedance-2.0-fast</code> / <code>seedance-2.0-pro</code></li>
-      <li><code>seedance-2.0-fast-vip</code> / <code>seedance-2.0-vip</code></li>
-      <li><code>jimeng-video-3.5-pro</code> / <code>jimeng-video-3.0</code> / <code>jimeng-video-3.0-pro</code></li>
+      <li><code>jimeng-video-seedance-2.0-fast</code>（Seedance 快速版，素材输入，4-15 秒）</li>
+      <li><code>jimeng-video-seedance-2.0</code>（Seedance Pro，素材输入，4-15 秒）</li>
+      <li><code>jimeng-video-3.5-pro</code>（普通视频，5/10 秒）</li>
     </ul>
   </div>
 
@@ -1042,14 +1054,30 @@ curl -X POST http://your-server:8006/v1/images/generations \
 
     <h3>11.2 账户积分/额度查询</h3>
     <pre><code class="lang-bash"><span class="tag tag-post">POST</span> /token/points</code></pre>
-    <p>查询即梦和小云雀的积分/额度情况。凭证通过 <code>Authorization</code> header 传入。</p>
+    <p>查询即梦和小云雀的积分/额度情况。即梦凭证优先使用 <code>Authorization</code> header，未传时使用服务端账号配置；小云雀额度使用服务端已配置的 <code>XYQ_AUTHORIZATION</code> / <code>XYQ_SESSIONID</code> 或账号池。</p>
     <pre><code>curl -X POST http://your-server:8006/token/points \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-sessionid"</code></pre>
     <span class="resp-label ok">响应</span>
     <pre><code>[
-  { "token": "***", "provider": "jimeng", "points": 1500 },
-  { "token": "***", "provider": "xyq", "quota": { "remaining": 50, "total": 100 } }
+  {
+    "token": "***",
+    "provider": "jimeng",
+    "points": {
+      "giftCredit": 0,
+      "purchaseCredit": 0,
+      "vipCredit": 0,
+      "freeCredits": 1500,
+      "totalCredit": 1500
+    }
+  },
+  {
+    "token": "***",
+    "provider": "xyq",
+    "quota": [
+      { "scene": "image", "used": 0, "total": 100, "remaining": 100 }
+    ]
+  }
 ]</code></pre>
   </div>
 
@@ -1113,7 +1141,7 @@ curl -X POST http://your-server:8006/v1/images/generations \
         <tr><td><code>doubao-seedream-4.0</code></td><td>豆包</td><td>需登录</td><td>豆包兼容</td></tr>
         <tr><td><code>xyq-seedream-5.0</code></td><td>小云雀</td><td>需登录</td><td>小云雀最新</td></tr>
         <tr><td><code>xyq-seedream-4.5</code> / <code>4.0</code></td><td>小云雀</td><td>需登录</td><td>小云雀兼容</td></tr>
-        <tr><td><code>wan2.7-image</code></td><td>千问</td><td><span class="tag tag-free">免费</span></td><td>千问最新，支持1K/2K与多图参考</td></tr>
+        <tr><td><code>wan2.7-image</code></td><td>千问</td><td><span class="tag tag-free">免费</span></td><td>千问最新，支持多图参考，分辨率使用平台默认能力</td></tr>
         <tr><td><code>qwen-image-2.0</code></td><td>千问</td><td><span class="tag tag-free">免费</span></td><td>免费高品质</td></tr>
         <tr><td><code>qwen-image-1.0-pro</code> / <code>1.0</code></td><td>千问</td><td><span class="tag tag-free">免费</span></td><td>免费生图</td></tr>
         <tr><td><code>seedream-5.0</code> / <code>4.5</code> / <code>4.0</code></td><td>统一</td><td>自动轮询</td><td><strong>推荐</strong>：自动选择最优平台</td></tr>
@@ -1124,16 +1152,13 @@ curl -X POST http://your-server:8006/v1/images/generations \
     <div class="table-wrap">
       <table>
         <tr><th>模型 ID</th><th>接口</th><th>免费</th><th>文生视频</th><th>图生视频</th><th>时长</th></tr>
-        <tr><td><code>doubao-seedance-2.0-fast</code></td><td>/v1/doubao/videos/generations</td><td><span class="tag tag-free">每日10次</span></td><td>✅</td><td>✅参考图</td><td>5s</td></tr>
+        <tr><td><code>doubao-seedance-2.0-fast</code></td><td>/v1/doubao/videos/generations</td><td><span class="tag tag-free">每日10次</span></td><td>✅</td><td>✅参考图</td><td>10s</td></tr>
         <tr><td><code>wan2.7-t2v</code></td><td>/v1/qwen/videos/generations</td><td><span class="tag tag-free">免费</span></td><td>✅</td><td>✅首帧</td><td>2-15s</td></tr>
         <tr><td><code>wan2.6-t2v</code></td><td>/v1/qwen/videos/generations</td><td><span class="tag tag-free">免费</span></td><td>✅</td><td>❌</td><td>2-15s</td></tr>
         <tr><td><code>qwen-happyhorse-1.0</code></td><td>/v1/qwen/videos/generations</td><td><span class="tag tag-free">免费</span></td><td>✅</td><td>❌</td><td>5/10s</td></tr>
-        <tr><td><code>seedance-2.0</code></td><td>/v1/videos/generations</td><td>需登录</td><td>✅</td><td>✅素材</td><td>4-15s</td></tr>
-        <tr><td><code>seedance-2.0-fast</code></td><td>/v1/videos/generations</td><td>需登录</td><td>✅</td><td>✅素材</td><td>4-15s</td></tr>
-        <tr><td><code>seedance-2.0-fast-vip</code></td><td>/v1/videos/generations</td><td>需会员</td><td>✅</td><td>✅素材</td><td>4-15s</td></tr>
-        <tr><td><code>seedance-2.0-vip</code></td><td>/v1/videos/generations</td><td>需会员</td><td>✅</td><td>✅素材</td><td>4-15s</td></tr>
+        <tr><td><code>jimeng-video-seedance-2.0</code></td><td>/v1/videos/generations</td><td>需登录</td><td>✅</td><td>✅素材</td><td>4-15s</td></tr>
+        <tr><td><code>jimeng-video-seedance-2.0-fast</code></td><td>/v1/videos/generations</td><td>需登录</td><td>✅</td><td>✅素材</td><td>4-15s</td></tr>
         <tr><td><code>jimeng-video-3.5-pro</code></td><td>/v1/videos/generations</td><td>需登录</td><td>✅</td><td>✅首尾帧</td><td>5/10s</td></tr>
-        <tr><td><code>jimeng-video-3.0-pro</code> / <code>3.0</code></td><td>/v1/videos/generations</td><td>需登录</td><td>✅</td><td>✅首尾帧</td><td>5/10s</td></tr>
         <tr><td><code>xyq-seedance-2.0</code></td><td>/v1/xyq/videos/generations</td><td>需登录</td><td>✅</td><td>✅</td><td>5s</td></tr>
         <tr><td><code>xyq-seedance-2.0-fast</code></td><td>/v1/xyq/videos/generations</td><td>需登录</td><td>✅</td><td>✅</td><td>5s</td></tr>
       </table>
@@ -1267,13 +1292,13 @@ curl -X POST http://your-server:8006/v1/images/generations \
     <pre><code>const API_BASE = "http://your-server:8006";
 
 async function generateImage(prompt: string, model = "seedream-5.0") {
-  const res = await fetch(`${API_BASE}/v1/images/generations`, {
+  const res = await fetch(`${API_BASE}/v1/seedream/generations`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       // 如需 API Key: "x-api-key": "your-key",
     },
-    body: JSON.stringify({ model, prompt, ratio: "16:9", resolution: "2k" }),
+    body: JSON.stringify({ model, prompt, ratio: "16:9" }),
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
@@ -1302,11 +1327,10 @@ async function generateVideo(prompt: string, model = "wan2.7-t2v") {
 API_BASE = "http://your-server:8006"
 
 def generate_image(prompt, model="seedream-5.0"):
-    resp = requests.post(f"{API_BASE}/v1/images/generations", json={
+    resp = requests.post(f"{API_BASE}/v1/seedream/generations", json={
         "model": model,
         "prompt": prompt,
         "ratio": "16:9",
-        "resolution": "2k",
     })
     data = resp.json()
     if "error" in data:

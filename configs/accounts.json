@@ -16,7 +16,7 @@
         "max_daily_usage": 100,
         "total_usage": 0,
         "last_used_at": null,
-        "last_check_at": "2026-06-06T10:08:16.020Z",
+        "last_check_at": "2026-06-07T13:03:06.018Z",
         "last_error": null,
         "points": {
           "total": 64,
@@ -27,13 +27,14 @@
         "tags": [],
         "notes": "",
         "created_at": "2026-06-03T13:13:32.497Z",
-        "updated_at": "2026-06-03T13:13:32.497Z"
+        "updated_at": "2026-06-03T13:13:32.497Z",
+        "cooldown_until": null
       }
     ],
     "doubao": [
       {
-        "id": "doubao-f644a9cc",
-        "name": "db1",
+        "id": "doubao-ed126366",
+        "name": "mydb",
         "platform": "doubao",
         "sessionid": "bd6488c1d245431d645cfeb28fa1763d",
         "authorization": "",
@@ -41,12 +42,13 @@
         "secret_key": "",
         "cookie": "",
         "status": "active",
+        "cooldown_until": null,
         "priority": 5,
-        "daily_usage": 0,
+        "daily_usage": 6,
         "max_daily_usage": 100,
-        "total_usage": 0,
-        "last_used_at": null,
-        "last_check_at": null,
+        "total_usage": 6,
+        "last_used_at": "2026-06-07T10:43:10.093Z",
+        "last_check_at": "2026-06-07T10:55:36.622Z",
         "last_error": null,
         "points": {
           "total": 0,
@@ -56,8 +58,8 @@
         },
         "tags": [],
         "notes": "",
-        "created_at": "2026-06-06T09:27:32.551Z",
-        "updated_at": "2026-06-06T09:27:32.551Z"
+        "created_at": "2026-06-07T09:35:53.944Z",
+        "updated_at": "2026-06-07T11:25:51.761Z"
       }
     ],
     "kling": [],
@@ -88,7 +90,8 @@
         "tags": [],
         "notes": "",
         "created_at": "2026-06-04T06:17:26.329Z",
-        "updated_at": "2026-06-06T06:59:03.991Z"
+        "updated_at": "2026-06-06T06:59:03.991Z",
+        "cooldown_until": null
       }
     ],
     "qwen": [
@@ -107,10 +110,10 @@
         "max_daily_usage": 100,
         "total_usage": 0,
         "last_used_at": null,
-        "last_check_at": "2026-06-06T10:03:25.895Z",
+        "last_check_at": "2026-06-07T13:03:13.336Z",
         "last_error": null,
         "points": {
-          "total": 100,
+          "total": 75,
           "gift": 0,
           "purchase": 0,
           "vip": false
@@ -118,7 +121,8 @@
         "tags": [],
         "notes": "",
         "created_at": "2026-06-02T10:46:57.538Z",
-        "updated_at": "2026-06-02T10:46:57.538Z"
+        "updated_at": "2026-06-02T10:46:57.538Z",
+        "cooldown_until": null
       }
     ]
   },

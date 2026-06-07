@@ -25,16 +25,14 @@ export default {
     '/accounts': async (request: Request) => {
       const platform = request.query.platform as Platform | undefined;
       const refreshCredits = ['1', 'true', 'yes'].includes(String(request.query.refresh_credits || '').toLowerCase());
+      let creditRefresh = accountManager.getCreditRefreshStatus();
       if (refreshCredits) {
-        try {
-          await accountManager.refreshCredits();
-        } catch (e: any) {
-          // 积分刷新失败不阻塞列表返回
-        }
+        creditRefresh = accountManager.startCreditRefresh();
       }
       return {
         accounts: accountManager.getAccountsView(platform),
         total: accountManager.getAccounts(platform).length,
+        credit_refresh: creditRefresh,
       };
     },
 

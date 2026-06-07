@@ -582,59 +582,89 @@
     }
 
     // Accounts
-    let creditsLoading = false;
+    let creditRefreshPollTimer = null;
+
+    function getAccountsUrl(refreshCredits = false) {
+      const platform = document.getElementById('platformFilter').value;
+      let url = platform ? `/admin/accounts?platform=${platform}` : '/admin/accounts';
+      if (refreshCredits) url += (url.includes('?') ? '&' : '?') + 'refresh_credits=true';
+      return url;
+    }
+
+    function renderAccounts(accounts) {
+      const tbody = document.getElementById('accountsTable');
+
+      if (accounts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><p>暂无账号，请使用右上角「添加账号」按钮创建</p></div></td></tr>';
+        return;
+      }
+
+      const platformNames = { jimeng:'即梦', doubao:'豆包', kling:'可灵', xyq:'小云雀', qwen:'通义千问' };
+      tbody.innerHTML = accounts.map(a => {
+        const pts = a.points;
+        const totalPts = pts?.total || 0;
+        const ptsColor = totalPts > 0 ? 'var(--success)' : 'var(--text-muted)';
+        const ptsDetail = pts?.gift ? `赠${pts.gift}` : '';
+        const cooldownText = a.status === 'cooldown' && a.cooldown_until
+          ? `<br><span style="font-size:10px;color:var(--text-muted)">${new Date(a.cooldown_until).toLocaleString('zh-CN')}恢复</span>`
+          : '';
+        const ptsCell = pts === null ? '<span style="color:var(--text-muted)">-</span>' : `
+            <span class="total" style="color:${ptsColor}">${totalPts}</span>
+            ${ptsDetail ? `<span class="detail"> ${ptsDetail}</span>` : ''}
+            ${pts?.vip ? '<span class="badge active" style="margin-left:4px;font-size:10px">VIP</span>' : ''}
+            ${a.last_check_at ? `<br><span class="detail" style="font-size:10px">${new Date(a.last_check_at).toLocaleTimeString('zh-CN')}</span>` : ''}`;
+        return `
+        <tr>
+          <td><strong>${esc(a.name)}</strong><br><span style="font-size:11px;color:var(--text-muted)">${a.id}</span></td>
+          <td>${platformNames[a.platform] || a.platform}</td>
+          <td><span class="badge ${a.status}">${a.status}</span>${cooldownText}</td>
+          <td>${a.priority}</td>
+          <td>${a.daily_usage} / ${a.max_daily_usage}</td>
+          <td class="points-display">
+            ${ptsCell}
+          </td>
+          <td style="font-size:11px;color:var(--text-muted)">${a.has_sessionid ? 'SID ✓' : ''} ${a.has_authorization ? 'Auth ✓' : ''} ${a.has_access_key ? 'AK ✓' : ''} ${a.has_cookie ? '🍪 ✓' : ''}</td>
+          <td style="font-size:11px;color:var(--text-muted)">${a.last_used_at ? new Date(a.last_used_at).toLocaleString('zh-CN') : '-'}</td>
+          <td>
+            <button class="btn btn-ghost btn-sm" onclick="showEditModal('${a.id}')">编辑</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteAccount('${a.id}')">删除</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function scheduleCreditRefreshPoll(status) {
+      if (!status?.running || creditRefreshPollTimer) return;
+      toast('积分正在后台刷新，列表可正常使用');
+      creditRefreshPollTimer = setInterval(async () => {
+        try {
+          const data = await api('GET', getAccountsUrl(false));
+          renderAccounts(data.accounts || []);
+          if (!data.credit_refresh?.running) {
+            clearInterval(creditRefreshPollTimer);
+            creditRefreshPollTimer = null;
+            loadStats();
+            if (data.credit_refresh?.last_error) {
+              toast('积分刷新失败: ' + data.credit_refresh.last_error, 'error');
+            } else {
+              toast('积分刷新完成');
+            }
+          }
+        } catch (e) {
+          clearInterval(creditRefreshPollTimer);
+          creditRefreshPollTimer = null;
+          toast('刷新积分状态失败: ' + e.message, 'error');
+        }
+      }, 2500);
+    }
+
     async function loadAccounts(refreshCredits = false) {
       try {
-        const platform = document.getElementById('platformFilter').value;
-        let url = platform ? `/admin/accounts?platform=${platform}` : '/admin/accounts';
-        if (refreshCredits) url += (url.includes('?') ? '&' : '?') + 'refresh_credits=true';
-
-        const tbody = document.getElementById('accountsTable');
-        if (refreshCredits) {
-          creditsLoading = true;
-          tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><p>⏳ 正在刷新积分，请稍候（首次约需 10 秒）...</p></div></td></tr>';
-        }
-
-        const data = await api('GET', url);
+        const data = await api('GET', getAccountsUrl(refreshCredits));
         const accounts = data.accounts || [];
-
-        if (accounts.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><p>暂无账号，请使用右上角「添加账号」按钮创建</p></div></td></tr>';
-          return;
-        }
-
-        const platformNames = { jimeng:'即梦', doubao:'豆包', kling:'可灵', xyq:'小云雀', qwen:'通义千问' };
-        tbody.innerHTML = accounts.map(a => {
-          const pts = a.points;
-          const totalPts = pts?.total || 0;
-          const ptsColor = totalPts > 0 ? 'var(--success)' : 'var(--text-muted)';
-          const ptsDetail = pts?.gift ? `赠${pts.gift}` : '';
-          const ptsCell = pts === null ? '<span style="color:var(--text-muted)">-</span>' : `
-              <span class="total" style="color:${ptsColor}">${totalPts}</span>
-              ${ptsDetail ? `<span class="detail"> ${ptsDetail}</span>` : ''}
-              ${pts?.vip ? '<span class="badge active" style="margin-left:4px;font-size:10px">VIP</span>' : ''}
-              ${a.last_check_at ? `<br><span class="detail" style="font-size:10px">${new Date(a.last_check_at).toLocaleTimeString('zh-CN')}</span>` : ''}`;
-          return `
-          <tr>
-            <td><strong>${esc(a.name)}</strong><br><span style="font-size:11px;color:var(--text-muted)">${a.id}</span></td>
-            <td>${platformNames[a.platform] || a.platform}</td>
-            <td><span class="badge ${a.status}">${a.status}</span></td>
-            <td>${a.priority}</td>
-            <td>${a.daily_usage} / ${a.max_daily_usage}</td>
-            <td class="points-display">
-              ${ptsCell}
-            </td>
-            <td style="font-size:11px;color:var(--text-muted)">${a.has_sessionid ? 'SID ✓' : ''} ${a.has_authorization ? 'Auth ✓' : ''} ${a.has_access_key ? 'AK ✓' : ''} ${a.has_cookie ? '🍪 ✓' : ''}</td>
-            <td style="font-size:11px;color:var(--text-muted)">${a.last_used_at ? new Date(a.last_used_at).toLocaleString('zh-CN') : '-'}</td>
-            <td>
-              <button class="btn btn-ghost btn-sm" onclick="showEditModal('${a.id}')">编辑</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteAccount('${a.id}')">删除</button>
-            </td>
-          </tr>`;
-        }).join('');
-        creditsLoading = false;
+        renderAccounts(accounts);
+        scheduleCreditRefreshPoll(data.credit_refresh);
       } catch (e) {
-        creditsLoading = false;
         toast('加载账号失败: ' + e.message, 'error');
       }
     }

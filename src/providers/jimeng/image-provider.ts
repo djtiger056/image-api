@@ -2,6 +2,7 @@ import _ from "lodash";
 
 import { generateImages, generateImageComposition } from "@/api/controllers/images.ts";
 import { tokenSplit } from "@/api/controllers/core.ts";
+import { generateVideo, generateSeedanceVideo, isSeedanceModel } from "@/api/controllers/videos.ts";
 import { resolveServiceAuthorization, selectSingleToken } from "@/lib/service-authorization.js";
 import util from "@/lib/util.ts";
 import ImageProvider, {
@@ -27,12 +28,56 @@ export default class JimengImageProvider implements ImageProvider {
     return !model.toLowerCase().startsWith("kling-");
   }
 
+  private isJimengVideoModel(model?: string): boolean {
+    if (!model) return false;
+    const normalized = model.toLowerCase();
+    return normalized.startsWith("jimeng-video") || normalized.startsWith("seedance-");
+  }
+
   async generateUnified(
     input: UnifiedImageGenerateInput,
     context: ImageProviderContext
   ): Promise<UnifiedImageGenerateOutput> {
     const token = pickJimengToken(context.authorization);
     const responseFormat = _.defaultTo(input.responseFormat, "url");
+
+    if (this.isJimengVideoModel(input.model)) {
+      const model = input.model || "jimeng-video-seedance-2.0";
+      const filePaths = (input.images || []).filter((image): image is string => typeof image === "string");
+      const duration = input.duration || (isSeedanceModel(model) ? 4 : 5);
+      const videoUrl = isSeedanceModel(model)
+        ? await generateSeedanceVideo(
+            model,
+            input.prompt,
+            {
+              ratio: input.ratio,
+              duration,
+              filePaths,
+            },
+            token
+          )
+        : await generateVideo(
+            model,
+            input.prompt,
+            {
+              ratio: input.ratio,
+              duration,
+              filePaths,
+            },
+            token
+          );
+
+      const data = responseFormat === "b64_json"
+        ? [{ b64_json: await util.fetchFileBASE64(videoUrl) }]
+        : [{ url: videoUrl }];
+
+      return {
+        created: util.unixTimestamp(),
+        data,
+        provider: this.name,
+        media_type: "video",
+      };
+    }
 
     const imageUrls = input.images && input.images.length > 0
       ? await generateImageComposition(

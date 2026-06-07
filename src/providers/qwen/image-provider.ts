@@ -63,6 +63,18 @@ function pickQwenCookie(authorization?: string): string {
   return cookie;
 }
 
+function resolveImageSource(img: string | Buffer | any): string | undefined {
+  if (typeof img === "string") return img.trim() || undefined;
+  if (Buffer.isBuffer(img)) {
+    return `data:image/png;base64,${img.toString("base64")}`;
+  }
+  if (_.isObject(img)) {
+    const url = (img as any).url || (img as any).image_url || (img as any).imageUrl;
+    if (_.isString(url) && url.trim()) return url.trim();
+  }
+  return undefined;
+}
+
 // ─── Provider 实现 ────────────────────────────────────────────────
 
 export default class QwenImageProvider implements ImageProvider {
@@ -88,26 +100,20 @@ export default class QwenImageProvider implements ImageProvider {
     const num = _.clamp(input.n || 1, 1, 4);
 
     // 判断是文生图还是图生图
-    const hasImages = input.images && input.images.length > 0;
+    const imageSources = (input.images || [])
+      .map((img) => resolveImageSource(img))
+      .filter((source): source is string => Boolean(source));
+    const hasImages = imageSources.length > 0;
 
     logger.info(
-      `[QwenImage] 开始${hasImages ? "图生图" : "文生图"}: model=${modelMapping.modelKey}, ratio=${ratio}, num=${num}`
+      `[QwenImage] 开始${hasImages ? "图生图" : "文生图"}: model=${modelMapping.modelKey}, ratio=${ratio}, num=${num}, inputImages=${input.images?.length || 0}, normalizedImages=${imageSources.length}`
     );
 
     // 处理图生图的参考图：先上传到千问 CDN 获取 material_id
     let attachments: Array<{ type: string; materialId: string }> = [];
-    if (hasImages && input.images) {
-      for (const img of input.images.slice(0, 2)) {
+    if (hasImages) {
+      for (const imageSource of imageSources.slice(0, 2)) {
         try {
-          let imageSource: string;
-          if (typeof img === "string") {
-            imageSource = img;
-          } else if (Buffer.isBuffer(img)) {
-            imageSource = `data:image/png;base64,${img.toString("base64")}`;
-          } else {
-            logger.warn("[QwenImage] 不支持的图片格式，跳过");
-            continue;
-          }
           const materialId = await uploadImageToQwen(imageSource, session);
           attachments.push({ type: "image", materialId });
           logger.info(`[QwenImage] 参考图上传成功: materialId=${materialId}`);

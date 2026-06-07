@@ -5,6 +5,7 @@ import Response from '@/lib/response/Response.ts';
 import { tokenSplit } from '@/api/controllers/core.ts';
 import { resolveServiceAuthorization, selectSingleToken } from '@/lib/service-authorization.js';
 import { generateVideo, generateSeedanceVideo, generateInternationalVideo, generateInternationalSeedanceVideo, isSeedanceModel, isInternationalSeedanceModel, isInternationalVideoModel, DEFAULT_MODEL, submitAsyncVideoTask, queryAsyncVideoTask, submitInternationalAsyncVideoTask } from '@/api/controllers/videos.ts';
+import logger from '@/lib/logger.ts';
 import util from '@/lib/util.ts';
 
 /**
@@ -17,6 +18,18 @@ function pickJimengToken(authorization?: string): string {
         if (tokens.length > 0) return tokens[0];
     }
     return selectSingleToken(undefined, 'jimeng');
+}
+
+function normalizeVideoFilePaths(body: any): string[] {
+    const candidates = [
+        ...(Array.isArray(body?.filePaths) ? body.filePaths : []),
+        ...(Array.isArray(body?.file_paths) ? body.file_paths : []),
+        ...(Array.isArray(body?.images) ? body.images : []),
+    ];
+
+    return candidates
+        .filter((item) => _.isString(item) && item.trim())
+        .map((item) => String(item).trim());
 }
 
 export default {
@@ -57,6 +70,7 @@ export default {
                 })
                 .validate('body.file_paths', v => _.isUndefined(v) || _.isArray(v))
                 .validate('body.filePaths', v => _.isUndefined(v) || _.isArray(v))
+                .validate('body.images', v => _.isUndefined(v) || _.isArray(v))
                 .validate('body.response_format', v => _.isUndefined(v) || _.isString(v))
 
 
@@ -68,8 +82,6 @@ export default {
                 ratio = "1:1",
                 resolution = "720p",
                 duration = 5,
-                file_paths = [],
-                filePaths = [],
                 response_format = "url"
             } = request.body;
 
@@ -78,8 +90,9 @@ export default {
                 ? parseInt(duration)
                 : duration;
 
-            // 兼容两种参数名格式：file_paths 和 filePaths
-            const finalFilePaths = filePaths.length > 0 ? filePaths : file_paths;
+            // 兼容 file_paths / filePaths / images 参数名格式
+            const finalFilePaths = normalizeVideoFilePaths(request.body);
+            logger.info(`[JimengVideo Route] 素材统计: filePaths=${finalFilePaths.length}, multipartFiles=${request.files?.length || 0}, bodyKeys=${Object.keys(request.body || {}).join(',')}`);
 
             // 根据模型类型选择不同的生成函数
             let videoUrl: string;
@@ -162,6 +175,7 @@ export default {
                 .validate('body.resolution', v => _.isUndefined(v) || _.isString(v))
                 .validate('body.file_paths', v => _.isUndefined(v) || _.isArray(v))
                 .validate('body.filePaths', v => _.isUndefined(v) || _.isArray(v))
+                .validate('body.images', v => _.isUndefined(v) || _.isArray(v))
                 .validate('body.response_format', v => _.isUndefined(v) || _.isString(v))
 
 
@@ -172,8 +186,6 @@ export default {
                ratio,
                resolution = '720p',
                duration,
-               file_paths = [],
-               filePaths = [],
                response_format = 'url'
             } = request.body;
 
@@ -184,7 +196,7 @@ export default {
             const finalRatio = _.isUndefined(ratio)
                 ? (isSeedance ? '4:3' : '1:1')
                 : ratio;
-            const finalFilePaths = filePaths.length > 0 ? filePaths : file_paths;
+            const finalFilePaths = normalizeVideoFilePaths(request.body);
 
             if (!_.isFinite(finalDuration) || !Number.isInteger(Number(finalDuration))) {
                 throw new Error('duration 参数无效');
@@ -270,6 +282,7 @@ export default {
                 .validate('body.resolution', v => _.isUndefined(v) || _.isString(v))
                 .validate('body.file_paths', v => _.isUndefined(v) || _.isArray(v))
                 .validate('body.filePaths', v => _.isUndefined(v) || _.isArray(v))
+                .validate('body.images', v => _.isUndefined(v) || _.isArray(v))
 
 
             const token = pickJimengToken(request.headers.authorization as string | undefined);
@@ -279,8 +292,6 @@ export default {
                ratio,
                resolution = '720p',
                duration,
-               file_paths = [],
-               filePaths = [],
            } = request.body;
 
             const isSeedance = isInternationalSeedanceModel(model);
@@ -290,7 +301,7 @@ export default {
             const finalRatio = _.isUndefined(ratio)
                 ? (isSeedance ? '4:3' : '1:1')
                 : ratio;
-            const finalFilePaths = filePaths.length > 0 ? filePaths : file_paths;
+            const finalFilePaths = normalizeVideoFilePaths(request.body);
 
             if (!_.isFinite(finalDuration) || !Number.isInteger(Number(finalDuration))) {
                 throw new Error('duration 参数无效');
@@ -352,6 +363,7 @@ export default {
                 })
                 .validate('body.file_paths', v => _.isUndefined(v) || _.isArray(v))
                 .validate('body.filePaths', v => _.isUndefined(v) || _.isArray(v))
+                .validate('body.images', v => _.isUndefined(v) || _.isArray(v))
 
 
             const token = pickJimengToken(request.headers.authorization as string | undefined);
@@ -362,15 +374,13 @@ export default {
                 ratio = "1:1",
                 resolution = "720p",
                 duration = 5,
-                file_paths = [],
-                filePaths = [],
             } = request.body;
 
             const finalDuration = isMultiPart && typeof duration === 'string'
                 ? parseInt(duration)
                 : duration;
 
-            const finalFilePaths = filePaths.length > 0 ? filePaths : file_paths;
+            const finalFilePaths = normalizeVideoFilePaths(request.body);
 
             // 提交异步任务，立即返回 taskId
             const taskId = submitAsyncVideoTask(

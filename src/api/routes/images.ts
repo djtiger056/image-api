@@ -56,7 +56,12 @@ function extractImages(request: Request, requireImages = false): Array<string | 
   const isMultiPart = contentType.startsWith("multipart/form-data");
 
   if (isMultiPart) {
-    const files = (request.files as any)?.images;
+    const files =
+      (request.rawFiles as any)?.images ||
+      (request.filesMap as any)?.images ||
+      (request.rawFiles as any)?.files ||
+      (request.filesMap as any)?.files ||
+      request.files;
     const imageFiles = files ? (Array.isArray(files) ? files : [files]) : [];
     if (imageFiles.length > 10) {
       throw new Error("最多支持10张输入图片");
@@ -110,6 +115,7 @@ function buildUnifiedInput(
     negativePrompt: body.negative_prompt,
     ratio: body.ratio,
     resolution: body.resolution,
+    duration: coerceNumber(body.duration),
     responseFormat: body.response_format,
     sampleStrength: coerceNumber(body.sample_strength),
     intelligentRatio: coerceBoolean(body.intelligent_ratio),

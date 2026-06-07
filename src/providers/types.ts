@@ -9,6 +9,7 @@ export interface UnifiedImageGenerateInput {
   negativePrompt?: string;
   ratio?: string;
   resolution?: string;
+  duration?: number;
   responseFormat?: string;
   sampleStrength?: number;
   intelligentRatio?: boolean;

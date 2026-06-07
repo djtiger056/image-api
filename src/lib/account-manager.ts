@@ -36,6 +36,7 @@ export interface Account {
   cookie?: string;
   // 状态
   status: AccountStatus;
+  cooldown_until?: string | null;
   priority: number;
   // 统计
   daily_usage: number;
@@ -95,6 +96,25 @@ function nowISO(): string {
   return new Date().toISOString();
 }
 
+function isQuotaLikeError(error: string): boolean {
+  return (
+    error.includes('今日') ||
+    error.includes('每天') ||
+    error.includes('每日') ||
+    error.includes('日额度') ||
+    error.includes('已用完') ||
+    error.includes('用完') ||
+    error.includes('积分不足') ||
+    error.includes('额度不足')
+  );
+}
+
+function nextLocalMidnightISO(): string {
+  const next = new Date();
+  next.setHours(24, 0, 0, 0);
+  return next.toISOString();
+}
+
 function generateApiKey(): string {
   return `sk-${uuidv4().replace(/-/g, '')}`;
 }
@@ -106,6 +126,11 @@ class AccountManager {
   private config: AccountsConfig;
   private roundRobinIndex: Map<Platform, number> = new Map();
   private healthCheckTimer: ReturnType<typeof setInterval> | null = null;
+  private creditRefreshPromise: Promise<void> | null = null;
+  private creditRefreshStartedAt: string | null = null;
+  private creditRefreshFinishedAt: string | null = null;
+  private creditRefreshLastError: string | null = null;
+  private readonly transientCooldownMs = 30 * 60 * 1000;
 
   constructor() {
     this.configPath = path.resolve('configs/accounts.json');
@@ -130,7 +155,11 @@ class AccountManager {
             max_retry_count: 2,
           },
         };
-        return _.defaultsDeep(raw, defaults);
+        const config = _.defaultsDeep(raw, defaults);
+        for (const account of Object.values(config.accounts).flat() as Account[]) {
+          if (account.cooldown_until === undefined) account.cooldown_until = null;
+        }
+        return config;
       }
     } catch (err) {
       logger.error('[AccountManager] 加载配置失败:', err);
@@ -154,6 +183,28 @@ class AccountManager {
       fs.writeJsonSync(this.configPath, this.config, { spaces: 2 });
     } catch (err) {
       logger.error('[AccountManager] 保存配置失败:', err);
+    }
+  }
+
+  private recoverExpiredCooldowns(save = false): void {
+    let changed = false;
+    const now = Date.now();
+
+    for (const account of Object.values(this.config.accounts).flat()) {
+      if (account.status !== 'cooldown') continue;
+
+      if (!account.cooldown_until || Date.parse(account.cooldown_until) <= now) {
+        account.status = 'active';
+        account.cooldown_until = null;
+        account.last_error = null;
+        account.updated_at = nowISO();
+        changed = true;
+        logger.info(`[AccountManager] 账号 ${account.id} 冷却结束，已恢复 active`);
+      }
+    }
+
+    if (changed && save) {
+      this.saveConfig();
     }
   }
 
@@ -271,6 +322,7 @@ class AccountManager {
   // ── 账号 CRUD ──
 
   getAccounts(platform?: Platform): Account[] {
+    this.recoverExpiredCooldowns(true);
     if (platform) return this.config.accounts[platform] || [];
     return Object.values(this.config.accounts).flat();
   }
@@ -294,6 +346,7 @@ class AccountManager {
       secret_key: data.secret_key || '',
       cookie: data.cookie || '',
       status: data.status || 'active',
+      cooldown_until: data.cooldown_until || null,
       priority: data.priority ?? 5,
       daily_usage: 0,
       max_daily_usage: data.max_daily_usage ?? 100,
@@ -350,8 +403,13 @@ class AccountManager {
    * @returns 选中的账号, 或 undefined (无可用)
    */
   selectAccount(platform: Platform, excludeIds: string[] = []): Account | undefined {
+    this.recoverExpiredCooldowns(true);
     const candidates = this.config.accounts[platform]
-      .filter(a => a.status === 'active' && !excludeIds.includes(a.id));
+      .filter(a =>
+        a.status === 'active' &&
+        !excludeIds.includes(a.id) &&
+        (a.max_daily_usage <= 0 || a.daily_usage < a.max_daily_usage)
+      );
 
     if (candidates.length === 0) return undefined;
 
@@ -396,6 +454,7 @@ class AccountManager {
    * 返回逗号分隔的 authorization 字符串
    */
   getActiveTokens(platform: Platform): string {
+    this.recoverExpiredCooldowns(true);
     const active = this.config.accounts[platform]
       .filter(a => a.status === 'active')
       .sort((a, b) => b.priority - a.priority);
@@ -432,13 +491,33 @@ class AccountManager {
     if (!account) return;
     account.last_error = error;
     account.last_check_at = nowISO();
+    const lowerError = String(error || '').toLowerCase();
 
     // 连续失败策略: 如果今日使用量为0但仍失败，可能是过期
-    if (error.includes('积分不足') || error.includes('insufficient')) {
+    if (
+      error.includes('积分不足') ||
+      error.includes('额度') ||
+      error.includes('次数') ||
+      error.includes('已用完') ||
+      error.includes('限流') ||
+      error.includes('频繁') ||
+      error.includes('频率') ||
+      error.includes('稍后再试') ||
+      error.includes('稍后重试') ||
+      error.includes('风控') ||
+      lowerError.includes('insufficient') ||
+      lowerError.includes('quota') ||
+      lowerError.includes('rate limit') ||
+      lowerError.includes('too many requests')
+    ) {
       account.status = 'cooldown';
-      logger.warn(`[AccountManager] 账号 ${id} 进入冷却: ${error}`);
-    } else if (error.includes('token') || error.includes('expired') || error.includes('失效')) {
+      account.cooldown_until = isQuotaLikeError(error)
+        ? nextLocalMidnightISO()
+        : new Date(Date.now() + this.transientCooldownMs).toISOString();
+      logger.warn(`[AccountManager] 账号 ${id} 进入冷却至 ${account.cooldown_until}: ${error}`);
+    } else if (lowerError.includes('token') || lowerError.includes('expired') || error.includes('失效')) {
       account.status = 'expired';
+      account.cooldown_until = null;
       logger.warn(`[AccountManager] 账号 ${id} 已过期: ${error}`);
     }
     this.saveConfig();
@@ -452,6 +531,7 @@ class AccountManager {
       account.daily_usage = 0;
       if (account.status === 'cooldown') {
         account.status = 'active';
+        account.cooldown_until = null;
       }
     }
     this.saveConfig();
@@ -617,6 +697,49 @@ class AccountManager {
     this.saveConfig();
   }
 
+  startCreditRefresh(): {
+    running: boolean;
+    started: boolean;
+    started_at: string | null;
+    finished_at: string | null;
+    last_error: string | null;
+  } {
+    if (this.creditRefreshPromise) {
+      return { ...this.getCreditRefreshStatus(), started: false };
+    }
+
+    this.creditRefreshStartedAt = nowISO();
+    this.creditRefreshLastError = null;
+
+    this.creditRefreshPromise = this.refreshCredits()
+      .then(() => {
+        this.creditRefreshFinishedAt = nowISO();
+      })
+      .catch((err: any) => {
+        this.creditRefreshLastError = err?.message || String(err);
+        logger.warn(`[AccountManager] 后台刷新积分失败: ${this.creditRefreshLastError}`);
+      })
+      .finally(() => {
+        this.creditRefreshPromise = null;
+      });
+
+    return { ...this.getCreditRefreshStatus(), started: true };
+  }
+
+  getCreditRefreshStatus(): {
+    running: boolean;
+    started_at: string | null;
+    finished_at: string | null;
+    last_error: string | null;
+  } {
+    return {
+      running: Boolean(this.creditRefreshPromise),
+      started_at: this.creditRefreshStartedAt,
+      finished_at: this.creditRefreshFinishedAt,
+      last_error: this.creditRefreshLastError,
+    };
+  }
+
   // ── API Key 管理 ──
 
   getApiKeys(): ApiKey[] {
@@ -695,6 +818,7 @@ class AccountManager {
     totalPoints: number;
     apiKeys: number;
   } {
+    this.recoverExpiredCooldowns(true);
     const all = this.getAccounts();
     const byPlatform: Record<string, number> = {};
     const byStatus: Record<string, number> = {};
@@ -725,11 +849,13 @@ class AccountManager {
    * 获取所有账号的精简视图 (用于 API 返回，隐藏敏感信息)
    */
   getAccountsView(platform?: Platform): any[] {
+    this.recoverExpiredCooldowns(true);
     return this.getAccounts(platform).map(a => ({
       id: a.id,
       name: a.name,
       platform: a.platform,
       status: a.status,
+      cooldown_until: a.cooldown_until || null,
       priority: a.priority,
       daily_usage: a.daily_usage,
       max_daily_usage: a.max_daily_usage,

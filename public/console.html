@@ -760,7 +760,7 @@ const MODEL_RULES = {
   default_xyq_video: { family: 'xyq-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P','1080P'], durations: [5,10], defaultDuration: 5, notes: ['小云雀视频模型'], limit: '需要配置 XYQ Session ID。' },
   default_qwen_image: { family: 'qwen-image', ratios: ['1:1','4:3','3:4','16:9','9:16','auto'], notes: ['通义千问图像模型', '仅 wan2.7-image 支持自定义分辨率'], limit: '需要配置 Qwen Cookie。' },
   default_qwen_video: { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P','1080P'], durations: [2,3,4,5,6,7,8,9,10,11,12,13,14,15], defaultDuration: 5, notes: ['通义千问视频模型', '支持首帧参考图'], limit: '需要配置 Qwen Cookie。' },
-  default_jimeng_video: { family: 'jimeng-video', ratios: ['1:1','16:9','9:16','4:3','3:4'], resolutions: ['720P','1080P'], durations: [5,10], defaultDuration: 5, notes: ['即梦视频模型'], limit: '需要配置 Jimeng Session ID。' },
+  default_jimeng_video: { family: 'jimeng-video', ratios: ['1:1','16:9','9:16','4:3','3:4'], durations: [5,10], defaultDuration: 5, notes: ['即梦视频模型'], limit: '需要配置 Jimeng Session ID。' },
 };
 
 const AUTO_ROTATION_MODELS = new Set(['seedream-5.0', 'seedream-4.5', 'seedream-4.0']);
@@ -897,7 +897,11 @@ function normalizeModel(m) { return String(m || '').trim(); }
 function isVideoFamily(f) { return f === 'doubao-video' || f === 'qwen-video' || f === 'xyq-video' || f === 'jimeng-video'; }
 function isDoubaoVideoRule(r) { return r?.family === 'doubao-video'; }
 function isReferenceVideoMode(r) { return r?.family === 'qwen-video' && currentMode === 'img2img'; }
-function videoSupportsImageInput(r) { return r?.family === 'qwen-video' || r?.family === 'doubao-video'; }
+function videoSupportsImageInput(r) {
+  return r?.family === 'qwen-video'
+    || r?.family === 'doubao-video'
+    || r?.family === 'jimeng-video';
+}
 function canUseReferenceImages(r) {
   if (!r || currentMode !== 'img2img') return false;
   if (isVideoFamily(r.family)) return videoSupportsImageInput(r);
@@ -1156,6 +1160,10 @@ els.modelSelect.addEventListener('change', () => {
   refreshModelHints();
   els.ratioBtnText.textContent = els.ratioInput.value;
 });
+els.ratioInput.addEventListener('change', () => {
+  els.ratioBtnText.textContent = els.ratioInput.value || '1:1';
+  validateParams(false);
+});
 
 /* ===================================================================
    Validate params
@@ -1242,22 +1250,24 @@ function renderInputImages() {
 }
 
 function addImageFiles(files) {
+  const selectedFiles = Array.from(files || []).filter(file => file.type?.startsWith('image/'));
+  if (selectedFiles.length === 0) return;
   const rule = currentRule();
   const vf = isVideoFamily(rule.family);
   // Only block unsupported video models
   if (vf && !videoSupportsImageInput(rule)) {
     appendLog('warn', '当前视频模型不支持参考图'); return;
   }
-  // Auto-switch to img2img mode
-  if (currentMode !== 'img2img') setInputMode('img2img');
   const limit = vf ? 2 : 10;
   const remaining = limit - inputImages.length;
   if (remaining <= 0) { appendLog('warn', `最多 ${limit} 张`); return; }
-  Array.from(files).slice(0, remaining).forEach(file => {
-    if (!file.type.startsWith('image/')) return;
+  selectedFiles.slice(0, remaining).forEach(file => {
     inputImages.push({ type: 'file', value: file, preview: URL.createObjectURL(file) });
   });
+  // Auto-switch after images are present, otherwise renderInputImages would switch back to txt2img.
+  if (currentMode !== 'img2img') currentMode = 'img2img';
   renderInputImages();
+  validateParams(false);
 }
 
 function addImageUrl(url) {
@@ -1269,12 +1279,13 @@ function addImageUrl(url) {
   if (vf && !videoSupportsImageInput(rule)) {
     appendLog('warn', '当前视频模型不支持参考图'); return;
   }
-  // Auto-switch to img2img mode
-  if (currentMode !== 'img2img') setInputMode('img2img');
   const limit = vf ? 2 : 10;
   if (inputImages.length >= limit) { appendLog('warn', `最多 ${limit} 张`); return; }
   inputImages.push({ type: 'url', value: url, preview: url });
+  // Auto-switch after images are present, otherwise renderInputImages would switch back to txt2img.
+  if (currentMode !== 'img2img') currentMode = 'img2img';
   renderInputImages();
+  validateParams(false);
 }
 
 function readFileAsDataUrl(file) {
@@ -1606,7 +1617,7 @@ async function generate() {
         baseParams.poll_timeout_ms = getDoubaoPollMs('timeout');
         baseParams.poll_interval_ms = getDoubaoPollMs('interval');
       }
-      if (rule.resolutions?.length) {
+      if (rule.family !== 'jimeng-video' && rule.resolutions?.length) {
         const rv = els.resolutionInput.value.trim();
         baseParams.resolution = rule.resolutions.includes(rv) ? rv : (rule.defaultResolution || rule.resolutions[0]);
       }
@@ -1627,7 +1638,7 @@ async function generate() {
       : family === 'doubao-video' ? '/v1/doubao/videos/generations'
       : family === 'xyq-video' ? '/v1/xyq/videos/generations'
       : family === 'qwen-video' ? '/v1/qwen/videos/generations'
-      : family === 'jimeng-video' ? '/v1/images/generations'
+      : family === 'jimeng-video' ? '/v1/videos/generations'
       : currentMode === 'img2img' ? '/v1/images/compositions' : '/v1/images/generations';
 
     if (currentMode === 'img2img' && !vf) {
@@ -1637,12 +1648,15 @@ async function generate() {
         if (item.type === 'url') imageUrls.push(item.value);
         else { imageUrls.push(await readFileAsDataUrl(item.value)); appendLog('info', `本地图片已读取 (${(item.value.size/1024).toFixed(1)}KB)`); }
       }
-      data = await fetchJson(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...baseParams, images: imageUrls }), timeoutMs: reqTimeoutMs });
+      const requestBody = { ...baseParams, images: imageUrls };
+      appendLog('info', '请求体', requestBody);
+      data = await fetchJson(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody), timeoutMs: reqTimeoutMs });
     } else {
       if (vf && inputImages.length > 0) {
         const vi = [];
         for (const item of inputImages) vi.push(item.type === 'url' ? item.value : await readFileAsDataUrl(item.value));
-        baseParams.images = vi.filter(Boolean);
+        if (family === 'jimeng-video') baseParams.file_paths = vi.filter(Boolean);
+        else baseParams.images = vi.filter(Boolean);
       }
       appendLog('info', '请求体', baseParams);
       data = await fetchJson(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(baseParams), timeoutMs: reqTimeoutMs });
