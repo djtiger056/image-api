@@ -460,7 +460,7 @@ async function createImageCompletionViaHttp(
   const {
     prompt,
     ratio = "1:1",
-    style = "智能",
+    style,
     genModel = "Seedream 4.5",
     referenceImage,
   } = params;
@@ -477,8 +477,15 @@ async function createImageCompletionViaHttp(
     logger.info(`[Doubao] 参考图上传完成: ${storeUri}`);
   }
 
+  // 构建消息文本：只有当 style 非空时才添加风格参数
+  let messageText = `帮我生成图片：${prompt}`;
+  if (style) {
+    messageText += `\n风格：${style}`;
+  }
+  messageText += `\n比例：${ratio}`;
+
   const contentJson = JSON.stringify({
-    text: `帮我生成图片：${prompt}\n风格：${style}\n比例：${ratio}`,
+    text: messageText,
     model: genModel,
     template_type: "placeholder",
     use_creation: false,
@@ -867,7 +874,7 @@ async function createImageCompletionViaBrowser(
   const {
     prompt,
     ratio = "1:1",
-    style = "智能",
+    style,
     genModel = "Seedream 4.5",
     referenceImage,
   } = params;
@@ -877,7 +884,12 @@ async function createImageCompletionViaBrowser(
     logger.info(`[Doubao] 参考图上传完成: ${storeUri}`);
   }
 
-  const fullPrompt = `帮我生成图片：${prompt}\n风格：${style}\n比例：${ratio}`;
+  // 构建消息文本：只有当 style 非空时才添加风格参数
+  let fullPrompt = `帮我生成图片：${prompt}`;
+  if (style) {
+    fullPrompt += `\n风格：${style}`;
+  }
+  fullPrompt += `\n比例：${ratio}`;
 
   await doubaoSession.ensureReady(sessionId);
 

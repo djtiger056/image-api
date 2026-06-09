@@ -271,6 +271,34 @@
     .detail-panel .detail-preview img, .detail-panel .detail-preview video {
       width: 100%; display: block;
     }
+    .detail-panel .detail-multi-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 8px; margin-bottom: 16px;
+    }
+    .detail-panel .detail-multi-grid .multi-item {
+      position: relative; border-radius: var(--radius-sm); overflow: hidden;
+      background: var(--bg-input); cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .detail-panel .detail-multi-grid .multi-item:hover {
+      transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.3);
+    }
+    .detail-panel .detail-multi-grid .multi-item img {
+      width: 100%; display: block; aspect-ratio: 1; object-fit: cover;
+    }
+    .detail-panel .detail-multi-grid .multi-item .multi-actions {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,.7));
+      padding: 6px 8px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .detail-panel .detail-multi-grid .multi-item .multi-idx {
+      font-size: 11px; color: rgba(255,255,255,.7);
+    }
+    .detail-panel .detail-multi-grid .multi-item .multi-dl {
+      font-size: 11px; color: var(--accent-cyan); text-decoration: none;
+      background: rgba(0,0,0,.4); padding: 2px 8px; border-radius: 4px;
+    }
+    .detail-panel .detail-multi-grid .multi-item .multi-dl:hover { background: rgba(0,0,0,.6); }
     .detail-panel .detail-field {
       margin-bottom: 14px;
     }
@@ -550,25 +578,28 @@ async function loadHistory() {
       return;
     }
 
-    gallery.innerHTML = records.map(record => {
-      const firstFile = record.media_files[0];
-      const fileUrl = firstFile ? `/admin/history/file/${firstFile.local_path}` : '';
+    gallery.innerHTML = records.flatMap(record => {
       const isVideo = record.type === 'video';
       const timeStr = new Date(record.created_at).toLocaleString('zh-CN', {
         month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
       });
-      const sizeStr = firstFile ? formatFileSize(firstFile.file_size) : '';
+      const files = record.media_files.length > 0 ? record.media_files : [null];
 
-      return `<div class="card" data-id="${record.id}" onclick="openDetail('${record.id}')">
-        <div class="media-wrap">
-          <span class="media-badge">${isVideo ? '🎬 视频' : '🖼️ 图片'}</span>
-          <button class="media-del" onclick="deleteItem('${record.id}', event)">🗑️ 删除</button>
-          ${record.media_files.length > 1 ? `<span class="file-count">📎 ${record.media_files.length} 个文件</span>` : ''}
-          ${isVideo
-            ? `<video src="${fileUrl}" muted loop preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0;"></video>`
-            : `<img src="${fileUrl}" loading="lazy" />`
-          }
-        </div>
+      return files.map((f, idx) => {
+        const fileUrl = f ? `/admin/history/file/${f.local_path}` : '';
+        const sizeStr = f ? formatFileSize(f.file_size) : '';
+        const multiBadge = files.length > 1 ? `<span class="file-count">📎 ${idx+1}/${files.length}</span>` : '';
+
+        return `<div class="card" data-id="${record.id}" onclick="openDetail('${record.id}')">
+          <div class="media-wrap">
+            <span class="media-badge">${isVideo ? '🎬 视频' : '🖼️ 图片'}</span>
+            <button class="media-del" onclick="deleteItem('${record.id}', event)">🗑️ 删除</button>
+            ${multiBadge}
+            ${isVideo
+              ? `<video src="${fileUrl}" muted loop preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0;"></video>`
+              : `<img src="${fileUrl}" loading="lazy" />`
+            }
+          </div>
         <div class="card-info">
           <div class="card-prompt" title="${escapeHtml(record.prompt)}">${escapeHtml(record.prompt || '(无提示词)')}</div>
           <div class="card-meta">
@@ -579,7 +610,8 @@ async function loadHistory() {
           </div>
         </div>
       </div>`;
-    }).join('');
+      }); // files.map
+    }).join(''); // records.flatMap
 
     // Video click to lightbox
     gallery.querySelectorAll('video').forEach(v => {
@@ -640,29 +672,29 @@ async function openDetail(id) {
     if (!resp.ok) throw new Error('记录不存在');
     const record = await resp.json();
 
-    const firstFile = record.media_files[0];
-    const fileUrl = firstFile ? `/admin/history/file/${firstFile.local_path}` : '';
     const isVideo = record.type === 'video';
     const timeStr = new Date(record.created_at).toLocaleString('zh-CN');
 
     let mediaHtml = '';
     if (record.media_files.length > 0) {
       if (isVideo) {
+        const firstFile = record.media_files[0];
+        const fileUrl = firstFile ? `/admin/history/file/${firstFile.local_path}` : '';
         mediaHtml = `<div class="detail-preview"><video src="${fileUrl}" controls autoplay style="max-height:300px;"></video></div>`;
+      } else if (record.media_files.length === 1) {
+        const f = record.media_files[0];
+        mediaHtml = `<div class="detail-preview"><img src="/admin/history/file/${f.local_path}" /></div>`;
       } else {
-        mediaHtml = `<div class="detail-preview"><img src="${fileUrl}" /></div>`;
+        mediaHtml = `<div class="detail-multi-grid">${record.media_files.map((f, i) =>
+          `<div class="multi-item" onclick="openLightbox('/admin/history/file/${f.local_path}', false)">
+            <img src="/admin/history/file/${f.local_path}" loading="lazy" />
+            <div class="multi-actions">
+              <span class="multi-idx">#${i+1} ${formatFileSize(f.file_size)}</span>
+              <a class="multi-dl" href="/admin/history/file/${f.local_path}" target="_blank" onclick="event.stopPropagation()">⬇️</a>
+            </div>
+          </div>`
+        ).join('')}</div>`;
       }
-    }
-
-    // Additional files
-    let extraFilesHtml = '';
-    if (record.media_files.length > 1) {
-      extraFilesHtml = `<div class="detail-field">
-        <div class="detail-label">全部文件 (${record.media_files.length})</div>
-        <div class="detail-value">${record.media_files.map((f, i) =>
-          `<a href="/admin/history/file/${f.local_path}" target="_blank" style="color:var(--accent-cyan);text-decoration:none;">文件 ${i+1} (${formatFileSize(f.file_size)})</a>`
-        ).join(' · ')}</div>
-      </div>`;
     }
 
     const providerNames = { jimeng: '即梦', doubao: '豆包', qwen: '千问', xyq: '星元气', kling: '可灵' };
@@ -686,11 +718,10 @@ async function openDetail(id) {
         <div class="detail-label">类型</div>
         <div class="detail-value">${isVideo ? '🎬 视频' : '🖼️ 图片'}</div>
       </div>
-      ${firstFile ? `<div class="detail-field">
-        <div class="detail-label">文件大小</div>
-        <div class="detail-value">${formatFileSize(firstFile.file_size)}</div>
+      ${record.media_files.length > 0 ? `<div class="detail-field">
+        <div class="detail-label">文件大小${record.media_files.length > 1 ? ` (共 ${record.media_files.length} 个)` : ''}</div>
+        <div class="detail-value">${record.media_files.length === 1 ? formatFileSize(record.media_files[0].file_size) : formatFileSize(record.media_files.reduce((s,f) => s + (f.file_size||0), 0)) + ' 总计'}</div>
       </div>` : ''}
-      ${extraFilesHtml}
       ${record.extra ? `<div class="detail-field">
         <div class="detail-label">附加信息</div>
         <div class="detail-value" style="font-size:12px;opacity:.7;">${escapeHtml(JSON.stringify(record.extra, null, 2))}</div>
@@ -700,7 +731,7 @@ async function openDetail(id) {
         <div class="detail-value" style="font-size:11px;opacity:.5;">${record.id}</div>
       </div>
       <div class="detail-actions">
-        ${firstFile ? `<button class="btn-download" onclick="window.open('/admin/history/file/${firstFile.local_path}', '_blank')">⬇️ 下载</button>` : ''}
+        ${record.media_files.length === 1 ? `<button class="btn-download" onclick="window.open('/admin/history/file/${record.media_files[0].local_path}', '_blank')">⬇️ 下载</button>` : `<button class="btn-download" onclick="downloadAllFiles('${record.id}')">⬇️ 下载全部 (${record.media_files.length})</button>`}
         <button class="btn-delete" onclick="deleteItem('${record.id}', event); closeDetail();">🗑️ 删除</button>
       </div>
     `;
@@ -715,6 +746,25 @@ async function openDetail(id) {
 function closeDetail() {
   $('detailPanel').classList.remove('open');
   $('backdrop').classList.remove('show');
+}
+
+async function downloadAllFiles(id) {
+  try {
+    const resp = await fetch(`/admin/history/${id}`);
+    if (!resp.ok) throw new Error('记录不存在');
+    const record = await resp.json();
+    for (const f of record.media_files) {
+      const a = document.createElement('a');
+      a.href = `/admin/history/file/${f.local_path}`;
+      a.download = f.local_path.split('/').pop();
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      await new Promise(r => setTimeout(r, 300)); // stagger downloads
+    }
+  } catch (err) {
+    alert('下载失败: ' + err.message);
+  }
 }
 
 // ─── Delete ──────────────────────────────────────────

@@ -16,6 +16,7 @@ import {
   isKlingNativeMultiImageBody,
 } from "@/providers/kling/mapper.ts";
 import historyManager from "@/lib/history-manager.ts";
+import taskManager from "@/lib/task-manager.ts";
 import logger from "@/lib/logger.ts";
 
 function getProviderContext(
@@ -127,6 +128,52 @@ function buildUnifiedInput(
   };
 }
 
+// ─── 异步生成核心逻辑 ─────────────────────────────────
+
+/**
+ * 在后台执行图片生成任务
+ * 完成后自动记录到 history
+ */
+function runImageGenerationBackground(params: {
+  taskId: string;
+  provider: any;
+  input: UnifiedImageGenerateInput;
+  context: ImageProviderContext;
+  requestMeta: { model: string; prompt: string; ratio?: string; n?: number };
+}): void {
+  const { taskId, provider, input, context, requestMeta } = params;
+
+  taskManager.updateTaskStatus(taskId, 'running');
+
+  provider.generateUnified(input, context)
+    .then((result: any) => {
+      // 按 n 参数截取
+      const n = requestMeta.n;
+      if (n && n > 0 && Array.isArray(result.data) && result.data.length > n) {
+        result.data = result.data.slice(0, n);
+      }
+
+      taskManager.updateTaskStatus(taskId, 'completed', result);
+
+      // 记录历史
+      const imageUrls = (result.data || [])
+        .map((d: any) => d.url)
+        .filter((u: any): u is string => typeof u === 'string' && u.startsWith('http'));
+      if (imageUrls.length > 0) {
+        historyManager.recordImageGeneration({
+          provider: provider.name,
+          model: requestMeta.model,
+          prompt: requestMeta.prompt,
+          imageUrls,
+          extra: { ratio: requestMeta.ratio, n, task_id: taskId },
+        }).catch((err: any) => logger.warn(`[History] 图片记录失败: ${err.message}`));
+      }
+    })
+    .catch((err: any) => {
+      taskManager.updateTaskStatus(taskId, 'failed', err.message || '生成失败');
+    });
+}
+
 export default {
   prefix: "/v1/images",
 
@@ -139,6 +186,35 @@ export default {
     },
     "/multi-image2image/:id": async (request: Request) => {
       return klingImageProvider.getNativeMultiImageToImage(request.params.id, getProviderContext(request));
+    },
+
+    // ─── 新增：查询异步任务状态 ──────────────────────
+    "/tasks/:id": async (request: Request) => {
+      const task = taskManager.getTask(request.params.id);
+      if (!task) {
+        return { error: "任务不存在", code: "TASK_NOT_FOUND" };
+      }
+      // 返回任务状态（pending/running 时不返回 result）
+      const response: any = {
+        task_id: task.id,
+        status: task.status,
+        provider: task.provider,
+        model: task.model,
+        prompt: task.prompt,
+        created_at: task.createdAt,
+      };
+      if (task.status === 'completed') {
+        response.result = task.result;
+        response.completed_at = task.completedAt;
+        response.duration_ms = task.completedAt! - task.createdAt;
+      } else if (task.status === 'failed') {
+        response.error = task.error;
+        response.completed_at = task.completedAt;
+        response.duration_ms = task.completedAt! - task.createdAt;
+      } else if (task.status === 'running') {
+        response.elapsed_ms = Date.now() - task.createdAt;
+      }
+      return response;
     },
   },
 
@@ -155,7 +231,42 @@ export default {
       const authorization = provider.name === "jimeng"
         ? resolveServiceAuthorization(request.headers.authorization as string | undefined)
         : undefined;
-      const result = await provider.generateUnified(buildUnifiedInput(request, images), getProviderContext(request, authorization));
+      const context = getProviderContext(request, authorization);
+      const input = buildUnifiedInput(request, images);
+      const isAsync = input.async === true;
+
+      // ── 异步模式：创建任务，立即返回 task_id ──
+      if (isAsync) {
+        const task = taskManager.createTask({
+          type: 'image',
+          provider: provider.name,
+          model: request.body?.model || 'default',
+          prompt: request.body?.prompt || '',
+        });
+
+        // 后台执行生成
+        runImageGenerationBackground({
+          taskId: task.id,
+          provider,
+          input,
+          context,
+          requestMeta: {
+            model: request.body?.model || 'default',
+            prompt: request.body?.prompt || '',
+            ratio: request.body?.ratio,
+            n: coerceNumber(request.body?.n),
+          },
+        });
+
+        return {
+          task_id: task.id,
+          status: 'pending',
+          message: '任务已提交，使用 task_id 查询进度',
+        };
+      }
+
+      // ── 同步模式：等待生成完成 ──
+      const result = await provider.generateUnified(input, context);
 
       // 按 n 参数截取返回图片数量
       const n = Number(request.body?.n);
@@ -187,15 +298,47 @@ export default {
       const authorization = provider.name === "jimeng"
         ? resolveServiceAuthorization(request.headers.authorization as string | undefined)
         : undefined;
-      const result = await provider.generateUnified(buildUnifiedInput(request, images), getProviderContext(request, authorization));
+      const context = getProviderContext(request, authorization);
+      const input = buildUnifiedInput(request, images);
+      const isAsync = input.async === true;
 
-      // 按 n 参数截取返回图片数量
+      // ── 异步模式 ──
+      if (isAsync) {
+        const task = taskManager.createTask({
+          type: 'composition',
+          provider: provider.name,
+          model: request.body?.model || 'default',
+          prompt: request.body?.prompt || '',
+        });
+
+        runImageGenerationBackground({
+          taskId: task.id,
+          provider,
+          input,
+          context,
+          requestMeta: {
+            model: request.body?.model || 'default',
+            prompt: request.body?.prompt || '',
+            ratio: request.body?.ratio,
+            n: coerceNumber(request.body?.n),
+          },
+        });
+
+        return {
+          task_id: task.id,
+          status: 'pending',
+          message: '合成任务已提交，使用 task_id 查询进度',
+        };
+      }
+
+      // ── 同步模式 ──
+      const result = await provider.generateUnified(input, context);
+
       const n = Number(request.body?.n);
       if (n > 0 && Array.isArray(result.data) && result.data.length > n) {
         result.data = result.data.slice(0, n);
       }
 
-      // 异步记录生成历史
       const compImageUrls = (result.data || [])
         .map((d: any) => d.url)
         .filter((u: any): u is string => typeof u === 'string' && u.startsWith('http'));

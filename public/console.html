@@ -611,7 +611,6 @@
         <div class="status-actions">
           <button class="primary-action" id="refreshBtn">🔄 检测状态</button>
           <button id="loadModelsBtn">📋 刷新模型</button>
-          <button id="loadSavedBtn">💾 恢复配置</button>
         </div>
       </div>
     </div>
@@ -736,11 +735,6 @@
                 <label class="field-label">参考图强度</label>
                 <input type="text" id="sampleInput" value="0.5" />
               </div>
-              <div class="panel-row" id="asyncRow">
-                <label class="field-label">异步模式</label>
-                <input type="hidden" id="asyncInput">
-                <div id="asyncOptionList" class="option-chips"></div>
-              </div>
             </div>
             <div class="panel-grid" style="margin-top:10px;">
               <div class="panel-row" id="imageTimeoutRow">
@@ -774,7 +768,6 @@
     <div class="results-area">
       <div class="results-tabs" id="resultsTabs">
         <button class="results-tab active" data-tab="preview">👁️ 预览</button>
-        <button class="results-tab" data-tab="response">📡 响应</button>
         <button class="results-tab" data-tab="logs">📝 日志</button>
         <button class="results-tab" data-tab="history">💎 资产</button>
       </div>
@@ -786,10 +779,6 @@
             <div>生成的图片/视频将在此显示</div>
           </div>
         </div>
-      </div>
-
-      <div class="result-panel" id="panelResponse">
-        <pre class="json-view" id="resultJson">等待生成...</pre>
       </div>
 
       <div class="result-panel" id="panelLogs">
@@ -845,15 +834,15 @@ const MODEL_RULES = {
   'jimeng-4.0': { family: 'jimeng', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], resolutions: ['1k','2k','4k'], notes: ['兼容旧模型'], limit: '适合作为回退。' },
   'kling-v3-omni': { family: 'kling', ratios: ['1:1','16:9','9:16','4:3','3:4','2:3','3:2'], resolutions: ['1k'], notes: ['Kling v3 Omni 官方模型'], limit: '支持网页模式。' },
   'kling-image-o1': { family: 'kling', ratios: ['1:1','16:9','9:16','4:3','3:4','2:3','3:2'], resolutions: ['1k','2k'], notes: ['Kling o1 智能比例', '支持1K/2K'], limit: '支持网页模式。' },
-  'doubao-seedream-4.5': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['豆包 Seedream 4.5'], limit: '需要配置 Doubao Session ID。' },
-  'doubao-seedream-4.0': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['豆包 Seedream 4.0'], limit: '需要配置 Doubao Session ID。' },
-  'doubao-seedream-5.0-lite': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['豆包 Seedream 5.0 Lite', '最新，支持联网检索'], limit: '需要配置 Doubao Session ID。' },
+  'doubao-seedream-4.5': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], notes: ['豆包 Seedream 4.5'], limit: '需要配置 Doubao Session ID。' },
+  'doubao-seedream-4.0': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], notes: ['豆包 Seedream 4.0'], limit: '需要配置 Doubao Session ID。' },
+  'doubao-seedream-5.0-lite': { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], notes: ['豆包 Seedream 5.0 Lite', '最新，支持联网检索'], limit: '需要配置 Doubao Session ID。' },
   'doubao-seedance-2.0-fast': { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], durations: [10], defaultDuration: 10, fixedDuration: 10, notes: ['豆包 Seedance 2.0 Fast', '每日 10 次免费额度', '支持首帧参考图（最多2张）'], limit: '固定 10 秒，消耗 2 额度。' },
   'doubao-seedance-2.0': { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], durations: [5,10], defaultDuration: 5, notes: ['豆包 Seedance 2.0', '高质量视频', '支持首帧参考图（最多2张）'], limit: '需要配置 Doubao Session ID。' },
   'doubao-seed2fast': { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], durations: [10], defaultDuration: 10, fixedDuration: 10, notes: ['豆包 Seedance 2.0 Fast（别名）', '每日 10 次免费额度', '支持首帧参考图（最多2张）'], limit: '固定 10 秒，消耗 2 额度。' },
-  'xyq-seedream-4.5': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['小云雀 Seedream 4.5'], limit: '需要配置 XYQ Session ID。' },
-  'xyq-seedream-4.0': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['小云雀 Seedream 4.0'], limit: '需要配置 XYQ Session ID。' },
-  'xyq-seedream-5.0': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['小云雀 Seedream 5.0', '最新'], limit: '需要配置 XYQ Session ID。' },
+  'xyq-seedream-4.5': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3'], styles: ['不指定','智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['小云雀 Seedream 4.5'], limit: '需要配置 XYQ Session ID。' },
+  'xyq-seedream-4.0': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3'], styles: ['不指定','智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['小云雀 Seedream 4.0'], limit: '需要配置 XYQ Session ID。' },
+  'xyq-seedream-5.0': { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['不指定','智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['小云雀 Seedream 5.0', '最新'], limit: '需要配置 XYQ Session ID。' },
   'xyq-seedance-2.0': { family: 'xyq-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P','1080P'], durations: [5,10], defaultDuration: 5, notes: ['小云雀 Seedance 2.0'], limit: '需要配置 XYQ Session ID。' },
   'wan2.7-image': { family: 'qwen-image', ratios: ['1:1','4:3','3:4','16:9','9:16','auto'], resolutions: ['1k','2k'], notes: ['Wan 2.7-Image', '最新，支持多图参考', '支持1K/2K分辨率'], limit: '需要配置 Qwen Cookie。' },
   'qwen-image-2.0': { family: 'qwen-image', ratios: ['1:1','4:3','3:4','16:9','9:16','auto'], notes: ['千问 Qwen-Image 2.0', '免费高质感'], limit: '需要配置 Qwen Cookie。' },
@@ -862,12 +851,12 @@ const MODEL_RULES = {
   'qwen-happyhorse': { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P','1080P'], durations: [2,3,4,5,6,7,8,9,10,11,12,13,14,15], defaultDuration: 5, notes: ['通义千问视频生成', '支持首帧参考图'], limit: '需要配置 Qwen Cookie。' },
   'wan2.6-t2v': { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P','1080P'], durations: [2,3,4,5,6,7,8,9,10,11,12,13,14,15], defaultDuration: 5, notes: ['Wan 2.6 文生视频'], limit: '需要配置 Qwen Cookie。' },
   'wan2.7-t2v': { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P','1080P'], durations: [2,3,4,5,6,7,8,9,10,11,12,13,14,15], defaultDuration: 5, notes: ['Wan 2.7 文生视频', '支持首帧参考图'], limit: '需要配置 Qwen Cookie。' },
-  default_seedream: { family: 'seedream', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['Seedream 统一接口'], limit: '统一接口，底层自动选择可用提供商。' },
+  default_seedream: { family: 'seedream', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['不指定','智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['Seedream 统一接口'], limit: '统一接口，底层自动选择可用提供商。' },
   default_jimeng: { family: 'jimeng', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], resolutions: ['1k','2k','4k'], notes: ['即梦图像模型'], limit: '需要配置 Jimeng Session ID 或 Authorization。' },
   default_kling: { family: 'kling', ratios: ['1:1','16:9','9:16','4:3','3:4','2:3','3:2'], resolutions: ['1k'], notes: ['可灵网页模式'], limit: '需要配置 Kling Cookie。' },
-  default_doubao: { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['豆包图像模型'], limit: '需要配置 Doubao Session ID。' },
+  default_doubao: { family: 'doubao', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3','21:9'], notes: ['豆包图像模型'], limit: '需要配置 Doubao Session ID。' },
   default_doubao_video: { family: 'doubao-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], durations: [10], defaultDuration: 10, fixedDuration: 10, notes: ['豆包视频模型', '支持首帧参考图（最多2张）'], limit: '需要配置 Doubao Session ID。固定 10 秒，消耗 2 额度。' },
-  default_xyq: { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3'], styles: ['智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['小云雀图像模型'], limit: '需要配置 XYQ Session ID。' },
+  default_xyq: { family: 'xyq', ratios: ['1:1','4:3','3:4','16:9','9:16','3:2','2:3'], styles: ['不指定','智能','写实','动漫','油画','水彩','素描','赛博朋克','中国风','复古','极简'], notes: ['小云雀图像模型'], limit: '需要配置 XYQ Session ID。' },
   default_xyq_video: { family: 'xyq-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P','1080P'], durations: [5,10], defaultDuration: 5, notes: ['小云雀视频模型'], limit: '需要配置 XYQ Session ID。' },
   default_qwen_image: { family: 'qwen-image', ratios: ['1:1','4:3','3:4','16:9','9:16','auto'], notes: ['通义千问图像模型', '仅 wan2.7-image 支持自定义分辨率'], limit: '需要配置 Qwen Cookie。' },
   default_qwen_video: { family: 'qwen-video', ratios: ['16:9','9:16','1:1','4:3','3:4'], resolutions: ['720P','1080P'], durations: [2,3,4,5,6,7,8,9,10,11,12,13,14,15], defaultDuration: 5, notes: ['通义千问视频模型', '支持首帧参考图'], limit: '需要配置 Qwen Cookie。' },
@@ -917,8 +906,6 @@ const els = {
   negativeRow: $('negativeRow'),
   sampleInput: $('sampleInput'),
   sampleRow: $('sampleRow'),
-  asyncInput: $('asyncInput'),
-  asyncRow: $('asyncRow'),
   imageTimeoutInput: $('imageTimeoutInput'),
   imageTimeoutRow: $('imageTimeoutRow'),
   videoTimeoutInput: $('videoTimeoutInput'),
@@ -940,7 +927,6 @@ const els = {
 
   qwenStat: $('qwenStat'),
   modelStat: $('modelStat'),
-  resultJson: $('resultJson'),
   logBox: $('logBox'),
   previewBox: $('previewBox'),
   previewEmpty: $('previewEmpty'),
@@ -996,7 +982,7 @@ document.querySelectorAll('#resultsTabs .results-tab').forEach(tab => {
     document.querySelectorAll('#resultsTabs .results-tab').forEach(t => t.classList.toggle('active', t === tab));
     document.querySelectorAll('.result-panel').forEach(p => p.classList.remove('active'));
     const target = tab.dataset.tab;
-    const panelMap = { preview: 'panelPreview', response: 'panelResponse', logs: 'panelLogs', history: 'panelHistory' };
+    const panelMap = { preview: 'panelPreview', logs: 'panelLogs', history: 'panelHistory' };
     $(panelMap[target])?.classList.add('active');
   });
 });
@@ -1104,7 +1090,6 @@ function sanitizeForDisplay(value, seen = new WeakSet()) {
   return next;
 }
 
-function setResult(data) { els.resultJson.textContent = JSON.stringify(data, null, 2); }
 function setServiceBadge(ok, text) { els.serviceBadge.innerHTML = ok ? `<span class="dot ok"></span> ${text}` : `<span class="dot bad"></span> ${text}`; }
 
 /* ===================================================================
@@ -1222,7 +1207,6 @@ function refreshModelHints() {
   els.nRow.style.display = vf ? 'none' : '';
   els.negativeRow.style.display = vf ? 'none' : '';
   els.sampleRow.style.display = vf ? 'none' : '';
-  els.asyncRow.style.display = vf ? 'none' : '';
 
   // Timeout fields: show only relevant to current gen mode
   // FIX #2: hide image timeout in video mode, video timeout in image mode
@@ -1581,7 +1565,6 @@ async function loadModels() {
   } catch (e) {
     els.modelStat.textContent = '-';
     setServiceBadge(false, '模型加载失败');
-    setResult({ error: '加载模型失败', message: e.message });
     appendLog('error', '加载模型失败', e.response || e.message);
   }
 }
@@ -1623,7 +1606,7 @@ function fillModelSelect(models = []) {
 async function refreshStatus() {
   try {
     appendLog('info', '检测服务状态');
-    const data = await fetchJson('/console/status?deep=1', { headers: { 'Content-Type': 'application/json' } });
+    const data = await fetchJson('/console/status', { headers: { 'Content-Type': 'application/json' } });
     els.pingStat.innerHTML = data?.ok ? '<span style="color:var(--accent-green)">正常</span>' : '<span style="color:var(--accent-red)">异常</span>';
     const jm = data?.credentials?.jimeng || {};
     const kl = data?.credentials?.kling || {};
@@ -1637,13 +1620,11 @@ async function refreshStatus() {
     if (modelCatalog.length) els.modelStat.textContent = String(modelCatalog.length);
     setServiceBadge(true, '服务正常');
     els.statusSummary.textContent = data?.ok ? '服务正常 ✓' : '服务异常 ✗';
-    setResult(data);
     appendLog('info', '状态检测完成', data);
   } catch (e) {
     els.pingStat.innerHTML = '<span style="color:var(--accent-red)">失败</span>';
     setServiceBadge(false, '检测失败');
     els.statusSummary.textContent = '检测失败';
-    setResult({ error: '检测失败', message: e.message });
     appendLog('error', '检测失败', e.response || e.message);
   }
 }
@@ -1665,7 +1646,6 @@ async function pollKlingTask(taskId) {
         const data = await fetchJson(`/v1/images/generations/${encodeURIComponent(taskId)}`, { headers: { 'Content-Type': 'application/json' } });
         const task = data?.data || {};
         appendLog('info', `轮询 #${tries}：${task.task_status || '?'}`, data);
-        setResult(data);
         if (task.task_status === 'succeed') {
           stopActivePoller();
           const urls = (task.task_result?.images || []).map(i => i.url).filter(Boolean);
@@ -1688,6 +1668,125 @@ async function pollKlingTask(taskId) {
   });
 }
 
+// ─── 通用异步任务轮询 ─────────────────────────────────
+const ASYNC_TASK_STORAGE_KEY = 'image-api-pending-task';
+
+function savePendingTask(taskId, meta) {
+  try {
+    localStorage.setItem(ASYNC_TASK_STORAGE_KEY, JSON.stringify({ taskId, meta, savedAt: Date.now() }));
+  } catch (_) {}
+}
+
+function loadPendingTask() {
+  try {
+    const raw = localStorage.getItem(ASYNC_TASK_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) { return null; }
+}
+
+function clearPendingTask() {
+  try { localStorage.removeItem(ASYNC_TASK_STORAGE_KEY); } catch (_) {}
+}
+
+async function pollAsyncTask(taskId, isVideo) {
+  stopActivePoller();
+  appendLog('info', `异步任务已提交：${taskId}，等待生成...`);
+  const start = Date.now();
+  let tries = 0;
+  let loggedRunning = false;
+  const timeoutMs = isVideo ? getTimeoutMs('video') : getTimeoutMs('image');
+  const pollInterval = 2000;
+
+  return new Promise((resolve, reject) => {
+    activePoller = setInterval(async () => {
+      tries++;
+      const elapsed = ((Date.now() - start) / 1000).toFixed(0);
+      try {
+        const data = await fetchJson(`/v1/images/tasks/${encodeURIComponent(taskId)}`, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (data.status === 'running') {
+          els.generateBtn.textContent = `🔄 生成中... ${elapsed}s`;
+          if (!loggedRunning) { appendLog('info', '任务执行中...'); loggedRunning = true; }
+          return;
+        }
+
+        if (data.status === 'completed') {
+          stopActivePoller();
+          clearPendingTask();
+          const durationSec = data.duration_ms ? (data.duration_ms / 1000).toFixed(1) : elapsed;
+          appendLog('info', `✅ 生成完成，耗时 ${durationSec} 秒`);
+
+          if (isVideo) {
+            const urls = extractVideoUrlsFromResponse(data.result);
+            if (urls.length > 0) { setPreview(urls, true); appendLog('info', `完成，${urls.length} 个视频`); }
+            else { appendLog('warn', '未提取到视频链接'); }
+          } else {
+            const urls = Array.isArray(data.result?.data) ? data.result.data.map(i => i.url).filter(Boolean) : [];
+            setPreview(urls);
+            appendLog('info', `共 ${urls.length} 张图`);
+          }
+          resolve(data);
+          return;
+        }
+
+        if (data.status === 'failed') {
+          stopActivePoller();
+          clearPendingTask();
+          const errMsg = data.error || '任务失败';
+          appendLog('error', `❌ 生成失败: ${errMsg}`);
+          reject(new Error(errMsg));
+          return;
+        }
+
+        // pending - 只更新按钮文字，不刷日志
+        els.generateBtn.textContent = `🔄 等待中... ${elapsed}s`;
+
+        if (Date.now() - start > timeoutMs) {
+          stopActivePoller();
+          clearPendingTask();
+          appendLog('warn', '轮询超时');
+          reject(new Error(`轮询超时（>${Math.round(timeoutMs/1000)} 秒）`));
+        }
+      } catch (e) {
+        appendLog('warn', `轮询请求失败 (第${tries}次)`, e.message);
+        if (tries > 5 && (Date.now() - start > 30000)) {
+          stopActivePoller();
+          clearPendingTask();
+          appendLog('error', '轮询失败次数过多');
+          reject(e);
+        }
+      }
+    }, pollInterval);
+  });
+}
+
+// 页面加载时恢复未完成的异步任务
+function resumePendingTaskIfAny() {
+  const pending = loadPendingTask();
+  if (!pending || !pending.taskId) return;
+
+  const { taskId, meta } = pending;
+  appendLog('info', `🔄 检测到未完成的任务 ${taskId}，恢复轮询...`);
+
+  els.generateBtn.disabled = true;
+  els.generateBtn.textContent = '🔄 恢复中...';
+
+  pollAsyncTask(taskId, meta?.isVideo || false)
+    .then(() => {
+      appendLog('info', '任务恢复完成');
+      refreshStatus().catch(() => null);
+    })
+    .catch((e) => {
+      appendLog('warn', '任务恢复失败: ' + e.message);
+    })
+    .finally(() => {
+      els.generateBtn.disabled = false;
+      els.generateBtn.textContent = meta?.isVideo ? '🚀 开始生成视频' : '🚀 开始生成';
+    });
+}
+
 /* ===================================================================
    Generate
    =================================================================== */
@@ -1705,6 +1804,7 @@ async function generate() {
   clearLogs();
   setPreview([]);
   stopActivePoller();
+  clearPendingTask(); // 清除之前可能残留的异步任务
   validateParams(true);
   appendLog('info', `发起 ${model} ${currentMode === 'img2img' ? (vf ? '参考图视频' : '参考图生成') : (vf ? '文生视频' : '文生图')} 任务`);
   const reqTimeoutMs = vf ? getTimeoutMs('video') : getTimeoutMs('image');
@@ -1738,7 +1838,7 @@ async function generate() {
       baseParams.negative_prompt = els.negativeInput.value.trim() || undefined;
       baseParams.sample_strength = Number(els.sampleInput.value);
       baseParams.n = Number(els.nInput.value);
-      baseParams.async = family === 'kling' ? true : els.asyncInput.value === 'true';
+      baseParams.async = true;
       const sv = els.styleInput.value.trim();
       if (sv && ['doubao', 'xyq', 'seedream'].includes(family)) baseParams.style = sv;
       if (family === 'kling') baseParams.provider_options = { transport: 'web', target_url: els.targetUrlInput.value.trim() || 'https://klingai.com/app/image/new' };
@@ -1773,10 +1873,16 @@ async function generate() {
       data = await fetchJson(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(baseParams), timeoutMs: reqTimeoutMs });
     }
 
-    setResult(data);
     appendLog('info', '任务返回成功', data);
 
-    if (family === 'kling' && data?.task_id && ['processing','queued','submitted'].includes(data.status)) {
+    // ── 检测异步任务响应（后端返回 task_id + status: pending）──
+    if (data?.task_id && data?.status === 'pending') {
+      appendLog('info', `异步任务已提交：${data.task_id}`);
+      // 保存到 localStorage 以便刷新后恢复
+      savePendingTask(data.task_id, { isVideo: vf, model, prompt });
+      // 开始轮询
+      await pollAsyncTask(data.task_id, vf);
+    } else if (family === 'kling' && data?.task_id && ['processing','queued','submitted'].includes(data.status)) {
       await pollKlingTask(data.task_id);
     } else if (vf) {
       if (data?.error) { appendLog('warn', '视频提示', data.error.message || data.error); }
@@ -1794,7 +1900,6 @@ async function generate() {
   } catch (e) {
     const resp = e?.response || null;
     const msg = resp?.error?.message || resp?.message || e.message;
-    setResult({ error: vf ? '视频生成失败' : '生成失败', message: msg, detail: resp });
     appendLog('error', vf ? '视频生成失败' : '生成失败', resp || e.message);
   } finally {
     els.generateBtn.disabled = false;
@@ -1807,12 +1912,6 @@ async function generate() {
    =================================================================== */
 $('refreshBtn').addEventListener('click', refreshStatus);
 $('loadModelsBtn').addEventListener('click', loadModels);
-$('loadSavedBtn').addEventListener('click', () => {
-  const savedMode = localStorage.getItem('kling-console-gen-mode') || 'image';
-  setGenMode(savedMode);
-  els.targetUrlInput.value = localStorage.getItem('kling-console-target-url') || els.targetUrlInput.value;
-  appendLog('info', '已恢复本地缓存配置');
-});
 $('generateBtn').addEventListener('click', generate);
 
 // Save config on generate
@@ -1822,11 +1921,12 @@ const _origGenerate = generate;
    Init
    =================================================================== */
 refreshModelHints();
-populateOptionChips('asyncOptionList', [{ value: 'true', label: '开启（推荐）' }, { value: 'false', label: '关闭' }], 'asyncInput');
-els.asyncInput.value = 'true';
 appendLog('info', '控制台已加载');
 loadModels().catch(() => null);
 refreshStatus().catch(() => null);
+
+// 页面加载后恢复未完成的异步任务
+resumePendingTaskIfAny();
 
 /* ===================================================================
    History Gallery

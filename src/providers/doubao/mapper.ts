@@ -118,16 +118,17 @@ export function normalizeRatio(ratio?: string): string {
 
 /**
  * 标准化风格参数
+ * 返回空字符串表示不指定风格（不传给豆包 API）
  */
 export function normalizeStyle(style?: string): string {
-  if (!style) return "智能";
+  if (!style || style === "不指定" || style === "none" || style === "auto") return "";
   if (DOUBAO_STYLES.includes(style)) return style;
   // 尝试模糊匹配
   const lower = style.toLowerCase();
   const found = DOUBAO_STYLES.find(
     (s) => s.toLowerCase() === lower || s.includes(style)
   );
-  return found || "智能";
+  return found || "";
 }
 
 /**

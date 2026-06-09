@@ -7,6 +7,7 @@
  * 底层自动轮询 jimeng → xyq → doubao。
  *
  * 支持文生图和图生图（images 参数，URL 数组或 multipart 文件上传）。
+ * 支持异步模式（async=true 返回 task_id，前端轮询 /v1/images/tasks/:id）。
  */
 
 import fs from "fs";
@@ -20,6 +21,9 @@ import {
 import SeedreamUnifiedProvider, {
   isSeedreamModel,
 } from "@/providers/seedream/unified-provider.ts";
+import taskManager from "@/lib/task-manager.ts";
+import historyManager from "@/lib/history-manager.ts";
+import logger from "@/lib/logger.ts";
 
 const provider = new SeedreamUnifiedProvider();
 
@@ -107,9 +111,25 @@ function buildInput(
     responseFormat: body.response_format,
     sampleStrength: coerceNumber(body.sample_strength),
     intelligentRatio: coerceBoolean(body.intelligent_ratio),
+    async: coerceBoolean(body.async),
     n: coerceNumber(body.n),
     providerOptions: Object.keys(providerOptions).length > 0 ? providerOptions : undefined,
   };
+}
+
+function recordHistory(providerName: string, model: string, prompt: string, result: any, extra: any) {
+  const imageUrls = (result.data || [])
+    .map((d: any) => d.url)
+    .filter((u: any): u is string => typeof u === 'string' && u.startsWith('http'));
+  if (imageUrls.length > 0) {
+    historyManager.recordImageGeneration({
+      provider: providerName,
+      model,
+      prompt,
+      imageUrls,
+      extra,
+    }).catch((err: any) => logger.warn(`[History] Seedream 记录失败: ${err.message}`));
+  }
 }
 
 export default {
@@ -122,14 +142,49 @@ export default {
       const context: ImageProviderContext = {
         authorization: request.headers.authorization as string | undefined,
       };
+      const n = Number(request.body?.n);
+      const model = request.body?.model || 'seedream-4.5';
+      const prompt = request.body?.prompt || '';
+      const isAsync = input.async === true;
 
+      // ── 异步模式 ──
+      if (isAsync) {
+        const task = taskManager.createTask({
+          type: 'image',
+          provider: 'seedream',
+          model,
+          prompt,
+        });
+
+        taskManager.updateTaskStatus(task.id, 'running');
+
+        provider.generateUnified(input, context)
+          .then((result: any) => {
+            if (n > 0 && Array.isArray(result.data) && result.data.length > n) {
+              result.data = result.data.slice(0, n);
+            }
+            taskManager.updateTaskStatus(task.id, 'completed', result);
+            recordHistory('seedream', model, prompt, result, { ratio: request.body?.ratio, n, task_id: task.id });
+          })
+          .catch((err: any) => {
+            taskManager.updateTaskStatus(task.id, 'failed', err.message || '生成失败');
+          });
+
+        return {
+          task_id: task.id,
+          status: 'pending',
+          message: 'Seedream 任务已提交，使用 task_id 查询进度',
+        };
+      }
+
+      // ── 同步模式 ──
       const result = await provider.generateUnified(input, context);
 
-      // 按 n 参数截取返回图片数量
-      const n = Number(request.body?.n);
       if (n > 0 && Array.isArray(result.data) && result.data.length > n) {
         result.data = result.data.slice(0, n);
       }
+
+      recordHistory('seedream', model, prompt, result, { ratio: request.body?.ratio, n });
 
       return result;
     },
