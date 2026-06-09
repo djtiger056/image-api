@@ -45,7 +45,14 @@ export default class Response {
     injectTo(ctx) {
         this.redirect && ctx.redirect(this.redirect);
         this.statusCode && (ctx.status = this.statusCode);
-        this.type && (ctx.type = mime.getType(this.type) || this.type);
+        // mime v4 ESM/CJS interop: handle both default export and module namespace
+        if (this.type) {
+            const m = mime as any;
+            const resolvedType = (typeof m.getType === 'function' ? m.getType(this.type) : null)
+                || (m.default && typeof m.default.getType === 'function' ? m.default.getType(this.type) : null)
+                || this.type;
+            ctx.type = resolvedType;
+        }
         const headers = this.headers || {};
         if(this.size && !headers["Content-Length"] && !headers["content-length"])
             headers["Content-Length"] = this.size;

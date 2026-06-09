@@ -15,6 +15,7 @@ import {
 } from "@/providers/xyq/mapper.ts";
 
 import { selectSingleToken } from '@/lib/service-authorization.js';
+import historyManager from '@/lib/history-manager.ts';
 
 const DEFAULT_XYQ_VIDEO_MODEL = "xyq-seedance-2.0-fast";
 const DEFAULT_XYQ_VIDEO_TIMEOUT_MS = 75 * 60 * 1000;
@@ -127,6 +128,17 @@ export default {
       );
 
       const videoUrl = result.videoUrls[0];
+
+      // Record video generation history (fire-and-forget)
+      if (videoUrl && videoUrl.startsWith('http')) {
+        historyManager.recordVideoGeneration({
+          provider: 'xyq',
+          model: model || 'xyq-video',
+          prompt: prompt || '',
+          videoUrls: [videoUrl],
+        }).catch(() => {});
+      }
+
       if (response_format === "b64_json") {
         const videoBase64 = await util.fetchFileBASE64(videoUrl);
         return {

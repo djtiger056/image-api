@@ -61,6 +61,14 @@ export default {
       };
     },
 
+    // ── 获取完整 API Key（用于复制） ──
+    '/api-keys/:id/reveal': async (request: Request) => {
+      const id = request.params.id;
+      const key = accountManager.getApiKey(id);
+      if (!key) throw new Error(`API Key ${id} 不存在`);
+      return { id: key.id, key: key.key };
+    },
+
     // ── 系统设置 ──
     '/settings': async (_request: Request) => {
       return accountManager.getSettings();

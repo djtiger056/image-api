@@ -487,6 +487,88 @@
     @media (min-width: 641px) and (max-width: 900px) {
       .status-grid { grid-template-columns: repeat(3, 1fr); }
     }
+
+    /* ===== History Gallery ===== */
+    .history-toolbar {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .history-toolbar select, .history-toolbar input {
+      background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+      color: var(--text-primary); padding: 6px 10px; font-size: 13px; font-family: inherit;
+    }
+    .history-toolbar select:focus, .history-toolbar input:focus { border-color: var(--border-focus); outline: none; }
+    .history-toolbar .ht-spacer { flex: 1; }
+    .history-toolbar .ht-btn {
+      background: var(--bg-glass); border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+      color: var(--text-secondary); padding: 6px 12px; font-size: 12px; cursor: pointer; font-family: inherit;
+      transition: all var(--transition);
+    }
+    .history-toolbar .ht-btn:hover { background: rgba(255,255,255,.06); color: var(--text-primary); }
+    .history-toolbar .ht-btn.danger:hover { background: rgba(248,113,113,.15); color: var(--accent-red); border-color: rgba(248,113,113,.3); }
+    .history-stats { font-size: 12px; color: var(--text-muted); }
+    .history-gallery {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;
+    }
+    .history-card {
+      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md);
+      overflow: hidden; transition: all var(--transition); position: relative;
+    }
+    .history-card:hover { border-color: var(--accent-cyan); box-shadow: 0 0 20px rgba(34,211,238,.1); transform: translateY(-2px); }
+    .history-card .media-wrap {
+      position: relative; width: 100%; padding-top: 75%; overflow: hidden; background: var(--bg-input);
+    }
+    .history-card .media-wrap img, .history-card .media-wrap video {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
+    }
+    .history-card .media-badge {
+      position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,.7); backdrop-filter: blur(8px);
+      color: #fff; border-radius: 4px; padding: 2px 6px; font-size: 10px; z-index: 1;
+    }
+    .history-card .media-del {
+      position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.7); backdrop-filter: blur(8px);
+      color: var(--accent-red); border: 1px solid rgba(248,113,113,.3); border-radius: 4px;
+      padding: 2px 8px; font-size: 11px; cursor: pointer; z-index: 1; display: none;
+      transition: all var(--transition);
+    }
+    .history-card:hover .media-del { display: block; }
+    .history-card .media-del:hover { background: rgba(248,113,113,.3); }
+    .history-card .card-info {
+      padding: 10px 12px;
+    }
+    .history-card .card-prompt {
+      font-size: 12px; color: var(--text-primary); line-height: 1.5;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 6px;
+    }
+    .history-card .card-meta {
+      display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); flex-wrap: wrap;
+    }
+    .history-card .card-meta .provider-tag {
+      background: var(--accent-cyan-dim); color: var(--accent-cyan); padding: 1px 6px;
+      border-radius: 3px; font-size: 10px; font-weight: 600;
+    }
+    .history-pagination {
+      display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px;
+    }
+    .history-pagination button {
+      background: var(--bg-glass); border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+      color: var(--text-secondary); padding: 6px 14px; font-size: 13px; cursor: pointer; font-family: inherit;
+      transition: all var(--transition);
+    }
+    .history-pagination button:hover:not(:disabled) { background: rgba(255,255,255,.06); color: var(--text-primary); }
+    .history-pagination button:disabled { opacity: .4; cursor: not-allowed; }
+    .history-pagination .page-info { font-size: 12px; color: var(--text-muted); }
+    .history-empty {
+      text-align: center; padding: 60px 20px; color: var(--text-muted);
+    }
+    .history-empty .big-icon { font-size: 48px; margin-bottom: 12px; }
+    /* Lightbox */
+    .lightbox-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 9999;
+      display: flex; align-items: center; justify-content: center; cursor: zoom-out;
+    }
+    .lightbox-overlay img, .lightbox-overlay video {
+      max-width: 92vw; max-height: 92vh; border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+    }
   </style>
 </head>
 <body>
@@ -501,6 +583,7 @@
       <span class="badge" id="modeBadge">🖼️ 图片模式</span>
       <div class="header-nav">
         <a href="/">🏠 首页</a>
+        <a href="/history">💎 我的资产</a>
         <a href="/accounts">🔑 账号管理</a>
         <a href="/docs/api-guide">📖 API 文档</a>
       </div>
@@ -693,6 +776,7 @@
         <button class="results-tab active" data-tab="preview">👁️ 预览</button>
         <button class="results-tab" data-tab="response">📡 响应</button>
         <button class="results-tab" data-tab="logs">📝 日志</button>
+        <button class="results-tab" data-tab="history">💎 资产</button>
       </div>
 
       <div class="result-panel active" id="panelPreview">
@@ -710,6 +794,33 @@
 
       <div class="result-panel" id="panelLogs">
         <div class="logbox" id="logBox"></div>
+      </div>
+
+      <div class="result-panel" id="panelHistory">
+        <div class="history-toolbar">
+          <a href="/history" style="color:var(--accent-cyan);font-size:12px;text-decoration:none;padding:6px 12px;border:1px solid rgba(34,211,238,.3);border-radius:8px;transition:all .2s;" onmouseover="this.style.background='rgba(34,211,238,.1)'" onmouseout="this.style.background='transparent'">💎 打开完整资产页面 →</a>
+          <select id="historyTypeFilter">
+            <option value="">全部类型</option>
+            <option value="image">🖼️ 图片</option>
+            <option value="video">🎬 视频</option>
+          </select>
+          <select id="historyProviderFilter">
+            <option value="">全部平台</option>
+            <option value="jimeng">即梦</option>
+            <option value="doubao">豆包</option>
+            <option value="qwen">千问</option>
+            <option value="xyq">星元气</option>
+          </select>
+          <span class="ht-spacer"></span>
+          <span class="history-stats" id="historyStats"></span>
+          <button class="ht-btn danger" id="historyClearBtn">🗑️ 清空</button>
+        </div>
+        <div class="history-gallery" id="historyGallery"></div>
+        <div class="history-pagination" id="historyPagination" style="display:none;">
+          <button id="historyPrevBtn">◀ 上一页</button>
+          <span class="page-info" id="historyPageInfo"></span>
+          <button id="historyNextBtn">下一页 ▶</button>
+        </div>
       </div>
     </div>
 
@@ -885,7 +996,7 @@ document.querySelectorAll('#resultsTabs .results-tab').forEach(tab => {
     document.querySelectorAll('#resultsTabs .results-tab').forEach(t => t.classList.toggle('active', t === tab));
     document.querySelectorAll('.result-panel').forEach(p => p.classList.remove('active'));
     const target = tab.dataset.tab;
-    const panelMap = { preview: 'panelPreview', response: 'panelResponse', logs: 'panelLogs' };
+    const panelMap = { preview: 'panelPreview', response: 'panelResponse', logs: 'panelLogs', history: 'panelHistory' };
     $(panelMap[target])?.classList.add('active');
   });
 });
@@ -1716,6 +1827,166 @@ els.asyncInput.value = 'true';
 appendLog('info', '控制台已加载');
 loadModels().catch(() => null);
 refreshStatus().catch(() => null);
+
+/* ===================================================================
+   History Gallery
+   =================================================================== */
+const historyState = { page: 1, pageSize: 20, type: '', provider: '' };
+
+async function loadHistory() {
+  const gallery = $('historyGallery');
+  const pagination = $('historyPagination');
+  const stats = $('historyStats');
+
+  if (!gallery) return;
+
+  const params = new URLSearchParams({
+    page: historyState.page,
+    pageSize: historyState.pageSize,
+  });
+  if (historyState.type) params.set('type', historyState.type);
+  if (historyState.provider) params.set('provider', historyState.provider);
+
+  try {
+    const resp = await fetch(`/admin/history?${params}`);
+    if (!resp.ok) throw new Error('加载失败');
+    const data = await resp.json();
+
+    // Stats
+    const statsResp = await fetch('/admin/history/stats');
+    const statsData = statsResp.ok ? await statsResp.json() : null;
+    if (stats && statsData) {
+      stats.textContent = `共 ${statsData.total_records} 条记录 · ${statsData.total_images} 图片 · ${statsData.total_videos} 视频`;
+    }
+
+    // Render
+    if (data.records.length === 0) {
+      gallery.innerHTML = '<div class="history-empty"><div class="big-icon">📭</div><div>暂无生成历史</div><div style="font-size:12px;margin-top:8px;">生成图片或视频后，历史记录会自动保存到这里</div></div>';
+      pagination.style.display = 'none';
+      return;
+    }
+
+    gallery.innerHTML = data.records.map(record => {
+      const firstFile = record.media_files[0];
+      const fileUrl = firstFile ? `/admin/history/file/${firstFile.local_path}` : '';
+      const isVideo = record.type === 'video';
+      const timeStr = new Date(record.created_at).toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+      const sizeStr = firstFile ? formatFileSize(firstFile.file_size) : '';
+
+      return `<div class="history-card" data-id="${record.id}">
+        <div class="media-wrap">
+          <span class="media-badge">${isVideo ? '🎬 视频' : '🖼️ 图片'}</span>
+          <button class="media-del" onclick="deleteHistoryItem('${record.id}', event)">✕</button>
+          ${isVideo
+            ? `<video src="${fileUrl}" muted loop preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0;"></video>`
+            : `<img src="${fileUrl}" loading="lazy" onclick="openLightbox('${fileUrl}', false)" />`
+          }
+        </div>
+        <div class="card-info">
+          <div class="card-prompt" title="${escapeHtml(record.prompt)}">${escapeHtml(record.prompt || '(无提示词)')}</div>
+          <div class="card-meta">
+            <span class="provider-tag">${record.provider}</span>
+            <span>${record.model}</span>
+            <span>${timeStr}</span>
+            ${sizeStr ? `<span>${sizeStr}</span>` : ''}
+            <span>${record.media_files.length} 个文件</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Pagination
+    if (data.totalPages > 1) {
+      pagination.style.display = 'flex';
+      $('historyPageInfo').textContent = `第 ${data.page} / ${data.totalPages} 页 (共 ${data.total} 条)`;
+      $('historyPrevBtn').disabled = data.page <= 1;
+      $('historyNextBtn').disabled = data.page >= data.totalPages;
+    } else {
+      pagination.style.display = 'none';
+    }
+
+    // Add click handlers for video preview (click to open lightbox)
+    gallery.querySelectorAll('video').forEach(v => {
+      v.style.cursor = 'pointer';
+      v.addEventListener('click', () => openLightbox(v.src, true));
+    });
+
+  } catch (err) {
+    gallery.innerHTML = `<div class="history-empty"><div class="big-icon">⚠️</div><div>加载失败: ${escapeHtml(err.message)}</div></div>`;
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function formatFileSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+async function deleteHistoryItem(id, event) {
+  event.stopPropagation();
+  if (!confirm('确定删除此记录？本地文件也会被删除。')) return;
+  try {
+    const resp = await fetch(`/admin/history/${id}`, { method: 'DELETE' });
+    if (resp.ok) loadHistory();
+    else alert('删除失败');
+  } catch (e) { alert('删除失败: ' + e.message); }
+}
+
+// Clear all history
+$('historyClearBtn')?.addEventListener('click', async () => {
+  if (!confirm('确定清空所有历史记录？所有本地文件将被删除！')) return;
+  try {
+    const resp = await fetch('/admin/history', { method: 'DELETE' });
+    if (resp.ok) loadHistory();
+    else alert('清空失败');
+  } catch (e) { alert('清空失败: ' + e.message); }
+});
+
+// Filters
+$('historyTypeFilter')?.addEventListener('change', (e) => {
+  historyState.type = e.target.value;
+  historyState.page = 1;
+  loadHistory();
+});
+$('historyProviderFilter')?.addEventListener('change', (e) => {
+  historyState.provider = e.target.value;
+  historyState.page = 1;
+  loadHistory();
+});
+
+// Pagination
+$('historyPrevBtn')?.addEventListener('click', () => { if (historyState.page > 1) { historyState.page--; loadHistory(); } });
+$('historyNextBtn')?.addEventListener('click', () => { historyState.page++; loadHistory(); });
+
+// Lightbox
+function openLightbox(src, isVideo) {
+  const overlay = document.createElement('div');
+  overlay.className = 'lightbox-overlay';
+  overlay.onclick = () => overlay.remove();
+  if (isVideo) {
+    const v = document.createElement('video');
+    v.src = src; v.controls = true; v.autoplay = true; v.style.maxWidth = '92vw'; v.style.maxHeight = '92vh';
+    overlay.appendChild(v);
+  } else {
+    const img = document.createElement('img');
+    img.src = src;
+    overlay.appendChild(img);
+  }
+  document.body.appendChild(overlay);
+}
+
+// Load history when the tab is clicked
+document.querySelectorAll('#resultsTabs .results-tab').forEach(tab => {
+  if (tab.dataset.tab === 'history') {
+    tab.addEventListener('click', () => loadHistory());
+  }
+});
 </script>
 </body>
 </html>

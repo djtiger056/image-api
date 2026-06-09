@@ -298,6 +298,7 @@
     <div class="nav">
       <a href="/">首页</a>
       <a href="/console">生成控制台</a>
+      <a href="/history">💎 我的资产</a>
       <a href="/docs/api-guide">API 文档</a>
     </div>
   </div>
@@ -526,6 +527,23 @@
       <div class="form-actions">
         <button class="btn btn-ghost" onclick="closeModal('addKeyModal')">取消</button>
         <button class="btn btn-primary" onclick="addApiKey()">确认创建</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="keyCreatedModal">
+    <div class="modal" style="max-width:520px">
+      <h3 style="color:var(--accent-green)">✓ API Key 创建成功</h3>
+      <p style="color:var(--text-muted);font-size:13px;margin:8px 0 16px">请立即复制保存此密钥，关闭后将无法再次查看完整内容</p>
+      <div class="form-group">
+        <label>完整 API Key</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="createdKeyValue" readonly style="flex:1;font-family:monospace;font-size:13px;background:var(--bg-tertiary);user-select:all">
+          <button class="btn btn-primary" onclick="copyCreatedKey()" style="white-space:nowrap">📋 复制</button>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="closeModal('keyCreatedModal')">我已保存，关闭</button>
       </div>
     </div>
   </div>
@@ -857,7 +875,13 @@
         tbody.innerHTML = keys.map(k => `
           <tr>
             <td>${esc(k.name)}</td>
-            <td style="font-family:monospace;font-size:12px;color:var(--text-muted)">${k.key}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:6px">
+                <code class="key-display" data-id="${k.id}" style="font-family:monospace;font-size:12px;color:var(--text-muted);user-select:all;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">${esc(k.key)}</code>
+                <button class="btn btn-ghost btn-sm" onclick="toggleKeyVis(this)" title="显示/隐藏" style="padding:3px 6px;font-size:11px">👁</button>
+                <button class="btn btn-ghost btn-sm" onclick="copyKey(this)" title="复制 Key" style="padding:3px 6px;font-size:11px">📋</button>
+              </div>
+            </td>
             <td>${k.rate_limit}</td>
             <td>${k.allowed_platforms.join(', ')}</td>
             <td>${k.total_calls}</td>
@@ -878,16 +902,34 @@
     async function addApiKey() {
       try {
         const platforms = document.getElementById('keyPlatforms').value.split(',').map(s => s.trim());
-        await api('POST', '/admin/api-keys', {
+        const result = await api('POST', '/admin/api-keys', {
           name: document.getElementById('keyName').value || '未命名',
           rate_limit: document.getElementById('keyRateLimit').value,
           allowed_platforms: platforms,
         });
-        toast('API Key 创建成功');
         closeModal('addKeyModal');
         loadKeys();
         loadStats();
+        // 显示创建成功的 key
+        showKeyCreatedModal(result.key);
       } catch (e) { toast('创建失败: ' + e.message, 'error'); }
+    }
+
+    function showKeyCreatedModal(key) {
+      const modal = document.getElementById('keyCreatedModal');
+      document.getElementById('createdKeyValue').value = key;
+      modal.classList.add('show');
+    }
+
+    function copyCreatedKey() {
+      const input = document.getElementById('createdKeyValue');
+      input.select();
+      navigator.clipboard.writeText(input.value).then(() => {
+        toast('已复制到剪贴板');
+      }).catch(() => {
+        document.execCommand('copy');
+        toast('已复制到剪贴板');
+      });
     }
 
     async function toggleKey(id, enabled) {
@@ -905,6 +947,51 @@
         loadKeys();
         loadStats();
       } catch (e) { toast('删除失败: ' + e.message, 'error'); }
+    }
+
+    function toggleKeyVis(btn) {
+      const code = btn.parentElement.querySelector('.key-display');
+      const id = code.dataset.id;
+      if (code.dataset.visible === '1') {
+        code.textContent = code.dataset.masked;
+        code.dataset.visible = '0';
+      } else if (code.dataset.fullkey) {
+        code.textContent = code.dataset.fullkey;
+        code.dataset.visible = '1';
+      } else {
+        api('GET', `/admin/api-keys/${id}/reveal`).then(d => {
+          code.dataset.fullkey = d.key;
+          code.dataset.masked = code.textContent;
+          code.textContent = d.key;
+          code.dataset.visible = '1';
+        }).catch(e => toast('获取 Key 失败: ' + e.message, 'error'));
+      }
+    }
+
+    async function copyKey(btn) {
+      const code = btn.parentElement.querySelector('.key-display');
+      const id = code.dataset.id;
+      let fullKey = code.dataset.fullkey;
+      if (!fullKey) {
+        try {
+          const d = await api('GET', `/admin/api-keys/${id}/reveal`);
+          fullKey = d.key;
+          code.dataset.fullkey = fullKey;
+          code.dataset.masked = code.textContent;
+        } catch (e) { toast('获取 Key 失败: ' + e.message, 'error'); return; }
+      }
+      try {
+        await navigator.clipboard.writeText(fullKey);
+        btn.textContent = '✓';
+        setTimeout(() => btn.textContent = '📋', 1200);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = fullKey; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.textContent = '✓';
+        setTimeout(() => btn.textContent = '📋', 1200);
+      }
     }
 
     // Settings

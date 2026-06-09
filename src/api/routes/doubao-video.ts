@@ -17,6 +17,7 @@ import {
 } from '@/providers/doubao/video-api.ts';
 import { tokenSplit } from '@/providers/doubao/api.ts';
 import { resolveServiceAuthorization, selectSingleToken } from '@/lib/service-authorization.js';
+import historyManager from '@/lib/history-manager.ts';
 
 /**
  * 解析豆包视频 Authorization
@@ -99,6 +100,17 @@ function buildDoubaoVideoResponse(result: any, model: string, token: string) {
   const playbackUrls = videoUrls.map((url: string) =>
     url === result.videoUrl ? proxyUrl : createDoubaoVideoProxyUrl(url, token)
   );
+
+  // 异步记录视频生成历史
+  if (result.videoUrl && result.videoUrl.startsWith('http')) {
+    historyManager.recordVideoGeneration({
+      provider: 'doubao',
+      model: model || 'doubao-video',
+      prompt: result.textContent || '',
+      videoUrls: videoUrls.filter((u: string) => u.startsWith('http')),
+      extra: { raw_url: result.videoUrl },
+    }).catch((err: any) => {});
+  }
 
   return {
     created: util.unixTimestamp(),
@@ -227,6 +239,18 @@ export default {
         const rawVideoUrl = result.rawVideoUrl || result.videoUrl;
         const { buffer } = await fetchDoubaoVideoBuffer(rawVideoUrl, token);
         const videoBase64 = buffer.toString('base64');
+
+        // 异步记录视频生成历史
+        if (rawVideoUrl && rawVideoUrl.startsWith('http')) {
+          historyManager.recordVideoGeneration({
+            provider: 'doubao',
+            model: model || 'doubao-video',
+            prompt: result.textContent || '',
+            videoUrls: (result.videoUrls || [rawVideoUrl]).filter((u: string) => u.startsWith('http')),
+            extra: { raw_url: rawVideoUrl },
+          }).catch((err: any) => {});
+        }
+
         return {
           created: util.unixTimestamp(),
           data: [{ b64_json: videoBase64 }],

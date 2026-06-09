@@ -7,6 +7,7 @@ import { resolveServiceAuthorization, selectSingleToken } from '@/lib/service-au
 import { generateVideo, generateSeedanceVideo, generateInternationalVideo, generateInternationalSeedanceVideo, isSeedanceModel, isInternationalSeedanceModel, isInternationalVideoModel, DEFAULT_MODEL, submitAsyncVideoTask, queryAsyncVideoTask, submitInternationalAsyncVideoTask } from '@/api/controllers/videos.ts';
 import logger from '@/lib/logger.ts';
 import util from '@/lib/util.ts';
+import historyManager from '@/lib/history-manager.ts';
 
 /**
  * 按优先级选择单个 jimeng token (请求头优先，否则走账号管理器)
@@ -128,6 +129,17 @@ export default {
                     },
                     token
                 );
+            }
+
+            // 异步记录视频生成历史
+            if (videoUrl && videoUrl.startsWith('http')) {
+                historyManager.recordVideoGeneration({
+                    provider: 'jimeng',
+                    model,
+                    prompt,
+                    videoUrls: [videoUrl],
+                    extra: { ratio, resolution, duration: finalDuration },
+                }).catch((err: any) => logger.warn(`[History] 视频记录失败: ${err.message}`));
             }
 
             // 根据response_format返回不同格式的结果

@@ -7,20 +7,19 @@ import server from "@/lib/server.ts";
 import routes from "@/api/routes/index.ts";
 import logger from "@/lib/logger.ts";
 import accountManager from "@/lib/account-manager.ts";
-import { browserSigner } from "@/lib/browser-signer.ts";
 
 const startupTime = performance.now();
 
 (async () => {
   logger.header();
 
-  logger.info("<<<< images-api: 多平台兼容逆向 API 统一生图平台 >>>>");
+  logger.info("<<<< images-api: multi-platform reverse API unified image generation platform >>>>");
   logger.info("Version:", environment.package.version);
   logger.info("Process id:", process.pid);
   logger.info("Environment:", environment.env);
   logger.info("Service name:", config.service.name);
 
-  // 初始化账号管理器
+  // init account manager
   accountManager.init();
 
   server.attachRoutes(routes);
@@ -28,16 +27,10 @@ const startupTime = performance.now();
 
   config.service.bindAddress &&
     logger.success("Service bind address:", config.service.bindAddress);
-
-  // 浏览器签名服务已禁用 — 仅小云雀(xyq)需要，当前未使用
-  // browserSigner.start().catch((err) => {
-  //   logger.error(`[BrowserSigner] 启动失败（不影响基础功能）: ${err.message}`);
-  // });
 })()
   .then(() =>
     logger.success(
-      `Service startup completed (${Math.floor(performance.now() - startupTime)}ms)`
+      "Service startup completed (" + Math.floor(performance.now() - startupTime) + "ms)"
     )
   )
   .catch((err) => console.error(err));
-// trigger rebuild

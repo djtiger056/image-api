@@ -14,6 +14,7 @@ import doubaoVideo from './doubao-video.ts';
 import qwenVideo from './qwen-video.ts';
 import xyqVideo from './xyq-video.ts';
 import accounts from './accounts.ts';
+import history from './history.ts';
 
 export default [
     {
@@ -42,4 +43,5 @@ export default [
     ,qwenVideo
     ,xyqVideo
     ,accounts
+    ,history
 ];

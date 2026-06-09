@@ -16,11 +16,11 @@
         "max_daily_usage": 100,
         "total_usage": 0,
         "last_used_at": null,
-        "last_check_at": "2026-06-07T13:03:06.018Z",
+        "last_check_at": "2026-06-09T10:46:53.091Z",
         "last_error": null,
         "points": {
-          "total": 64,
-          "gift": 64,
+          "total": 66,
+          "gift": 66,
           "purchase": 0,
           "vip": false
         },
@@ -33,7 +33,7 @@
     ],
     "doubao": [
       {
-        "id": "doubao-ed126366",
+        "id": "doubao-5ddfb493",
         "name": "mydb",
         "platform": "doubao",
         "sessionid": "bd6488c1d245431d645cfeb28fa1763d",
@@ -41,15 +41,15 @@
         "access_key": "",
         "secret_key": "",
         "cookie": "",
-        "status": "active",
-        "cooldown_until": null,
+        "status": "cooldown",
+        "cooldown_until": "2026-06-09T11:17:11.514Z",
         "priority": 5,
-        "daily_usage": 6,
+        "daily_usage": 0,
         "max_daily_usage": 100,
-        "total_usage": 6,
-        "last_used_at": "2026-06-07T10:43:10.093Z",
-        "last_check_at": "2026-06-07T10:55:36.622Z",
-        "last_error": null,
+        "total_usage": 0,
+        "last_used_at": null,
+        "last_check_at": "2026-06-09T10:47:11.514Z",
+        "last_error": "[豆包请求失败]: 710022004 - rate limited",
         "points": {
           "total": 0,
           "gift": 0,
@@ -58,8 +58,8 @@
         },
         "tags": [],
         "notes": "",
-        "created_at": "2026-06-07T09:35:53.944Z",
-        "updated_at": "2026-06-07T11:25:51.761Z"
+        "created_at": "2026-06-09T10:46:06.152Z",
+        "updated_at": "2026-06-09T10:46:06.152Z"
       }
     ],
     "kling": [],
@@ -110,10 +110,10 @@
         "max_daily_usage": 100,
         "total_usage": 0,
         "last_used_at": null,
-        "last_check_at": "2026-06-07T13:03:13.336Z",
+        "last_check_at": "2026-06-09T10:47:00.113Z",
         "last_error": null,
         "points": {
-          "total": 75,
+          "total": 100,
           "gift": 0,
           "purchase": 0,
           "vip": false

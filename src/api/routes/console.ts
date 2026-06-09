@@ -14,6 +14,15 @@ export default {
         },
       });
     },
+    '/history': async () => {
+      const content = await fs.readFile('public/history.html');
+      return new Response(content, {
+        type: 'html',
+        headers: {
+          Expires: '-1',
+        },
+      });
+    },
     '/accounts': async () => {
       const content = await fs.readFile('public/accounts.html');
       return new Response(content, {

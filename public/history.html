@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>我的资产 - AI Image API</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg-primary: #0a0e1a;
+      --bg-secondary: #111827;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --bg-glass: rgba(255, 255, 255, 0.03);
+      --bg-input: rgba(10, 14, 26, 0.6);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.15);
+      --border-focus: rgba(34, 211, 238, 0.5);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-cyan: #22d3ee;
+      --accent-cyan-dim: rgba(34, 211, 238, 0.1);
+      --accent-purple: #a78bfa;
+      --accent-pink: #f472b6;
+      --accent-green: #34d399;
+      --accent-yellow: #fbbf24;
+      --accent-red: #f87171;
+      --gradient-primary: linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,.4), 0 2px 4px -1px rgba(0,0,0,.2);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.5), 0 4px 6px -2px rgba(0,0,0,.3);
+      --transition: .2s ease;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(34,211,238,.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(167,139,250,.06) 0%, transparent 50%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* Header */
+    .header {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 24px;
+      background: rgba(10,14,26,.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; }
+    .logo-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--gradient-primary);
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .header-nav { display: flex; gap: 4px; }
+    .header-nav a {
+      color: var(--text-secondary); text-decoration: none; font-size: 13px;
+      padding: 6px 12px; border-radius: var(--radius-sm); transition: all var(--transition);
+    }
+    .header-nav a:hover { background: rgba(255,255,255,.06); color: var(--text-primary); }
+    .header-nav a.active { background: var(--accent-cyan-dim); color: var(--accent-cyan); }
+
+    /* Stats Bar */
+    .stats-bar {
+      position: relative; z-index: 1;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      padding: 16px 24px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .stat-card {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg-glass); border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm); padding: 8px 14px;
+    }
+    .stat-card .stat-icon { font-size: 18px; }
+    .stat-card .stat-value { font-size: 18px; font-weight: 700; color: var(--accent-cyan); }
+    .stat-card .stat-label { font-size: 11px; color: var(--text-muted); }
+    .stats-spacer { flex: 1; }
+    .clear-all-btn {
+      background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.3);
+      border-radius: var(--radius-sm); color: var(--accent-red);
+      padding: 8px 16px; font-size: 13px; cursor: pointer; font-family: inherit;
+      transition: all var(--transition);
+    }
+    .clear-all-btn:hover { background: rgba(248,113,113,.2); border-color: rgba(248,113,113,.5); }
+
+    /* Toolbar */
+    .toolbar {
+      position: relative; z-index: 1;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .toolbar select, .toolbar input {
+      background: var(--bg-input); border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+      color: var(--text-primary); padding: 8px 12px; font-size: 13px; font-family: inherit;
+      transition: border-color var(--transition);
+    }
+    .toolbar select:focus, .toolbar input:focus { border-color: var(--border-focus); outline: none; }
+    .toolbar .search-input {
+      min-width: 240px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: 10px center;
+      padding-left: 34px;
+    }
+    .toolbar .spacer { flex: 1; }
+    .toolbar .view-btn {
+      background: var(--bg-glass); border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+      color: var(--text-secondary); padding: 8px 10px; font-size: 14px; cursor: pointer;
+      transition: all var(--transition);
+    }
+    .toolbar .view-btn:hover { background: rgba(255,255,255,.06); color: var(--text-primary); }
+    .toolbar .view-btn.active { background: var(--accent-cyan-dim); color: var(--accent-cyan); border-color: rgba(34,211,238,.3); }
+    .page-size-label { font-size: 12px; color: var(--text-muted); }
+
+    /* Gallery Grid */
+    .gallery {
+      position: relative; z-index: 1;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px;
+      padding: 20px 24px;
+    }
+    .gallery.list-view {
+      grid-template-columns: 1fr; gap: 10px;
+    }
+
+    /* Card */
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md);
+      overflow: hidden; transition: all var(--transition); position: relative;
+      cursor: pointer;
+    }
+    .card:hover { border-color: var(--accent-cyan); box-shadow: 0 0 24px rgba(34,211,238,.12); transform: translateY(-2px); }
+    .card .media-wrap {
+      position: relative; width: 100%; padding-top: 75%; overflow: hidden; background: var(--bg-input);
+    }
+    .card .media-wrap img, .card .media-wrap video {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
+      transition: transform .3s ease;
+    }
+    .card:hover .media-wrap img { transform: scale(1.03); }
+    .card .media-badge {
+      position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,.7); backdrop-filter: blur(8px);
+      color: #fff; border-radius: 6px; padding: 3px 8px; font-size: 11px; z-index: 1;
+    }
+    .card .media-del {
+      position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,.7); backdrop-filter: blur(8px);
+      color: var(--accent-red); border: 1px solid rgba(248,113,113,.3); border-radius: 6px;
+      padding: 4px 10px; font-size: 12px; cursor: pointer; z-index: 1; display: none;
+      transition: all var(--transition);
+    }
+    .card:hover .media-del { display: flex; align-items: center; gap: 4px; }
+    .card .media-del:hover { background: rgba(248,113,113,.3); }
+    .card .card-info { padding: 12px 14px; }
+    .card .card-prompt {
+      font-size: 13px; color: var(--text-primary); line-height: 1.5;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 8px;
+    }
+    .card .card-meta {
+      display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); flex-wrap: wrap;
+    }
+    .card .card-meta .provider-tag {
+      background: var(--accent-cyan-dim); color: var(--accent-cyan); padding: 2px 8px;
+      border-radius: 4px; font-size: 10px; font-weight: 600;
+    }
+    .card .card-meta .model-tag {
+      background: rgba(167,139,250,.1); color: var(--accent-purple); padding: 2px 8px;
+      border-radius: 4px; font-size: 10px; font-weight: 600;
+    }
+
+    /* List view card */
+    .list-view .card {
+      display: grid; grid-template-columns: 160px 1fr;
+    }
+    .list-view .card .media-wrap {
+      padding-top: 0; height: 100px;
+    }
+    .list-view .card .card-prompt {
+      white-space: normal;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+
+    /* Multi-file indicator */
+    .card .file-count {
+      position: absolute; bottom: 8px; right: 8px;
+      background: rgba(0,0,0,.7); backdrop-filter: blur(8px);
+      color: #fff; border-radius: 6px; padding: 3px 8px; font-size: 10px; z-index: 1;
+    }
+
+    /* Pagination */
+    .pagination {
+      position: relative; z-index: 1;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 20px 24px;
+    }
+    .pagination button {
+      background: var(--bg-glass); border: 1px solid var(--border-color); border-radius: var(--radius-sm);
+      color: var(--text-secondary); padding: 8px 18px; font-size: 13px; cursor: pointer; font-family: inherit;
+      transition: all var(--transition);
+    }
+    .pagination button:hover:not(:disabled) { background: rgba(255,255,255,.06); color: var(--text-primary); }
+    .pagination button:disabled { opacity: .4; cursor: not-allowed; }
+    .pagination .page-info { font-size: 13px; color: var(--text-muted); min-width: 180px; text-align: center; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 80px 20px; color: var(--text-muted);
+      grid-column: 1 / -1;
+    }
+    .empty-state .big-icon { font-size: 64px; margin-bottom: 16px; }
+    .empty-state .empty-title { font-size: 18px; color: var(--text-secondary); margin-bottom: 8px; }
+    .empty-state .empty-desc { font-size: 13px; max-width: 360px; margin: 0 auto; }
+
+    /* Error state */
+    .error-state {
+      text-align: center; padding: 80px 20px; color: var(--accent-red);
+      grid-column: 1 / -1;
+    }
+
+    /* Lightbox */
+    .lightbox-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.9); z-index: 9999;
+      display: flex; align-items: center; justify-content: center; cursor: zoom-out;
+      animation: fadeIn .2s ease;
+    }
+    .lightbox-overlay img, .lightbox-overlay video {
+      max-width: 92vw; max-height: 92vh; border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Detail Panel (slide-in) */
+    .detail-panel {
+      position: fixed; top: 0; right: 0; width: 420px; height: 100vh;
+      background: var(--bg-secondary); border-left: 1px solid var(--border-color);
+      z-index: 500; transform: translateX(100%); transition: transform .3s ease;
+      overflow-y: auto; box-shadow: -8px 0 30px rgba(0,0,0,.4);
+    }
+    .detail-panel.open { transform: translateX(0); }
+    .detail-panel .detail-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border-color);
+      position: sticky; top: 0; background: var(--bg-secondary); z-index: 1;
+    }
+    .detail-panel .detail-header h3 { font-size: 15px; font-weight: 600; }
+    .detail-panel .close-btn {
+      background: none; border: none; color: var(--text-secondary); font-size: 20px;
+      cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm);
+    }
+    .detail-panel .close-btn:hover { background: rgba(255,255,255,.06); color: var(--text-primary); }
+    .detail-panel .detail-body { padding: 20px; }
+    .detail-panel .detail-preview {
+      width: 100%; border-radius: var(--radius-sm); margin-bottom: 16px;
+      background: var(--bg-input); overflow: hidden;
+    }
+    .detail-panel .detail-preview img, .detail-panel .detail-preview video {
+      width: 100%; display: block;
+    }
+    .detail-panel .detail-field {
+      margin-bottom: 14px;
+    }
+    .detail-panel .detail-label {
+      font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px;
+      margin-bottom: 4px;
+    }
+    .detail-panel .detail-value {
+      font-size: 13px; color: var(--text-primary); line-height: 1.5;
+      word-break: break-all;
+    }
+    .detail-panel .detail-prompt {
+      font-size: 13px; color: var(--text-primary); line-height: 1.6;
+      background: var(--bg-glass); border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm); padding: 12px; margin-bottom: 14px;
+      max-height: 120px; overflow-y: auto;
+    }
+    .detail-panel .detail-actions {
+      display: flex; gap: 8px; margin-top: 16px; padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+    .detail-panel .detail-actions button {
+      flex: 1; padding: 8px; border-radius: var(--radius-sm); font-size: 12px;
+      cursor: pointer; font-family: inherit; transition: all var(--transition);
+    }
+    .detail-panel .btn-download {
+      background: var(--accent-cyan-dim); border: 1px solid rgba(34,211,238,.3);
+      color: var(--accent-cyan);
+    }
+    .detail-panel .btn-download:hover { background: rgba(34,211,238,.2); }
+    .detail-panel .btn-delete {
+      background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.3);
+      color: var(--accent-red);
+    }
+    .detail-panel .btn-delete:hover { background: rgba(248,113,113,.2); }
+
+    /* Overlay backdrop */
+    .backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 499;
+      display: none;
+    }
+    .backdrop.show { display: block; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .gallery { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; padding: 12px; }
+      .stats-bar { padding: 12px; gap: 8px; }
+      .stat-card { padding: 6px 10px; }
+      .stat-card .stat-value { font-size: 15px; }
+      .toolbar { padding: 10px 12px; }
+      .toolbar .search-input { min-width: 160px; }
+      .detail-panel { width: 100%; }
+      .list-view .card { grid-template-columns: 120px 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">💎</div>
+      <span class="logo-text">我的资产</span>
+    </div>
+    <div class="header-right">
+      <div class="header-nav">
+        <a href="/">🏠 首页</a>
+        <a href="/console">🎨 控制台</a>
+        <a href="/accounts">🔑 账号管理</a>
+        <a href="/docs/api-guide">📖 API 文档</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Bar -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <span class="stat-icon">📊</span>
+      <div>
+        <div class="stat-value" id="statTotal">-</div>
+        <div class="stat-label">总记录</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">🖼️</span>
+      <div>
+        <div class="stat-value" id="statImages">-</div>
+        <div class="stat-label">图片</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">🎬</span>
+      <div>
+        <div class="stat-value" id="statVideos">-</div>
+        <div class="stat-label">视频</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-icon">💾</span>
+      <div>
+        <div class="stat-value" id="statSize">-</div>
+        <div class="stat-label">总大小</div>
+      </div>
+    </div>
+    <div class="stats-spacer"></div>
+    <button class="clear-all-btn" id="clearAllBtn">🗑️ 清空所有记录</button>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <input type="text" class="search-input" id="searchInput" placeholder="搜索提示词..." />
+    <select id="typeFilter">
+      <option value="">全部类型</option>
+      <option value="image">🖼️ 图片</option>
+      <option value="video">🎬 视频</option>
+    </select>
+    <select id="providerFilter">
+      <option value="">全部平台</option>
+    </select>
+    <select id="pageSizeSelect">
+      <option value="20">20 条/页</option>
+      <option value="40">40 条/页</option>
+      <option value="60">60 条/页</option>
+    </select>
+    <span class="spacer"></span>
+    <button class="view-btn active" id="gridViewBtn" title="网格视图">⊞</button>
+    <button class="view-btn" id="listViewBtn" title="列表视图">☰</button>
+  </div>
+
+  <!-- Gallery -->
+  <div class="gallery" id="gallery"></div>
+
+  <!-- Pagination -->
+  <div class="pagination" id="pagination" style="display:none;">
+    <button id="firstBtn">⟪ 首页</button>
+    <button id="prevBtn">◀ 上一页</button>
+    <span class="page-info" id="pageInfo"></span>
+    <button id="nextBtn">下一页 ▶</button>
+    <button id="lastBtn">末页 ⟫</button>
+  </div>
+
+  <!-- Detail Panel -->
+  <div class="backdrop" id="backdrop"></div>
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-header">
+      <h3>📋 记录详情</h3>
+      <button class="close-btn" id="closeDetailBtn">✕</button>
+    </div>
+    <div class="detail-body" id="detailBody"></div>
+  </div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// State
+const state = {
+  page: 1,
+  pageSize: 20,
+  type: '',
+  provider: '',
+  search: '',
+  view: 'grid', // grid | list
+};
+
+// ─── Init ──────────────────────────────────────────
+async function init() {
+  // Load stats & providers
+  await loadStats();
+  // Load first page
+  await loadHistory();
+
+  // Bind events
+  $('searchInput').addEventListener('input', debounce(() => {
+    state.search = $('searchInput').value.trim();
+    state.page = 1;
+    loadHistory();
+  }, 300));
+
+  $('typeFilter').addEventListener('change', e => {
+    state.type = e.target.value;
+    state.page = 1;
+    loadHistory();
+  });
+
+  $('providerFilter').addEventListener('change', e => {
+    state.provider = e.target.value;
+    state.page = 1;
+    loadHistory();
+  });
+
+  $('pageSizeSelect').addEventListener('change', e => {
+    state.pageSize = parseInt(e.target.value);
+    state.page = 1;
+    loadHistory();
+  });
+
+  $('gridViewBtn').addEventListener('click', () => setView('grid'));
+  $('listViewBtn').addEventListener('click', () => setView('list'));
+
+  $('prevBtn').addEventListener('click', () => { if (state.page > 1) { state.page--; loadHistory(); } });
+  $('nextBtn').addEventListener('click', () => { state.page++; loadHistory(); });
+  $('firstBtn').addEventListener('click', () => { state.page = 1; loadHistory(); });
+  $('lastBtn').addEventListener('click', () => { /* set in render */ });
+
+  $('clearAllBtn').addEventListener('click', clearAll);
+  $('closeDetailBtn').addEventListener('click', closeDetail);
+  $('backdrop').addEventListener('click', closeDetail);
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeDetail();
+  });
+}
+
+// ─── Load Stats ──────────────────────────────────────
+async function loadStats() {
+  try {
+    const resp = await fetch('/admin/history/stats');
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    $('statTotal').textContent = data.total_records;
+    $('statImages').textContent = data.total_images;
+    $('statVideos').textContent = data.total_videos;
+    $('statSize').textContent = formatFileSize(data.total_size);
+
+    // Populate provider filter
+    const select = $('providerFilter');
+    const currentVal = select.value;
+    // Keep first option, remove rest
+    while (select.options.length > 1) select.remove(1);
+    const providerNames = { jimeng: '即梦', doubao: '豆包', qwen: '千问', xyq: '星元气', kling: '可灵' };
+    for (const [provider, count] of Object.entries(data.providers || {})) {
+      const opt = document.createElement('option');
+      opt.value = provider;
+      opt.textContent = `${providerNames[provider] || provider} (${count})`;
+      select.appendChild(opt);
+    }
+    select.value = currentVal;
+  } catch (e) {
+    console.warn('加载统计失败:', e);
+  }
+}
+
+// ─── Load History ──────────────────────────────────────
+async function loadHistory() {
+  const gallery = $('gallery');
+  const pagination = $('pagination');
+
+  const params = new URLSearchParams({
+    page: state.page,
+    pageSize: state.pageSize,
+  });
+  if (state.type) params.set('type', state.type);
+  if (state.provider) params.set('provider', state.provider);
+
+  try {
+    const resp = await fetch(`/admin/history?${params}`);
+    if (!resp.ok) throw new Error('加载失败');
+    const data = await resp.json();
+
+    // Client-side search filter
+    let records = data.records;
+    if (state.search) {
+      const q = state.search.toLowerCase();
+      records = records.filter(r => r.prompt && r.prompt.toLowerCase().includes(q));
+    }
+
+    if (records.length === 0) {
+      gallery.innerHTML = `
+        <div class="empty-state">
+          <div class="big-icon">📭</div>
+          <div class="empty-title">暂无资产</div>
+                  <div class="empty-desc">在控制台生成图片或视频后，作品会自动保存到这里</div>
+        </div>`;
+      pagination.style.display = 'none';
+      return;
+    }
+
+    gallery.innerHTML = records.map(record => {
+      const firstFile = record.media_files[0];
+      const fileUrl = firstFile ? `/admin/history/file/${firstFile.local_path}` : '';
+      const isVideo = record.type === 'video';
+      const timeStr = new Date(record.created_at).toLocaleString('zh-CN', {
+        month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+      });
+      const sizeStr = firstFile ? formatFileSize(firstFile.file_size) : '';
+
+      return `<div class="card" data-id="${record.id}" onclick="openDetail('${record.id}')">
+        <div class="media-wrap">
+          <span class="media-badge">${isVideo ? '🎬 视频' : '🖼️ 图片'}</span>
+          <button class="media-del" onclick="deleteItem('${record.id}', event)">🗑️ 删除</button>
+          ${record.media_files.length > 1 ? `<span class="file-count">📎 ${record.media_files.length} 个文件</span>` : ''}
+          ${isVideo
+            ? `<video src="${fileUrl}" muted loop preload="metadata" onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0;"></video>`
+            : `<img src="${fileUrl}" loading="lazy" />`
+          }
+        </div>
+        <div class="card-info">
+          <div class="card-prompt" title="${escapeHtml(record.prompt)}">${escapeHtml(record.prompt || '(无提示词)')}</div>
+          <div class="card-meta">
+            <span class="provider-tag">${record.provider}</span>
+            <span class="model-tag">${record.model}</span>
+            <span>${timeStr}</span>
+            ${sizeStr ? `<span>${sizeStr}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Video click to lightbox
+    gallery.querySelectorAll('video').forEach(v => {
+      v.style.cursor = 'pointer';
+      v.addEventListener('click', e => {
+        e.stopPropagation();
+        openLightbox(v.src, true);
+      });
+    });
+    // Image click to lightbox
+    gallery.querySelectorAll('.media-wrap img').forEach(img => {
+      img.addEventListener('click', e => {
+        e.stopPropagation();
+        openLightbox(img.src, false);
+      });
+    });
+
+    // Pagination
+    if (data.totalPages > 1) {
+      pagination.style.display = 'flex';
+      $('pageInfo').textContent = `第 ${data.page} / ${data.totalPages} 页 (共 ${data.total} 条)`;
+      $('prevBtn').disabled = data.page <= 1;
+      $('firstBtn').disabled = data.page <= 1;
+      $('nextBtn').disabled = data.page >= data.totalPages;
+      $('lastBtn').disabled = data.page >= data.totalPages;
+      $('lastBtn').onclick = () => { state.page = data.totalPages; loadHistory(); };
+    } else {
+      pagination.style.display = 'none';
+    }
+
+    // Reload stats
+    loadStats();
+
+  } catch (err) {
+    gallery.innerHTML = `<div class="error-state"><div class="big-icon">⚠️</div><div>加载失败: ${escapeHtml(err.message)}</div></div>`;
+  }
+}
+
+// ─── View Toggle ──────────────────────────────────────
+function setView(view) {
+  state.view = view;
+  const gallery = $('gallery');
+  if (view === 'list') {
+    gallery.classList.add('list-view');
+    $('listViewBtn').classList.add('active');
+    $('gridViewBtn').classList.remove('active');
+  } else {
+    gallery.classList.remove('list-view');
+    $('gridViewBtn').classList.add('active');
+    $('listViewBtn').classList.remove('active');
+  }
+}
+
+// ─── Detail Panel ──────────────────────────────────────
+async function openDetail(id) {
+  try {
+    const resp = await fetch(`/admin/history/${id}`);
+    if (!resp.ok) throw new Error('记录不存在');
+    const record = await resp.json();
+
+    const firstFile = record.media_files[0];
+    const fileUrl = firstFile ? `/admin/history/file/${firstFile.local_path}` : '';
+    const isVideo = record.type === 'video';
+    const timeStr = new Date(record.created_at).toLocaleString('zh-CN');
+
+    let mediaHtml = '';
+    if (record.media_files.length > 0) {
+      if (isVideo) {
+        mediaHtml = `<div class="detail-preview"><video src="${fileUrl}" controls autoplay style="max-height:300px;"></video></div>`;
+      } else {
+        mediaHtml = `<div class="detail-preview"><img src="${fileUrl}" /></div>`;
+      }
+    }
+
+    // Additional files
+    let extraFilesHtml = '';
+    if (record.media_files.length > 1) {
+      extraFilesHtml = `<div class="detail-field">
+        <div class="detail-label">全部文件 (${record.media_files.length})</div>
+        <div class="detail-value">${record.media_files.map((f, i) =>
+          `<a href="/admin/history/file/${f.local_path}" target="_blank" style="color:var(--accent-cyan);text-decoration:none;">文件 ${i+1} (${formatFileSize(f.file_size)})</a>`
+        ).join(' · ')}</div>
+      </div>`;
+    }
+
+    const providerNames = { jimeng: '即梦', doubao: '豆包', qwen: '千问', xyq: '星元气', kling: '可灵' };
+
+    $('detailBody').innerHTML = `
+      ${mediaHtml}
+      <div class="detail-label" style="margin-bottom:6px;">提示词</div>
+      <div class="detail-prompt">${escapeHtml(record.prompt || '(无提示词)')}</div>
+      <div class="detail-field">
+        <div class="detail-label">平台 / 模型</div>
+        <div class="detail-value">
+          <span class="provider-tag" style="background:var(--accent-cyan-dim);color:var(--accent-cyan);padding:2px 8px;border-radius:4px;font-size:11px;">${providerNames[record.provider] || record.provider}</span>
+          <span class="model-tag" style="background:rgba(167,139,250,.1);color:var(--accent-purple);padding:2px 8px;border-radius:4px;font-size:11px;margin-left:4px;">${record.model}</span>
+        </div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">生成时间</div>
+        <div class="detail-value">${timeStr}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">类型</div>
+        <div class="detail-value">${isVideo ? '🎬 视频' : '🖼️ 图片'}</div>
+      </div>
+      ${firstFile ? `<div class="detail-field">
+        <div class="detail-label">文件大小</div>
+        <div class="detail-value">${formatFileSize(firstFile.file_size)}</div>
+      </div>` : ''}
+      ${extraFilesHtml}
+      ${record.extra ? `<div class="detail-field">
+        <div class="detail-label">附加信息</div>
+        <div class="detail-value" style="font-size:12px;opacity:.7;">${escapeHtml(JSON.stringify(record.extra, null, 2))}</div>
+      </div>` : ''}
+      <div class="detail-field">
+        <div class="detail-label">记录 ID</div>
+        <div class="detail-value" style="font-size:11px;opacity:.5;">${record.id}</div>
+      </div>
+      <div class="detail-actions">
+        ${firstFile ? `<button class="btn-download" onclick="window.open('/admin/history/file/${firstFile.local_path}', '_blank')">⬇️ 下载</button>` : ''}
+        <button class="btn-delete" onclick="deleteItem('${record.id}', event); closeDetail();">🗑️ 删除</button>
+      </div>
+    `;
+
+    $('detailPanel').classList.add('open');
+    $('backdrop').classList.add('show');
+  } catch (err) {
+    alert('加载详情失败: ' + err.message);
+  }
+}
+
+function closeDetail() {
+  $('detailPanel').classList.remove('open');
+  $('backdrop').classList.remove('show');
+}
+
+// ─── Delete ──────────────────────────────────────────
+async function deleteItem(id, event) {
+  event.stopPropagation();
+  if (!confirm('确定删除此记录？本地文件也会被删除。')) return;
+  try {
+    const resp = await fetch(`/admin/history/${id}`, { method: 'DELETE' });
+    if (resp.ok) {
+      loadHistory();
+      closeDetail();
+    } else {
+      alert('删除失败');
+    }
+  } catch (e) {
+    alert('删除失败: ' + e.message);
+  }
+}
+
+async function clearAll() {
+  if (!confirm('确定清空所有资产？所有本地文件将被永久删除！此操作不可撤销。')) return;
+  if (!confirm('再次确认：真的要清空所有记录吗？')) return;
+  try {
+    const resp = await fetch('/admin/history', { method: 'DELETE' });
+    if (resp.ok) {
+      loadHistory();
+    } else {
+      alert('清空失败');
+    }
+  } catch (e) {
+    alert('清空失败: ' + e.message);
+  }
+}
+
+// ─── Lightbox ──────────────────────────────────────
+function openLightbox(src, isVideo) {
+  const overlay = document.createElement('div');
+  overlay.className = 'lightbox-overlay';
+  overlay.onclick = () => overlay.remove();
+  if (isVideo) {
+    const v = document.createElement('video');
+    v.src = src; v.controls = true; v.autoplay = true;
+    v.style.maxWidth = '92vw'; v.style.maxHeight = '92vh';
+    overlay.appendChild(v);
+  } else {
+    const img = document.createElement('img');
+    img.src = src;
+    overlay.appendChild(img);
+  }
+  document.body.appendChild(overlay);
+}
+
+// ─── Utils ──────────────────────────────────────────
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function formatFileSize(bytes) {
+  if (!bytes) return '0 B';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+// ─── Start ──────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

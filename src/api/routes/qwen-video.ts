@@ -20,6 +20,7 @@ import {
   DEFAULT_QWEN_VIDEO_MODEL,
   getQwenVideoModels,
 } from "@/providers/qwen/mapper.ts";
+import historyManager from "@/lib/history-manager.ts";
 
 /**
  * 解析千问 Cookie
@@ -178,6 +179,14 @@ export default {
 
       if (response_format === "b64_json") {
         const videoBase64 = await util.fetchFileBASE64(result.videoUrl);
+        if (result.videoUrl && result.videoUrl.startsWith('http')) {
+          historyManager.recordVideoGeneration({
+            provider: 'qwen',
+            model: model || 'qwen-video',
+            prompt: prompt || '',
+            videoUrls: [result.videoUrl],
+          }).catch(() => {});
+        }
         return {
           created: util.unixTimestamp(),
           data: [{ b64_json: videoBase64 }],
@@ -186,6 +195,14 @@ export default {
         };
       }
 
+      if (result.videoUrl && result.videoUrl.startsWith('http')) {
+        historyManager.recordVideoGeneration({
+          provider: 'qwen',
+          model: model || 'qwen-video',
+          prompt: prompt || '',
+          videoUrls: [result.videoUrl],
+        }).catch(() => {});
+      }
       return {
         created: util.unixTimestamp(),
         data: [{ url: result.videoUrl }],

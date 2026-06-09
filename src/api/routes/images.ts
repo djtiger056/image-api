@@ -15,6 +15,8 @@ import {
   isKlingNativeGenerationBody,
   isKlingNativeMultiImageBody,
 } from "@/providers/kling/mapper.ts";
+import historyManager from "@/lib/history-manager.ts";
+import logger from "@/lib/logger.ts";
 
 function getProviderContext(
   request: Request,
@@ -161,6 +163,20 @@ export default {
         result.data = result.data.slice(0, n);
       }
 
+      // 异步记录生成历史并下载到本地（不阻塞响应）
+      const imageUrls = (result.data || [])
+        .map((d: any) => d.url)
+        .filter((u: any): u is string => typeof u === 'string' && u.startsWith('http'));
+      if (imageUrls.length > 0) {
+        historyManager.recordImageGeneration({
+          provider: provider.name,
+          model: request.body?.model || 'default',
+          prompt: request.body?.prompt || '',
+          imageUrls,
+          extra: { ratio: request.body?.ratio, n },
+        }).catch((err: any) => logger.warn(`[History] 图片记录失败: ${err.message}`));
+      }
+
       return result;
     },
 
@@ -177,6 +193,20 @@ export default {
       const n = Number(request.body?.n);
       if (n > 0 && Array.isArray(result.data) && result.data.length > n) {
         result.data = result.data.slice(0, n);
+      }
+
+      // 异步记录生成历史
+      const compImageUrls = (result.data || [])
+        .map((d: any) => d.url)
+        .filter((u: any): u is string => typeof u === 'string' && u.startsWith('http'));
+      if (compImageUrls.length > 0) {
+        historyManager.recordImageGeneration({
+          provider: provider.name,
+          model: request.body?.model || 'default',
+          prompt: request.body?.prompt || '',
+          imageUrls: compImageUrls,
+          extra: { ratio: request.body?.ratio, n, type: 'composition' },
+        }).catch((err: any) => logger.warn(`[History] 图片合成记录失败: ${err.message}`));
       }
 
       return result;

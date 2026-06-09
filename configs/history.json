@@ -1,0 +1,24 @@
+[
+  {
+    "id": "487bff6f-894",
+    "type": "image",
+    "provider": "doubao",
+    "model": "doubao-seedream-4.5",
+    "prompt": "西湖风景照片",
+    "created_at": "2026-06-09T09:20:04.717Z",
+    "media_files": [
+      {
+        "local_path": "output/2026-06-09/70f9f65e.png",
+        "filename": "70f9f65e.png",
+        "content_type": "image/png",
+        "file_size": 5251177,
+        "original_url": "https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc_gen_image/dc5c18a374fb4c358b8d22882cd4a7cd.jpeg~tplv-a9rns2rl98-image_raw_b.png?lk3s=8e244e95&rcl=20260609171947836DC5476B1F8F992F73&rrcfp=ddbb2dc7&x-expires=2096356800&x-signature=oxckSDEWr4%2B%2Frbnm%2BiwkgE%2Fc8C4%3D"
+      }
+    ],
+    "status": "success",
+    "extra": {
+      "ratio": "1:1",
+      "n": 1
+    }
+  }
+]
